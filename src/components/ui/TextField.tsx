@@ -25,6 +25,7 @@ export function TextField({
   leftIcon,
   secureTextEntry,
   style,
+  multiline,
   ...inputProps
 }: TextFieldProps) {
   const [isSecure, setIsSecure] = useState(secureTextEntry);
@@ -40,6 +41,7 @@ export function TextField({
       <View
         style={[
           styles.inputWrapper,
+          multiline && styles.inputWrapperMultiline,
           isFocused && styles.inputWrapperFocused,
           !!error && styles.inputWrapperError,
         ]}
@@ -48,9 +50,10 @@ export function TextField({
           <Ionicons name={leftIcon} size={20} color={iconColor} style={styles.leftIcon} />
         ) : null}
         <TextInput
-          style={[styles.input, style]}
+          style={[styles.input, multiline && styles.inputMultiline, style]}
           placeholderTextColor={colors.textFaint}
           secureTextEntry={isSecure}
+          multiline={multiline}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           autoCapitalize="none"
@@ -111,6 +114,12 @@ const styles = StyleSheet.create({
     borderColor: colors.live,
     backgroundColor: colors.background,
   },
+  inputWrapperMultiline: {
+    height: undefined,
+    minHeight: 110,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+  },
   leftIcon: {
     marginRight: spacing.sm,
   },
@@ -119,6 +128,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     height: '100%',
+  },
+  inputMultiline: {
+    height: undefined,
+    textAlignVertical: 'top',
   },
   errorRow: {
     flexDirection: 'row',

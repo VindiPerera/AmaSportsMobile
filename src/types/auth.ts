@@ -24,7 +24,6 @@ export interface RegisterPayload {
   email: string;
   password: string;
   password_confirmation: string;
-  role: UserRole;
 }
 
 export interface ForgotPasswordPayload {

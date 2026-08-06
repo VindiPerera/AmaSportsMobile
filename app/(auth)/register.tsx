@@ -6,10 +6,8 @@ import { AuthHeader } from '../../src/components/ui/AuthHeader';
 import { TextField } from '../../src/components/ui/TextField';
 import { Button } from '../../src/components/ui/Button';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
-import { RoleSelector } from '../../src/components/ui/RoleSelector';
 import { colors, spacing, typography } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
-import { UserRole } from '../../src/types/auth';
 import { validateRegisterForm, RegisterFormErrors } from '../../src/utils/validation';
 
 export default function RegisterScreen() {
@@ -17,7 +15,6 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
-  const [role, setRole] = useState<UserRole>('student');
   const [fieldErrors, setFieldErrors] = useState<RegisterFormErrors>({});
 
   const register = useAuthStore((s) => s.register);
@@ -37,9 +34,10 @@ export default function RegisterScreen() {
         email: email.trim(),
         password,
         password_confirmation: passwordConfirmation,
-        role,
       });
-      router.replace('/(protected)/(tabs)/home');
+      // A brand-new player has no sport profile yet — land them straight on
+      // Player Profile instead of Home so they set one up right away.
+      router.replace('/(protected)/(tabs)/player-profile');
     } catch {
       // Error surfaced via store `error` state.
     }
@@ -59,8 +57,6 @@ export default function RegisterScreen() {
         />
 
         <ErrorBanner message={error} />
-
-        <RoleSelector value={role} onChange={setRole} />
 
         <TextField
           label="Full Name"

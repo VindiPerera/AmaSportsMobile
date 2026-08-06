@@ -39,7 +39,15 @@
           "imageWidth": 160
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AmaX to access your photos to set your cover and profile picture.",
+          "cameraPermission": "Allow AmaX to use the camera to take your cover and profile picture."
+        }
+      ]
     ],
     "extra": {
       "apiUrl": "http://127.0.0.1:8000/api"

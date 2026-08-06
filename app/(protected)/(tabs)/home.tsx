@@ -1,18 +1,30 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
+import { playerService } from '../../../src/services/playerService';
 
 /**
- * Placeholder home/dashboard. This is the landing point after login and the
- * natural home for upcoming modules — performance summaries, team feed,
- * live scores widget, notifications, etc.
+ * Landing point after login. Shows a "complete your player profile" nudge
+ * until the player has added at least one sport (spec §4) — other tabs stay
+ * reachable the whole time, this is just a prompt, not a hard gate.
  */
 export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
+  const [hasSports, setHasSports] = useState<boolean | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      playerService
+        .fetchSports()
+        .then((sports) => setHasSports(sports.length > 0))
+        .catch(() => setHasSports(null));
+    }, [])
+  );
 
   return (
     <ScreenContainer edges={['top', 'bottom']} scroll>
@@ -39,17 +51,37 @@ export default function HomeScreen() {
         </View>
       </LinearGradient>
 
-      <Text style={styles.sectionLabel}>Coming Up</Text>
-
-      <View style={styles.placeholderCard}>
-        <View style={styles.placeholderIconWrapper}>
-          <Ionicons name="stats-chart-outline" size={28} color={colors.primary} />
-        </View>
-        <Text style={styles.placeholderTitle}>Performance dashboard coming soon</Text>
-        <Text style={styles.placeholderText}>
-          Sports, teams, analytics, live scores, and notifications will appear here.
-        </Text>
-      </View>
+      {hasSports === false ? (
+        <Pressable
+          style={({ pressed }) => [styles.ctaCard, pressed && styles.ctaCardPressed]}
+          onPress={() => router.push('/(protected)/(tabs)/player-profile')}
+        >
+          <View style={styles.placeholderIconWrapper}>
+            <Ionicons name="person-add-outline" size={28} color={colors.primary} />
+          </View>
+          <Text style={styles.placeholderTitle}>Complete your player profile</Text>
+          <Text style={styles.placeholderText}>
+            Add a sport and fill in your career stats so coaches and teams can find you.
+          </Text>
+          <View style={styles.ctaButtonRow}>
+            <Text style={styles.ctaButtonText}>Get started</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+          </View>
+        </Pressable>
+      ) : (
+        <>
+          <Text style={styles.sectionLabel}>Coming Up</Text>
+          <View style={styles.placeholderCard}>
+            <View style={styles.placeholderIconWrapper}>
+              <Ionicons name="stats-chart-outline" size={28} color={colors.primary} />
+            </View>
+            <Text style={styles.placeholderTitle}>Performance dashboard coming soon</Text>
+            <Text style={styles.placeholderText}>
+              Teams, analytics, live scores, and notifications will appear here.
+            </Text>
+          </View>
+        </>
+      )}
     </ScreenContainer>
   );
 }
@@ -161,5 +193,29 @@ const styles = StyleSheet.create({
   placeholderText: {
     ...typography.bodyMuted,
     textAlign: 'center',
+  },
+  ctaCard: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  ctaCardPressed: {
+    opacity: 0.9,
+  },
+  ctaButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  ctaButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '700',
   },
 });
