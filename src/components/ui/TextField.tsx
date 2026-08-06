@@ -30,6 +30,10 @@ export function TextField({
   const [isSecure, setIsSecure] = useState(secureTextEntry);
   const [isFocused, setIsFocused] = useState(false);
 
+  let iconColor: string = colors.textFaint;
+  if (error) iconColor = colors.live;
+  else if (isFocused) iconColor = colors.primary;
+
   return (
     <View style={styles.container}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -41,16 +45,11 @@ export function TextField({
         ]}
       >
         {leftIcon ? (
-          <Ionicons
-            name={leftIcon}
-            size={20}
-            color={colors.textMuted}
-            style={styles.leftIcon}
-          />
+          <Ionicons name={leftIcon} size={20} color={iconColor} style={styles.leftIcon} />
         ) : null}
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textFaint}
           secureTextEntry={isSecure}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -68,12 +67,17 @@ export function TextField({
             <Ionicons
               name={isSecure ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color={colors.textMuted}
+              color={colors.textFaint}
             />
           </Pressable>
         ) : null}
       </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? (
+        <View style={styles.errorRow}>
+          <Ionicons name="alert-circle" size={13} color={colors.live} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -92,7 +96,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
+    height: 54,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: radius.md,
@@ -105,6 +109,7 @@ const styles = StyleSheet.create({
   },
   inputWrapperError: {
     borderColor: colors.live,
+    backgroundColor: colors.background,
   },
   leftIcon: {
     marginRight: spacing.sm,
@@ -115,10 +120,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     height: '100%',
   },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.xs,
+  },
   errorText: {
     ...typography.caption,
     color: colors.live,
-    marginTop: spacing.xs,
     fontWeight: '500',
   },
 });

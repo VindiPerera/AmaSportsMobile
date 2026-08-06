@@ -5,11 +5,13 @@ import {
   PressableProps,
   StyleSheet,
   Text,
+  View,
   ViewStyle,
 } from 'react-native';
-import { colors, radius, spacing, typography } from '../../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, radius, shadows, spacing, typography } from '../../theme';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type Variant = 'primary' | 'energy' | 'secondary' | 'outline' | 'ghost';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
   label: string;
@@ -19,6 +21,11 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
   fullWidth?: boolean;
 }
+
+const GRADIENT_VARIANTS: Partial<Record<Variant, readonly [string, string]>> = {
+  primary: colors.gradientPrimary,
+  energy: colors.gradientEnergy,
+};
 
 /** Primary CTA button used across auth + onboarding flows. */
 export function Button({
@@ -31,6 +38,13 @@ export function Button({
   ...pressableProps
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const gradient = GRADIENT_VARIANTS[variant];
+
+  const inner = loading ? (
+    <ActivityIndicator color={gradient ? colors.white : colors.primary} />
+  ) : (
+    <Text style={[typography.button, textVariantStyles[variant]]}>{label}</Text>
+  );
 
   return (
     <Pressable
@@ -38,19 +52,23 @@ export function Button({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       style={({ pressed }) => [
-        styles.base,
-        variantStyles[variant],
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
-        style,
       ]}
       {...pressableProps}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.white : colors.primary} />
+      {gradient ? (
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.base, shadows.sm, style]}
+        >
+          {inner}
+        </LinearGradient>
       ) : (
-        <Text style={[typography.button, textVariantStyles[variant]]}>{label}</Text>
+        <View style={[styles.base, variantStyles[variant], style]}>{inner}</View>
       )}
     </Pressable>
   );
@@ -58,7 +76,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 52,
+    height: 54,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -73,23 +91,26 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+    transform: [{ scale: 0.99 }],
   },
 });
 
 const variantStyles: Record<Variant, ViewStyle> = {
   primary: { backgroundColor: colors.primary },
+  energy: { backgroundColor: colors.energy },
   secondary: { backgroundColor: colors.navy },
   outline: {
     backgroundColor: colors.transparent,
     borderWidth: 1.5,
-    borderColor: colors.primary,
+    borderColor: colors.border,
   },
   ghost: { backgroundColor: colors.transparent },
 };
 
 const textVariantStyles: Record<Variant, { color: string }> = {
   primary: { color: colors.white },
+  energy: { color: colors.white },
   secondary: { color: colors.white },
-  outline: { color: colors.primary },
+  outline: { color: colors.text },
   ghost: { color: colors.primary },
 };

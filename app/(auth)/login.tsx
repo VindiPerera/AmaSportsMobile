@@ -6,9 +6,9 @@ import { AuthHeader } from '../../src/components/ui/AuthHeader';
 import { TextField } from '../../src/components/ui/TextField';
 import { Button } from '../../src/components/ui/Button';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
+import { Logo } from '../../src/components/ui/Logo';
 import { colors, spacing, typography } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
-import { ApiError } from '../../src/types/api';
 import { validateLoginForm, LoginFormErrors } from '../../src/utils/validation';
 
 export default function LoginScreen() {
@@ -30,11 +30,8 @@ export default function LoginScreen() {
     try {
       await login({ email: email.trim(), password });
       router.replace('/(protected)/(tabs)/home');
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
-        // Unverified account — send them to OTP verification.
-        router.push({ pathname: '/(auth)/verify-otp', params: { email: email.trim() } });
-      }
+    } catch {
+      // Error surfaced via store `error` state.
     }
   };
 
@@ -45,6 +42,10 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <View style={styles.logoRow}>
+          <Logo size={56} />
+        </View>
+
         <AuthHeader title="Welcome back" subtitle="Log in to continue your training." />
 
         <ErrorBanner message={error} />
@@ -86,14 +87,17 @@ export default function LoginScreen() {
           style={styles.loginButton}
         />
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-          <Link href="/(auth)/register" asChild>
-            <Text style={styles.footerLink} suppressHighlighting>
-              Sign up
-            </Text>
-          </Link>
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>New to AmaSports?</Text>
+          <View style={styles.dividerLine} />
         </View>
+
+        <Button
+          label="Create an Account"
+          variant="outline"
+          onPress={() => router.push('/(auth)/register')}
+        />
       </ScrollView>
     </ScreenContainer>
   );
@@ -104,6 +108,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: spacing.xl,
   },
+  logoRow: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
   forgotLink: {
     ...typography.caption,
     color: colors.primary,
@@ -112,20 +121,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   loginButton: {
+    marginBottom: spacing.xl,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     marginBottom: spacing.lg,
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 'auto',
-    paddingTop: spacing.lg,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
   },
-  footerText: {
-    ...typography.bodyMuted,
-  },
-  footerLink: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '700',
+  dividerText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '600',
   },
 });

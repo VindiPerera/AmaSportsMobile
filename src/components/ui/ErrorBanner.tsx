@@ -25,6 +25,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.liveLight,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.liveBorder,
     padding: spacing.md,
     marginBottom: spacing.md,
   },

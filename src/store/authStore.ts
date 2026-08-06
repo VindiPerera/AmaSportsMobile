@@ -10,7 +10,6 @@ import {
   RegisterPayload,
   ResetPasswordPayload,
   User,
-  VerifyOtpPayload,
 } from '../types/auth';
 
 interface AuthState {
@@ -24,9 +23,7 @@ interface AuthState {
 
   hydrate: () => Promise<void>;
   login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<{ requiresVerification: boolean }>;
-  verifyOtp: (payload: VerifyOtpPayload) => Promise<void>;
-  resendOtp: (email: string) => Promise<string>;
+  register: (payload: RegisterPayload) => Promise<void>;
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<string>;
   resetPassword: (payload: ResetPasswordPayload) => Promise<string>;
   logout: () => Promise<void>;
@@ -92,45 +89,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (payload) => {
     set({ isLoading: true, error: null });
     try {
-      const result = await authService.register(payload);
-      // Backend issues a token immediately but the account is unverified
-      // until OTP confirmation — caller routes to the OTP screen for that case.
-      if (result.token && result.user) {
-        await persistSession(result.token, result.user);
-        set({
-          token: result.token,
-          user: result.user,
-          isAuthenticated: !!result.user.email_verified_at,
-          isLoading: false,
-        });
-        return { requiresVerification: !result.user.email_verified_at };
-      }
-      set({ isLoading: false });
-      return { requiresVerification: true };
-    } catch (err) {
-      set({ isLoading: false, error: errorMessage(err) });
-      throw err;
-    }
-  },
-
-  verifyOtp: async (payload) => {
-    set({ isLoading: true, error: null });
-    try {
-      const { token, user } = await authService.verifyOtp(payload);
+      const { token, user } = await authService.register(payload);
       await persistSession(token, user);
       set({ token, user, isAuthenticated: true, isLoading: false });
-    } catch (err) {
-      set({ isLoading: false, error: errorMessage(err) });
-      throw err;
-    }
-  },
-
-  resendOtp: async (email) => {
-    set({ isLoading: true, error: null });
-    try {
-      const message = await authService.resendOtp({ email });
-      set({ isLoading: false });
-      return message;
     } catch (err) {
       set({ isLoading: false, error: errorMessage(err) });
       throw err;

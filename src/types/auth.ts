@@ -6,7 +6,6 @@ export interface User {
   email: string;
   role: UserRole;
   avatar_url: string | null;
-  email_verified_at: string | null;
   created_at: string;
 }
 
@@ -37,13 +36,4 @@ export interface ResetPasswordPayload {
   token: string;
   password: string;
   password_confirmation: string;
-}
-
-export interface VerifyOtpPayload {
-  email: string;
-  otp: string;
-}
-
-export interface ResendOtpPayload {
-  email: string;
 }

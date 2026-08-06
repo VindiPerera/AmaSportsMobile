@@ -17,11 +17,11 @@ export function AuthHeader({ title, subtitle, showBack = false }: AuthHeaderProp
         <Pressable
           onPress={() => router.back()}
           hitSlop={12}
-          style={styles.backButton}
+          style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={colors.text} />
         </Pressable>
       ) : null}
       <Text style={styles.title}>{title}</Text>
@@ -43,6 +43,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  backButtonPressed: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
   },
   title: {
     ...typography.h1,

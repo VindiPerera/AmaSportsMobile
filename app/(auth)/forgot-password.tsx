@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -52,16 +52,21 @@ export default function ForgotPasswordScreen() {
       >
         <AuthHeader
           title="Forgot password?"
-          subtitle="Enter the email linked to your account and we'll send you a reset link."
+          subtitle="Enter the email linked to your account and we'll send you a reset code."
           showBack
         />
+
+        <View style={styles.iconBadge}>
+          <Ionicons name="key-outline" size={30} color={colors.primary} />
+        </View>
 
         <ErrorBanner message={error} />
 
         {successMessage ? (
-          <Text style={styles.successBanner}>
-            <Ionicons name="checkmark-circle" size={16} color={colors.success} /> {successMessage}
-          </Text>
+          <View style={styles.successBanner}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+            <Text style={styles.successText}>{successMessage}</Text>
+          </View>
         ) : null}
 
         <TextField
@@ -77,13 +82,17 @@ export default function ForgotPasswordScreen() {
         />
 
         <Button
-          label="Send Reset Link"
+          label="Send Reset Code"
           onPress={handleSubmit}
           loading={isLoading}
           style={styles.button}
         />
 
-        <Text style={styles.backToLogin} onPress={() => router.replace('/(auth)/login')} suppressHighlighting>
+        <Text
+          style={styles.backToLogin}
+          onPress={() => router.replace('/(auth)/login')}
+          suppressHighlighting
+        >
           Back to Log In
         </Text>
       </ScrollView>
@@ -96,13 +105,30 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: spacing.xl,
   },
+  iconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
   successBanner: {
-    ...typography.caption,
-    color: colors.success,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
     backgroundColor: colors.successLight,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.successBorder,
     padding: spacing.md,
     marginBottom: spacing.md,
+  },
+  successText: {
+    ...typography.caption,
+    color: colors.success,
+    flex: 1,
     fontWeight: '600',
   },
   button: {

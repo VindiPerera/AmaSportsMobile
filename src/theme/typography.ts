@@ -6,6 +6,13 @@ import { colors } from './colors';
  * `fontFamily` here once brand fonts are added to `assets/fonts`.
  */
 export const typography = {
+  display: {
+    fontSize: 40,
+    fontWeight: '800',
+    lineHeight: 46,
+    letterSpacing: -0.5,
+    color: colors.text,
+  } as TextStyle,
   h1: {
     fontSize: 32,
     fontWeight: '700',
@@ -46,5 +53,13 @@ export const typography = {
     fontSize: 16,
     fontWeight: '600',
     lineHeight: 22,
+  } as TextStyle,
+  overline: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.primary,
   } as TextStyle,
 } as const;

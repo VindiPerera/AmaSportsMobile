@@ -5,10 +5,8 @@ import {
   ForgotPasswordPayload,
   LoginPayload,
   RegisterPayload,
-  ResendOtpPayload,
   ResetPasswordPayload,
   User,
-  VerifyOtpPayload,
 } from '../types';
 
 /** All calls to the `/auth/*` and `/user` endpoints live here. */
@@ -44,22 +42,6 @@ export const authService = {
   async resetPassword(payload: ResetPasswordPayload) {
     const { data } = await apiClient.post<ApiSuccessResponse<null>>(
       '/auth/reset-password',
-      payload
-    );
-    return data.message;
-  },
-
-  async verifyOtp(payload: VerifyOtpPayload) {
-    const { data } = await apiClient.post<ApiSuccessResponse<AuthTokenPayload>>(
-      '/auth/verify-otp',
-      payload
-    );
-    return data.data;
-  },
-
-  async resendOtp(payload: ResendOtpPayload) {
-    const { data } = await apiClient.post<ApiSuccessResponse<null>>(
-      '/auth/resend-otp',
       payload
     );
     return data.message;

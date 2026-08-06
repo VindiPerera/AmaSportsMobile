@@ -22,7 +22,6 @@ app/                        Expo Router routes (file-based navigation)
     register.tsx
     forgot-password.tsx
     reset-password.tsx
-    verify-otp.tsx
   (protected)/                 Authenticated app (route-guarded)
     _layout.tsx                 Redirects to /login if not authenticated
     (tabs)/
@@ -70,11 +69,13 @@ EXPO_PUBLIC_API_URL=http://127.0.0.1:8000/api
 
 1. **Splash** (`app/index.tsx`) waits for Zustand stores to hydrate from secure storage, then redirects to onboarding, login, or the authenticated home tab.
 2. **Onboarding** (`app/onboarding.tsx`) — 3 swipeable slides, shown once (persisted via `onboardingStore`).
-3. **Login / Register / Forgot Password / Reset Password / OTP Verification** — all under `app/(auth)/`.
+3. **Login / Register / Forgot Password / Reset Password** — all under `app/(auth)/`. Registration logs the user straight in — there is no email/OTP verification step.
 4. On successful login/registration, the API token + user are persisted via `expo-secure-store` and the app redirects into `app/(protected)/`.
 5. **Route protection:** `app/(protected)/_layout.tsx` redirects to `/login` whenever `authStore.isAuthenticated` is false — this is the single guard every future authenticated screen inherits automatically.
 6. **Logout** (Profile tab) clears both server-side (Sanctum token revoke) and local session state.
 7. A `401` response from any API call automatically force-logs-out the user (see `apiClient.ts`'s `setUnauthorizedHandler`).
+
+Forgot/reset password still uses a 6-digit emailed code (`OtpService` on the backend) — that flow is unaffected.
 
 ## API error handling
 

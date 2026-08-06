@@ -32,19 +32,14 @@ export default function RegisterScreen() {
     if (Object.keys(errors).length > 0) return;
 
     try {
-      const { requiresVerification } = await register({
+      await register({
         name: name.trim(),
         email: email.trim(),
         password,
         password_confirmation: passwordConfirmation,
         role,
       });
-
-      if (requiresVerification) {
-        router.push({ pathname: '/(auth)/verify-otp', params: { email: email.trim() } });
-      } else {
-        router.replace('/(protected)/(tabs)/home');
-      }
+      router.replace('/(protected)/(tabs)/home');
     } catch {
       // Error surfaced via store `error` state.
     }
@@ -115,6 +110,7 @@ export default function RegisterScreen() {
 
         <Button
           label="Create Account"
+          variant="energy"
           onPress={handleRegister}
           loading={isLoading}
           style={styles.registerButton}
@@ -145,7 +141,8 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   footerText: {
     ...typography.bodyMuted,

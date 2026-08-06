@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dotActive: {
-    width: 24,
+    width: 28,
     backgroundColor: colors.primary,
   },
 });

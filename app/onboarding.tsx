@@ -1,17 +1,31 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import PagerView from 'react-native-pager-view';
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { router } from 'expo-router';
 import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { Button } from '../src/components/ui/Button';
+import { Logo } from '../src/components/ui/Logo';
 import { SlideDots } from '../src/components/onboarding/SlideDots';
 import { OnboardingSlideView } from '../src/components/onboarding/OnboardingSlideView';
 import { ONBOARDING_SLIDES } from '../src/constants/onboarding';
-import { colors, spacing, typography } from '../src/theme';
+import { colors, radius, spacing, typography } from '../src/theme';
 import { useOnboardingStore } from '../src/store/onboardingStore';
 
+/**
+ * Uses a horizontally-paging ScrollView instead of react-native-pager-view
+ * so the carousel works on iOS, Android, AND web from one implementation —
+ * react-native-pager-view has no web target and breaks the Metro web bundle.
+ */
 export default function OnboardingScreen() {
-  const pagerRef = useRef<PagerView>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const { width } = useWindowDimensions();
   const completeOnboarding = useOnboardingStore((s) => s.complete);
@@ -28,37 +42,53 @@ export default function OnboardingScreen() {
       goToAuth();
       return;
     }
-    pagerRef.current?.setPage(activeIndex + 1);
+    const nextIndex = activeIndex + 1;
+    scrollRef.current?.scrollTo({ x: nextIndex * width, animated: true });
+    setActiveIndex(nextIndex);
+  };
+
+  const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(e.nativeEvent.contentOffset.x / width);
+    setActiveIndex(nextIndex);
   };
 
   return (
     <ScreenContainer edges={['top', 'bottom']}>
       <View style={styles.topRow}>
-        <View />
-        {!isLastSlide && (
-          <Text style={styles.skipText} onPress={goToAuth} suppressHighlighting>
-            Skip
-          </Text>
+        <Logo size={36} />
+        {!isLastSlide ? (
+          <Pressable
+            onPress={goToAuth}
+            style={({ pressed }) => [styles.skipButton, pressed && styles.skipButtonPressed]}
+            hitSlop={8}
+          >
+            <Text style={styles.skipText}>Skip</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.skipButton} />
         )}
       </View>
 
-      <PagerView
-        ref={pagerRef}
-        style={[styles.pager, { width }]}
-        initialPage={0}
-        onPageSelected={(e) => setActiveIndex(e.nativeEvent.position)}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        style={styles.pager}
       >
         {ONBOARDING_SLIDES.map((slide) => (
-          <View key={slide.id} style={styles.page}>
+          <View key={slide.id} style={[styles.page, { width }]}>
             <OnboardingSlideView slide={slide} />
           </View>
         ))}
-      </PagerView>
+      </ScrollView>
 
       <View style={styles.footer}>
         <SlideDots count={ONBOARDING_SLIDES.length} activeIndex={activeIndex} />
         <Button
           label={isLastSlide ? 'Get Started' : 'Next'}
+          variant={isLastSlide ? 'energy' : 'primary'}
           onPress={handleNext}
           style={styles.button}
         />
@@ -76,10 +106,22 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.lg,
     paddingHorizontal: spacing.lg,
   },
+  skipButton: {
+    height: 36,
+    minWidth: 64,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+  },
+  skipButtonPressed: {
+    backgroundColor: colors.border,
+  },
   skipText: {
-    ...typography.body,
+    ...typography.caption,
     color: colors.textMuted,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   pager: {
     flex: 1,

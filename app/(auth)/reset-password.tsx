@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { AuthHeader } from '../../src/components/ui/AuthHeader';
 import { TextField } from '../../src/components/ui/TextField';
 import { Button } from '../../src/components/ui/Button';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
-import { spacing } from '../../src/theme';
+import { colors, radius, spacing } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { isValidPassword } from '../../src/utils/validation';
 
@@ -71,6 +72,10 @@ export default function ResetPasswordScreen() {
           showBack
         />
 
+        <View style={styles.iconBadge}>
+          <Ionicons name="lock-open-outline" size={30} color={colors.primary} />
+        </View>
+
         <ErrorBanner message={error} />
 
         <TextField
@@ -132,6 +137,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: spacing.xl,
+  },
+  iconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
   },
   button: {
     marginTop: spacing.sm,
