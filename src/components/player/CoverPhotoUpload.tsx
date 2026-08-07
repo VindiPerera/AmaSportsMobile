@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '../../theme';
+import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { PickedImage } from '../../types';
 
 interface CoverPhotoUploadProps {
@@ -12,7 +12,7 @@ interface CoverPhotoUploadProps {
   onPick: (image: PickedImage) => void;
 }
 
-/** Dashed rectangular "Upload Cover Photo" box from the reference mockups. */
+/** Dashed rectangular "Upload Cover Photo" box matching reference mockup styling. */
 export function CoverPhotoUpload({ existingUrl, picked, onPick }: CoverPhotoUploadProps) {
   const handlePress = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,6 +34,7 @@ export function CoverPhotoUpload({ existingUrl, picked, onPick }: CoverPhotoUplo
         uri: asset.uri,
         name: asset.fileName ?? `cover-${Date.now()}.jpg`,
         type: asset.mimeType ?? 'image/jpeg',
+        file: asset.file,
       });
     }
   };
@@ -41,13 +42,16 @@ export function CoverPhotoUpload({ existingUrl, picked, onPick }: CoverPhotoUplo
   const previewUri = picked?.uri ?? existingUrl ?? null;
 
   return (
-    <Pressable onPress={handlePress} style={styles.container} accessibilityRole="button">
+    <Pressable onPress={handlePress} style={[styles.container, shadows.sm]} accessibilityRole="button">
       {previewUri ? (
         <Image source={{ uri: previewUri }} style={styles.image} />
       ) : (
         <View style={styles.placeholder}>
-          <Ionicons name="image-outline" size={22} color={colors.textMuted} />
+          <View style={styles.iconCircle}>
+            <Ionicons name="image-outline" size={24} color={colors.primary} />
+          </View>
           <Text style={styles.placeholderText}>Upload Cover Photo</Text>
+          <Text style={styles.placeholderSubtext}>Tap to browse photo library</Text>
         </View>
       )}
       <View style={styles.editBadge}>
@@ -60,8 +64,8 @@ export function CoverPhotoUpload({ existingUrl, picked, onPick }: CoverPhotoUplo
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    height: 140,
-    borderRadius: radius.lg,
+    height: 150,
+    borderRadius: radius.card,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
@@ -77,22 +81,39 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: 4,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   placeholderText: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  placeholderSubtext: {
     ...typography.caption,
     color: colors.textMuted,
-    fontWeight: '600',
+    fontSize: 12,
   },
   editBadge: {
     position: 'absolute',
     bottom: spacing.sm,
     right: spacing.sm,
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
   },
 });
+

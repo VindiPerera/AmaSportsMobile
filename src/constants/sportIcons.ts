@@ -13,6 +13,15 @@ const SPORT_ICON_MAP: Partial<Record<string, keyof typeof Ionicons.glyphMap>> = 
   chess: 'grid-outline',
   athletics: 'walk-outline',
   badminton: 'tennisball-outline',
+  'base-ball': 'baseball-outline',
+  netball: 'basketball-outline',
+  kabadi: 'people-outline',
+  judo: 'body-outline',
+  rugby: 'american-football-outline',
+  karate: 'body-outline',
+  volleyball: 'basketball-outline',
+  'beach-volleyball': 'sunny-outline',
+  elle: 'baseball-outline',
 };
 
 export function sportIconFor(slug: string): keyof typeof Ionicons.glyphMap {

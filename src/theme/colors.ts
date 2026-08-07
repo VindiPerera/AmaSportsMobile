@@ -12,13 +12,13 @@ export const colors = {
   primaryDark: '#0E42B3',
   primaryLight: '#E8EFFE',
 
-  // Secondary "energy" accent — sport intensity, used sparingly for
-  // highlights, badges, and gradient pairings against primary.
+  // Secondary "energy" accent — sport intensity, highlights & badges
   energy: '#FF6B35',
   energyDark: '#E4501B',
   energyLight: '#FFE8DE',
 
   navy: '#0B1F3A',
+  navyDark: '#0B1E3D',
 
   success: '#22C55E',
   successLight: '#DCFCE7',
@@ -31,8 +31,9 @@ export const colors = {
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
 
-  background: '#FFFFFF',
-  card: '#F8FAFC',
+  background: '#F8FAFC',
+  card: '#FFFFFF',
+  cardSubtle: '#F1F5F9',
   border: '#E2E8F0',
   borderStrong: '#CBD5E1',
 
@@ -45,10 +46,12 @@ export const colors = {
   black: '#000000',
   transparent: 'transparent',
 
-  // Gradient pairs — [start, end]. Angled diagonally (see components) for a
-  // dynamic, athletic feel rather than a flat wash.
-  gradientPrimary: ['#155EEF', '#0B1F3A'] as const,
+  // Gradient pairs — [start, end]
+  gradientPrimary: ['#0B1E3D', '#1B3A6B'] as const,
+  gradientHero: ['#0B1E3D', '#1B3A6B'] as const,
+  gradientDark: ['#071224', '#0F264A'] as const,
   gradientEnergy: ['#FF6B35', '#EF4444'] as const,
+  gradientAccent: ['#155EEF', '#004EEB'] as const,
 } as const;
 
 export type ColorToken = keyof typeof colors;

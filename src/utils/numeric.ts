@@ -19,3 +19,8 @@ export function toDisplayString(value: number | string | null | undefined): stri
   if (value === null || value === undefined) return '';
   return String(value);
 }
+
+/** Strips a stat-table row the player added but never filled in, before submit. */
+export function isBlankRow(row: Record<string, string | boolean>): boolean {
+  return Object.values(row).every((value) => value === '' || value === false);
+}

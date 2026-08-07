@@ -1,3 +1,5 @@
+import { DominantHand } from './player';
+
 /** See cricket.ts — same string-form / number-API split. */
 export interface HockeyCareerRowForm {
   format_id: string;
@@ -26,8 +28,6 @@ export interface HockeyRecentMatchRowForm {
   lost: boolean;
   drawn: boolean;
 }
-
-export type DominantHand = 'right' | 'left';
 
 export interface HockeyProfileFormValues {
   born: string;
