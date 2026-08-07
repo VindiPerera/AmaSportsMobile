@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { parseFloatOrNull, parseIntOrNull } from '../utils/numeric';
+import { isBlankRow, parseFloatOrNull, parseIntOrNull } from '../utils/numeric';
 import {
   ApiSuccessResponse,
   CricketProfileFormValues,
@@ -15,21 +15,28 @@ function idOrNull(value: string): number | null {
   return parseIntOrNull(value);
 }
 
-/** Strips blank rows (a row the player added but never filled in) before submit. */
-function isBlankRow(row: Record<string, string | boolean>): boolean {
-  return Object.values(row).every((value) => value === '' || value === false);
-}
-
 function buildProfileFormData(payload: UpdatePlayerProfilePayload): FormData {
   const formData = new FormData();
   if (payload.full_name !== undefined) formData.append('full_name', payload.full_name);
   if (payload.country !== undefined) formData.append('country', payload.country);
   if (payload.cover_photo) {
-    // React Native's FormData accepts this {uri,name,type} shape directly.
-    formData.append('cover_photo', payload.cover_photo as unknown as Blob);
+    // On web, expo-image-picker's {uri,name,type} shape isn't a real file —
+    // browser FormData would just stringify it to "[object Object]" and fail
+    // Laravel's `image` rule. Use the picker's web-only `file` (a real
+    // browser File) there; native RN's FormData polyfill accepts the plain
+    // {uri,name,type} object directly.
+    formData.append(
+      'cover_photo',
+      (payload.cover_photo.file ?? (payload.cover_photo as unknown)) as Blob,
+      payload.cover_photo.file ? payload.cover_photo.name : undefined
+    );
   }
   if (payload.photo) {
-    formData.append('photo', payload.photo as unknown as Blob);
+    formData.append(
+      'photo',
+      (payload.photo.file ?? (payload.photo as unknown)) as Blob,
+      payload.photo.file ? payload.photo.name : undefined
+    );
   }
   return formData;
 }
@@ -151,15 +158,11 @@ function hockeyFormToPayload(values: HockeyProfileFormValues) {
 }
 
 export const playerService = {
+  // No addSport() here — a sport only ever gets attached to the player by
+  // successfully submitting that sport's own profile form (see e.g.
+  // saveCricketProfile below), never just by picking it in the UI.
   async fetchSports() {
     const { data } = await apiClient.get<ApiSuccessResponse<PlayerSportEntry[]>>('/player/sports');
-    return data.data;
-  },
-
-  async addSport(sportId: number) {
-    const { data } = await apiClient.post<ApiSuccessResponse<PlayerSportEntry>>('/player/sports', {
-      sport_id: sportId,
-    });
     return data.data;
   },
 
@@ -169,10 +172,14 @@ export const playerService = {
   },
 
   async updateProfile(payload: UpdatePlayerProfilePayload) {
+    // Deliberately no explicit Content-Type header here: axios/React Native
+    // auto-detects a FormData body and sets `multipart/form-data` with the
+    // required `boundary=...` itself. Setting the header manually (without
+    // a boundary) makes the server unable to parse the multipart body at
+    // all, which fails Laravel's `image` rule with a 422.
     const { data } = await apiClient.post<ApiSuccessResponse<PlayerProfile>>(
       '/player/profile',
-      buildProfileFormData(payload),
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      buildProfileFormData(payload)
     );
     return data.data;
   },

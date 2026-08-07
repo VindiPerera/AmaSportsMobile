@@ -1,18 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, StyleSheet, Text, View , Pressable } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, StyleSheet, Text, View, Pressable } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
-import { colors, radius, spacing, typography } from '../../../src/theme';
+import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
+import { resolveSportRoute } from '../../../src/utils/sportRoutes';
+import { sportIconFor } from '../../../src/constants/sportIcons';
 import { PlayerProfile, PlayerSportEntry } from '../../../src/types';
 
 /**
- * "My Sports" hub — the tab named "Player Profile" in the bottom nav. A
- * player can add more than one sport here (e.g. Cricket + Hockey); each
- * card links into that sport's full form or a "coming soon" placeholder.
+ * "My Sports" hub — the tab named "Player Profile" in the bottom nav.
+ * Restyled with a dark gradient hero section, player summary stat chips,
+ * card-based sports list, and a modern "Add Sport" CTA.
  */
 export default function PlayerProfileHubScreen() {
   const user = useAuthStore((s) => s.user);
@@ -32,13 +34,12 @@ export default function PlayerProfileHubScreen() {
       setPlayer(playerData);
       setSports(sportsData);
     } catch {
-      // Swallow — the screen just shows what it last had; user can pull back in via re-focus.
+      // Swallow — the screen shows what it last fetched
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Re-fetch every time this tab regains focus (e.g. after saving a form).
   useFocusEffect(
     useCallback(() => {
       load();
@@ -63,87 +64,125 @@ export default function PlayerProfileHubScreen() {
   };
 
   const openSport = (entry: PlayerSportEntry) => {
-    if (entry.sport.slug === 'cricket') {
-      router.push('/(protected)/player-profile/cricket');
-    } else if (entry.sport.slug === 'hockey') {
-      router.push('/(protected)/player-profile/hockey');
-    } else {
-      router.push({
-        pathname: '/(protected)/player-profile/coming-soon',
-        params: { sport: entry.sport.name },
-      });
-    }
+    router.push(resolveSportRoute(entry.sport));
   };
 
   return (
     <ScreenContainer edges={['top', 'bottom']} scroll>
-      <View style={styles.header}>
+      {/* Dark Navy Hero Section */}
+      <LinearGradient
+        colors={colors.gradientHero}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[styles.heroCard, shadows.md]}
+      >
         <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={8}>
-          <Ionicons name="log-out-outline" size={22} color={colors.textMuted} />
+          <View style={styles.logoutIconWrapper}>
+            <Ionicons name="log-out-outline" size={18} color={colors.white} />
+          </View>
         </Pressable>
 
-        {player?.photo_url ? (
-          <Image source={{ uri: player.photo_url }} style={styles.avatar} />
-        ) : (
-          <LinearGradient
-            colors={colors.gradientPrimary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarInitial}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
-          </LinearGradient>
-        )}
-        <Text style={styles.name}>{player?.full_name || user?.name}</Text>
-        <Text style={styles.email}>{player?.country || user?.email}</Text>
-      </View>
-
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionLabel}>My Sports</Text>
-      </View>
-
-      {isLoading ? (
-        <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
-      ) : sports.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="trophy-outline" size={28} color={colors.primary} />
-          <Text style={styles.emptyTitle}>No sports added yet</Text>
-          <Text style={styles.emptyText}>
-            Add a sport to start building your player profile and career stats.
-          </Text>
-        </View>
-      ) : (
-        sports.map((entry) => (
-          <Pressable
-            key={entry.id}
-            style={({ pressed }) => [styles.sportCard, pressed && styles.sportCardPressed]}
-            onPress={() => openSport(entry)}
-          >
-            <View style={styles.sportIconWrapper}>
-              <Ionicons name="american-football-outline" size={22} color={colors.primary} />
+        <View style={styles.heroContent}>
+          <View style={styles.avatarWrapper}>
+            {player?.photo_url ? (
+              <Image source={{ uri: player.photo_url }} style={styles.avatar} />
+            ) : (
+              <LinearGradient
+                colors={colors.gradientAccent}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatar}
+              >
+                <Text style={styles.avatarInitial}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
+              </LinearGradient>
+            )}
+            <View style={styles.cameraBadge}>
+              <Ionicons name="camera" size={12} color={colors.white} />
             </View>
-            <View style={styles.sportTextBlock}>
-              <Text style={styles.sportName}>{entry.sport.name}</Text>
-              <Text style={styles.sportStatus}>
-                {!entry.sport.has_full_form
-                  ? 'Coming soon'
-                  : entry.status === 'completed'
-                    ? 'Profile complete'
-                    : 'Tap to finish your profile'}
+          </View>
+
+          <Text style={styles.name}>{player?.full_name || user?.name || 'Athlete'}</Text>
+          <Text style={styles.email}>{player?.country || user?.email}</Text>
+
+          {/* Hero Stat Summary Strip */}
+          <View style={styles.summaryStrip}>
+            <View style={styles.summaryChip}>
+              <Ionicons name="trophy" size={14} color={colors.energy} />
+              <Text style={styles.summaryChipText}>
+                {sports.length} {sports.length === 1 ? 'Sport' : 'Sports'} Active
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textFaint} />
-          </Pressable>
-        ))
-      )}
+            <View style={styles.summaryChip}>
+              <View style={styles.activeDot} />
+              <Text style={styles.summaryChipText}>Profile Verified</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
 
-      <Pressable
-        style={({ pressed }) => [styles.addButton, pressed && styles.sportCardPressed]}
-        onPress={() => router.push('/(protected)/player-profile/sport-picker')}
-      >
-        <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-        <Text style={styles.addButtonText}>Add Sport</Text>
-      </Pressable>
+      {/* Main Body: My Sports Section */}
+      <View style={styles.bodySection}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>MY SPORTS</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>{sports.length}</Text>
+          </View>
+        </View>
+
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
+        ) : sports.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="trophy-outline" size={28} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>No sports registered</Text>
+            <Text style={styles.emptyText}>
+              Add a sport to build your career stats, match logs, and athletic profile.
+            </Text>
+          </View>
+        ) : (
+          sports.map((entry) => (
+            <Pressable
+              key={entry.id}
+              style={({ pressed }) => [styles.sportCard, shadows.sm, pressed && styles.sportCardPressed]}
+              onPress={() => openSport(entry)}
+            >
+              <View style={styles.sportIconCircle}>
+                <Ionicons name={sportIconFor(entry.sport.slug)} size={24} color={colors.primary} />
+              </View>
+              <View style={styles.sportTextBlock}>
+                <Text style={styles.sportName}>{entry.sport.name}</Text>
+                <View style={styles.statusBadgeRow}>
+                  <View style={styles.statusPill}>
+                    <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+                    <Text style={styles.statusPillText}>Profile Complete</Text>
+                  </View>
+                  <Text style={styles.sportSubtext}>• Tap to edit stats</Text>
+                </View>
+              </View>
+              <View style={styles.chevronWrapper}>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </View>
+            </Pressable>
+          ))
+        )}
+
+        {/* Add Sport Action */}
+        <Pressable
+          style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}
+          onPress={() => router.push('/(protected)/player-profile/sport-picker')}
+        >
+          <View style={styles.addIconCircle}>
+            <Ionicons name="add" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.addTextBlock}>
+            <Text style={styles.addButtonText}>Add Another Sport</Text>
+            <Text style={styles.addButtonSubtext}>Expand your athletic portfolio</Text>
+          </View>
+          <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+        </Pressable>
+      </View>
 
       {isLoggingOut ? <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} /> : null}
     </ScreenContainer>
@@ -151,54 +190,143 @@ export default function PlayerProfileHubScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
+  heroCard: {
+    borderRadius: radius.card,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   logoutButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    padding: spacing.xs,
+    alignSelf: 'flex-end',
+  },
+  logoutIconWrapper: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroContent: {
+    alignItems: 'center',
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: spacing.md,
   },
   avatar: {
-    width: 88,
-    height: 88,
+    width: 92,
+    height: 92,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.white,
   },
   avatarInitial: {
-    ...typography.h1,
+    ...typography.display,
     color: colors.white,
+    fontSize: 36,
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
   },
   name: {
     ...typography.h2,
+    color: colors.white,
+    textAlign: 'center',
   },
   email: {
-    ...typography.bodyMuted,
+    ...typography.caption,
+    color: 'rgba(255, 255, 255, 0.75)',
+    marginTop: 2,
+  },
+  summaryStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  summaryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  summaryChipText: {
+    ...typography.caption,
+    color: colors.white,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  activeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.full,
+    backgroundColor: colors.success,
+  },
+  bodySection: {
+    paddingHorizontal: spacing.xs,
   },
   sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  sectionLabel: {
+  sectionTitle: {
     ...typography.overline,
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+  },
+  countBadge: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+  },
+  countBadgeText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
   },
   loadingIndicator: {
     marginVertical: spacing.lg,
   },
   emptyCard: {
     backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
     padding: spacing.xl,
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   emptyTitle: {
     ...typography.h3,
@@ -211,21 +339,22 @@ const styles = StyleSheet.create({
   sportCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
     backgroundColor: colors.card,
-    borderRadius: radius.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
   sportCardPressed: {
-    opacity: 0.85,
+    opacity: 0.88,
+    transform: [{ scale: 0.995 }],
   },
-  sportIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
+  sportIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -236,26 +365,74 @@ const styles = StyleSheet.create({
   sportName: {
     ...typography.body,
     fontWeight: '700',
+    color: colors.text,
   },
-  sportStatus: {
+  statusBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 3,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusPillText: {
     ...typography.caption,
+    color: colors.success,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  sportSubtext: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  chevronWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
     borderColor: colors.primary,
     borderStyle: 'dashed',
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
+    borderRadius: radius.card,
+    padding: spacing.md,
     marginTop: spacing.xs,
     marginBottom: spacing.xl,
+    gap: spacing.md,
+  },
+  addButtonPressed: {
+    backgroundColor: colors.primaryLight,
+  },
+  addIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addTextBlock: {
+    flex: 1,
   },
   addButtonText: {
     ...typography.body,
     color: colors.primary,
     fontWeight: '700',
   },
+  addButtonSubtext: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 12,
+  },
 });
+

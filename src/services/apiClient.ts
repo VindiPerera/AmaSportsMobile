@@ -9,7 +9,13 @@ export const apiClient: AxiosInstance = axios.create({
   timeout: API_TIMEOUT_MS,
   headers: {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
+    // Deliberately no default Content-Type here. Axios sets
+    // `application/json` automatically for plain object payloads, and
+    // `multipart/form-data; boundary=...` automatically for FormData bodies
+    // (see playerService.updateProfile). A hardcoded default of
+    // 'application/json' would make axios JSON.stringify every FormData
+    // body instead — silently turning uploaded photos into the string
+    // "[object Object]" and failing Laravel's `image` validation with a 422.
   },
 });
 
