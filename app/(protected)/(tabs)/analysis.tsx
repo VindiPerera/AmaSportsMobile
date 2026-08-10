@@ -3,11 +3,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { Button } from '../../../src/components/ui/Button';
 import { CricketAnalysisScreen } from '../../../src/components/analysis/CricketAnalysisScreen';
 import { ComingSoonAnalysis } from '../../../src/components/analysis/ComingSoonAnalysis';
 import { AnalysisSkeleton } from '../../../src/components/analysis/AnalysisSkeleton';
 import { colors, radius, spacing, typography } from '../../../src/theme';
 import { playerService } from '../../../src/services/playerService';
+import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { sportIconFor } from '../../../src/constants/sportIcons';
 import { PlayerProfile, PlayerSportEntry } from '../../../src/types';
 
@@ -27,12 +29,16 @@ export default function AnalysisScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
+  const subscriptionStatus = useSubscriptionStore((s) => s.status);
+  const refreshSubscription = useSubscriptionStore((s) => s.refresh);
+
   const load = useCallback(async () => {
     setError(null);
     try {
       const [playerData, sportsData] = await Promise.all([
         playerService.fetchProfile(),
         playerService.fetchSports(),
+        refreshSubscription(),
       ]);
       setPlayer(playerData);
       setSports(sportsData);
@@ -42,7 +48,7 @@ export default function AnalysisScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshSubscription]);
 
   useFocusEffect(
     useCallback(() => {
@@ -70,6 +76,32 @@ export default function AnalysisScreen() {
           <Pressable style={styles.retryButton} onPress={() => { setIsLoading(true); load(); }}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (subscriptionStatus && !subscriptionStatus.is_active) {
+    return (
+      <ScreenContainer edges={['top', 'bottom']}>
+        <View style={styles.centerState}>
+          <View style={styles.iconWrapper}>
+            <Ionicons name="lock-closed" size={32} color={colors.primary} />
+          </View>
+          <Text style={styles.centerTitle}>
+            {subscriptionStatus.has_subscribed ? 'Subscription expired' : 'Unlock Analysis'}
+          </Text>
+          <Text style={styles.centerText}>
+            {subscriptionStatus.has_subscribed
+              ? 'Renew your $10/year AmaSports subscription to keep viewing performance analytics.'
+              : 'A $10/year AmaSports subscription unlocks the Analysis tab and adding new sports.'}
+          </Text>
+          <Button
+            label={subscriptionStatus.has_subscribed ? 'Renew Subscription' : 'Subscribe Now'}
+            onPress={() => router.push('/(protected)/subscription/paywall')}
+            fullWidth={false}
+            style={styles.subscribeCta}
+          />
         </View>
       </ScreenContainer>
     );
@@ -209,6 +241,10 @@ const styles = StyleSheet.create({
   retryButtonText: {
     ...typography.button,
     color: colors.white,
+  },
+  subscribeCta: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
   pickerContainer: {
     marginBottom: spacing.sm,

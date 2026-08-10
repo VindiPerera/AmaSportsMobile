@@ -1,25 +1,55 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { SubscriptionStatusChip } from '../../../src/components/subscription/SubscriptionStatusChip';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
+import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { playerService } from '../../../src/services/playerService';
+import { matchService } from '../../../src/services/matchService';
+import { seedInitialLiveScores, subscribeToLiveScore, MultiSportLiveScore } from '../../../src/services/firebaseService';
 import { resolveSportRoute } from '../../../src/utils/sportRoutes';
 import { sportIconFor } from '../../../src/constants/sportIcons';
-import { CricketAnalysisResponse, PlayerProfile, PlayerSportEntry } from '../../../src/types';
+import { CricketAnalysisResponse, MatchSummary, PlayerProfile, PlayerSportEntry } from '../../../src/types';
 import { fmtDecimal, fmtNumber, fmtPercent } from '../../../src/utils/statFormat';
 
+function getMatchScoreDisplay(item: MatchSummary, liveData?: MultiSportLiveScore): string {
+  const backendScore = (item.live_score ?? null) as Record<string, any> | null;
+  if (item.sport.slug === 'cricket') {
+    const cs = liveData?.cricket_score ?? backendScore?.cricket_score;
+    const battingTeam = cs?.team_a && cs?.team_b ? (cs.innings === 2 ? cs.team_b : cs.team_a) : null;
+    const runs = battingTeam?.runs ?? cs?.runs ?? 0;
+    const wickets = battingTeam?.wickets ?? cs?.wickets ?? 0;
+    const oversText = battingTeam ? `${battingTeam.overs}.${battingTeam.balls}` : String(cs?.overs ?? 0);
+    return `${runs}/${wickets} (${oversText} ov)`;
+  } else if (liveData?.racket_scores ?? backendScore?.racket_scores) {
+    const rs = liveData?.racket_scores ?? backendScore?.racket_scores;
+    return `Set ${rs.current_set ?? 1}: ${rs.points_home ?? 0} - ${rs.points_away ?? 0}`;
+  } else if (liveData?.team_score ?? backendScore?.team_score) {
+    const ts = liveData?.team_score ?? backendScore?.team_score;
+    return `${ts.home_total ?? 0} - ${ts.away_total ?? 0}`;
+  }
+  return 'Live Action';
+}
+
 /**
- * Modernized Home Dashboard visualizing real player data, quick-access sports cards,
- * Performance Analytics spotlight widget, recent match highlights, and live score shortcuts.
+ * Creative, Modernized Home Dashboard with:
+ * 1. Compact "MY SPORTS" Quick Access
+ * 2. Real-Time Live Scoring & Streaming Hub
+ * 3. Performance Analytics Spotlight & Sport Swapper
+ * 4. Recent Form & Athletic Highlights
  */
 export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
+  const subscriptionStatus = useSubscriptionStore((s) => s.status);
+  const refreshSubscription = useSubscriptionStore((s) => s.refresh);
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
   const [sports, setSports] = useState<PlayerSportEntry[]>([]);
+  const [matches, setMatches] = useState<MatchSummary[]>([]);
+  const [liveScoreState, setLiveScoreState] = useState<Record<number, MultiSportLiveScore>>({});
   const [cricketAnalysis, setCricketAnalysis] = useState<CricketAnalysisResponse | null>(null);
   const [selectedAnalyticsSlug, setSelectedAnalyticsSlug] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,11 +61,15 @@ export default function HomeScreen() {
       Promise.all([
         playerService.fetchProfile().catch(() => null),
         playerService.fetchSports().catch(() => []),
+        matchService.fetchAll().catch(() => []),
         playerService.fetchCricketAnalysis().catch(() => null),
-      ]).then(([profileData, sportsData, analysisData]) => {
+        refreshSubscription(),
+      ]).then(([profileData, sportsData, matchesData, analysisData]) => {
         if (isMounted) {
           setPlayer(profileData);
           setSports(sportsData ?? []);
+          setMatches(matchesData ?? []);
+          seedInitialLiveScores(matchesData ?? []);
           setCricketAnalysis(analysisData);
           setSelectedAnalyticsSlug((prev) => prev ?? sportsData?.[0]?.sport.slug ?? null);
           setIsLoading(false);
@@ -44,8 +78,26 @@ export default function HomeScreen() {
       return () => {
         isMounted = false;
       };
-    }, [])
+    }, [refreshSubscription])
   );
+
+  // Subscribe to Firebase real-time live score updates
+  useEffect(() => {
+    const unsubscribes: Array<() => void> = [];
+    matches.forEach((m) => {
+      const unsub = subscribeToLiveScore(m.id, (updatedScore) => {
+        setLiveScoreState((prev) => ({
+          ...prev,
+          [m.id]: updatedScore,
+        }));
+      });
+      unsubscribes.push(unsub);
+    });
+
+    return () => {
+      unsubscribes.forEach((unsub) => unsub());
+    };
+  }, [matches]);
 
   const openSport = (entry: PlayerSportEntry) => {
     router.push(resolveSportRoute(entry.sport, 'view'));
@@ -54,6 +106,8 @@ export default function HomeScreen() {
   const activeSlug = selectedAnalyticsSlug ?? sports[0]?.sport.slug ?? 'cricket';
   const activeSportEntry = sports.find((s) => s.sport.slug === activeSlug) ?? sports[0];
   const overview = cricketAnalysis?.overview;
+  const liveMatches = matches.filter((m) => m.status === 'live');
+  const featuredMatch = liveMatches[0] ?? matches[0];
 
   return (
     <ScreenContainer edges={['top', 'bottom']} scroll>
@@ -64,7 +118,7 @@ export default function HomeScreen() {
         end={{ x: 0.9, y: 1 }}
         style={[styles.heroCard, shadows.md]}
       >
-        {/* Live Score Banner CTA */}
+        {/* Live Score & Stream Quick Pill */}
         <Pressable
           style={({ pressed }) => [styles.liveBadgeRow, pressed && styles.pressedOpacity]}
           onPress={() => router.push('/(protected)/(tabs)/live-score')}
@@ -73,9 +127,15 @@ export default function HomeScreen() {
             <View style={styles.livePulseDot} />
             <Text style={styles.liveTagText}>LIVE</Text>
           </View>
-          <Text style={styles.liveBannerText}>Follow Live Match Scores & Fixtures</Text>
+          <Text style={styles.liveBannerText}>
+            {liveMatches.length > 0 ? `${liveMatches.length} Live Match(es) Streaming` : 'Live Scores & Streaming Hub'}
+          </Text>
           <Ionicons name="chevron-forward" size={14} color={colors.white} />
         </Pressable>
+
+        <View style={styles.subscriptionChipRow}>
+          <SubscriptionStatusChip status={subscriptionStatus} />
+        </View>
 
         <View style={styles.profileHeaderRow}>
           <View style={styles.greetingBlock}>
@@ -98,19 +158,19 @@ export default function HomeScreen() {
           <View style={styles.statChip}>
             <Ionicons name="trophy-outline" size={14} color={colors.energy} />
             <Text style={styles.statChipNumber}>{sports.length}</Text>
-            <Text style={styles.statChipLabel}>Active Sports</Text>
+            <Text style={styles.statChipLabel}>My Sports</Text>
+          </View>
+
+          <View style={styles.statChip}>
+            <Ionicons name="radio-outline" size={14} color={colors.live} />
+            <Text style={styles.statChipNumber}>{liveMatches.length}</Text>
+            <Text style={styles.statChipLabel}>Live Now</Text>
           </View>
 
           <View style={styles.statChip}>
             <Ionicons name="stats-chart-outline" size={14} color={colors.primaryLight} />
             <Text style={styles.statChipNumber}>{cricketAnalysis?.has_any_stats ? 'Active' : 'Setup'}</Text>
             <Text style={styles.statChipLabel}>Analytics</Text>
-          </View>
-
-          <View style={styles.statChip}>
-            <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} />
-            <Text style={styles.statChipNumber}>{sports.length > 0 ? '100%' : '0%'}</Text>
-            <Text style={styles.statChipLabel}>Profile</Text>
           </View>
         </View>
       </LinearGradient>
@@ -137,7 +197,166 @@ export default function HomeScreen() {
         </Pressable>
       ) : (
         <>
-          {/* Performance Analytics Highlight Section */}
+          {/* SECTION 1: MY SPORTS — QUICK ACCESS (COMPACT DESIGN) */}
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionTitleGroup}>
+              <Ionicons name="grid-outline" size={15} color={colors.primary} />
+              <Text style={styles.sectionTitle}>MY SPORTS</Text>
+            </View>
+            <Pressable onPress={() => router.push('/(protected)/(tabs)/player-profile')}>
+              <Text style={styles.seeAllText}>Manage Hub</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.compactSportsScroll}>
+            {sports.map((entry) => (
+              <Pressable
+                key={entry.id}
+                style={({ pressed }) => [styles.compactSportCard, shadows.sm, pressed && styles.pressedOpacity]}
+                onPress={() => openSport(entry)}
+              >
+                <View style={styles.compactSportIconCircle}>
+                  <Ionicons name={sportIconFor(entry.sport.slug)} size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.compactSportName} numberOfLines={1}>
+                  {entry.sport.name}
+                </Text>
+                <View style={styles.compactStatusRow}>
+                  <View style={styles.compactGreenDot} />
+                  <Text style={styles.compactStatusText}>Active</Text>
+                </View>
+              </Pressable>
+            ))}
+
+            <Pressable
+              style={({ pressed }) => [styles.compactAddCard, pressed && styles.pressedOpacity]}
+              onPress={() => router.push('/(protected)/player-profile/sport-picker')}
+            >
+              <View style={styles.compactAddIconCircle}>
+                <Ionicons name="add" size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.compactAddText}>Add Sport</Text>
+            </Pressable>
+          </ScrollView>
+
+          {/* SECTION 2: LIVE SCORING & STREAMING PANEL */}
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionTitleGroup}>
+              <View style={styles.glowingLiveDot} />
+              <Text style={styles.sectionTitle}>LIVE SCORING & STREAMING</Text>
+            </View>
+            <Pressable onPress={() => router.push('/(protected)/(tabs)/live-score')}>
+              <Text style={styles.seeAllText}>All Matches</Text>
+            </Pressable>
+          </View>
+
+          {featuredMatch ? (
+            <View style={[styles.liveMatchCard, shadows.md]}>
+              <View style={styles.liveCardTopBar}>
+                <View style={styles.liveTagHeader}>
+                  <View style={styles.liveTagBadge}>
+                    <View style={styles.livePulseDot} />
+                    <Text style={styles.liveTagText}>LIVE SCOREBOARD</Text>
+                  </View>
+                  <Text style={styles.liveMatchSport}>{featuredMatch.sport.name}</Text>
+                </View>
+                <View style={styles.formatPill}>
+                  <Text style={styles.formatPillText}>{featuredMatch.format || 'Match'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.liveTeamsCenterRow}>
+                {/* Home Team */}
+                <View style={styles.teamSideCol}>
+                  <Image
+                    source={{
+                      uri:
+                        featuredMatch.home_team?.photo_url ||
+                        featuredMatch.home_team?.logo_url ||
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+                    }}
+                    style={styles.teamAvatar}
+                  />
+                  <Text style={styles.teamTitle} numberOfLines={1}>
+                    {featuredMatch.home_team?.name || 'Home Team'}
+                  </Text>
+                </View>
+
+                {/* Score / VS Block */}
+                <View style={styles.scoreCenterBlock}>
+                  <Text style={styles.liveScoreBig}>
+                    {getMatchScoreDisplay(featuredMatch, liveScoreState[featuredMatch.id])}
+                  </Text>
+                  <Text style={styles.venueSubText} numberOfLines={1}>
+                    {featuredMatch.venue || 'Match Venue'}
+                  </Text>
+                </View>
+
+                {/* Away Team */}
+                <View style={styles.teamSideCol}>
+                  <Image
+                    source={{
+                      uri:
+                        featuredMatch.away_team?.photo_url ||
+                        featuredMatch.away_team?.logo_url ||
+                        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
+                    }}
+                    style={styles.teamAvatar}
+                  />
+                  <Text style={styles.teamTitle} numberOfLines={1}>
+                    {featuredMatch.away_team?.name || 'Away Team'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Action Buttons Row: Watch Stream + View Scoreboard */}
+              <View style={styles.liveActionRow}>
+                {featuredMatch.youtube_stream_url ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.streamBtn, pressed && styles.pressedOpacity]}
+                    onPress={() => router.push(`/(protected)/live-score/stream/${featuredMatch.id}`)}
+                  >
+                    <Ionicons name="tv-outline" size={15} color={colors.white} />
+                    <Text style={styles.streamBtnText}>WATCH LIVE STREAM</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={({ pressed }) => [styles.streamBtn, pressed && styles.pressedOpacity]}
+                    onPress={() => router.push(`/(protected)/live-score/${featuredMatch.id}`)}
+                  >
+                    <Ionicons name="pulse" size={15} color={colors.white} />
+                    <Text style={styles.streamBtnText}>OPEN LIVE SCOREBOARD</Text>
+                  </Pressable>
+                )}
+
+                <Pressable
+                  style={styles.scoreDetailBtn}
+                  onPress={() => router.push(`/(protected)/live-score/${featuredMatch.id}`)}
+                >
+                  <Text style={styles.scoreDetailText}>Details</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [styles.livePromoCard, shadows.sm, pressed && styles.pressedOpacity]}
+              onPress={() => router.push('/(protected)/(tabs)/live-score')}
+            >
+              <View style={styles.livePromoContent}>
+                <View style={styles.livePromoTagHeader}>
+                  <View style={styles.liveTagRed}>
+                    <Text style={styles.liveTagRedText}>LIVE MATCHES & STREAMS</Text>
+                  </View>
+                  <Text style={styles.livePromoSub}>Firebase Real-Time Sync</Text>
+                </View>
+                <Text style={styles.livePromoTitle}>Track live scores, fixtures & embedded video streams</Text>
+              </View>
+              <Ionicons name="radio" size={28} color={colors.live} />
+            </Pressable>
+          )}
+
+          {/* SECTION 3: PERFORMANCE ANALYTICS & SPORT SWAPPER */}
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleGroup}>
               <Ionicons name="analytics-outline" size={16} color={colors.primary} />
@@ -148,7 +367,7 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {/* Sport Swapper Bar if user has multiple sports */}
+          {/* Sport Swapper Tabs */}
           {sports.length > 1 ? (
             <ScrollView
               horizontal
@@ -189,11 +408,7 @@ export default function HomeScreen() {
             <View style={styles.analyticsWidgetHeader}>
               <View style={styles.analyticsHeaderLeft}>
                 <View style={styles.analyticsIconBadge}>
-                  <Ionicons
-                    name={sportIconFor(activeSlug)}
-                    size={16}
-                    color={colors.primary}
-                  />
+                  <Ionicons name={sportIconFor(activeSlug)} size={16} color={colors.primary} />
                 </View>
                 <View>
                   <Text style={styles.analyticsWidgetTitle}>
@@ -244,47 +459,7 @@ export default function HomeScreen() {
             )}
           </Pressable>
 
-          {/* My Sports — Quick Access Row */}
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionTitleGroup}>
-              <Ionicons name="grid-outline" size={16} color={colors.primary} />
-              <Text style={styles.sectionTitle}>MY SPORTS — QUICK ACCESS</Text>
-            </View>
-            <Pressable onPress={() => router.push('/(protected)/(tabs)/player-profile')}>
-              <Text style={styles.seeAllText}>See Hub</Text>
-            </Pressable>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-            {sports.map((entry) => (
-              <Pressable
-                key={entry.id}
-                style={({ pressed }) => [styles.quickSportCard, shadows.sm, pressed && styles.pressedOpacity]}
-                onPress={() => openSport(entry)}
-              >
-                <View style={styles.quickSportIconCircle}>
-                  <Ionicons name={sportIconFor(entry.sport.slug)} size={22} color={colors.primary} />
-                </View>
-                <Text style={styles.quickSportName}>{entry.sport.name}</Text>
-                <View style={styles.quickStatusPill}>
-                  <Ionicons name="checkmark-circle" size={10} color={colors.success} />
-                  <Text style={styles.quickStatusText}>Active</Text>
-                </View>
-              </Pressable>
-            ))}
-
-            <Pressable
-              style={({ pressed }) => [styles.addQuickCard, pressed && styles.pressedOpacity]}
-              onPress={() => router.push('/(protected)/player-profile/sport-picker')}
-            >
-              <View style={styles.addQuickIconCircle}>
-                <Ionicons name="add" size={22} color={colors.primary} />
-              </View>
-              <Text style={styles.addQuickText}>Add Sport</Text>
-            </Pressable>
-          </ScrollView>
-
-          {/* Recent Form & Activity Section */}
+          {/* SECTION 4: RECENT FORM & HIGHLIGHTS */}
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleGroup}>
               <Ionicons name="trending-up-outline" size={16} color={colors.primary} />
@@ -333,7 +508,9 @@ export default function HomeScreen() {
               <View style={styles.activityHeader}>
                 <View style={styles.activityBadge}>
                   <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
-                  <Text style={styles.activityBadgeText}>{activeSportEntry?.sport?.name?.toUpperCase() ?? 'SPORT'} PROFILE</Text>
+                  <Text style={styles.activityBadgeText}>
+                    {activeSportEntry?.sport?.name?.toUpperCase() ?? 'SPORT'} PROFILE
+                  </Text>
                 </View>
                 <Text style={styles.activityTime}>Active Now</Text>
               </View>
@@ -349,28 +526,13 @@ export default function HomeScreen() {
                 style={styles.activityActionRow}
                 onPress={() => openSport(activeSportEntry)}
               >
-                <Text style={styles.activityActionText}>Open {activeSportEntry?.sport?.name ?? 'Sport'} Card</Text>
+                <Text style={styles.activityActionText}>
+                  Open {activeSportEntry?.sport?.name ?? 'Sport'} Card
+                </Text>
                 <Ionicons name="arrow-forward" size={14} color={colors.primary} />
               </Pressable>
             </View>
           )}
-
-          {/* Live Score Promo Section */}
-          <Pressable
-            style={({ pressed }) => [styles.livePromoCard, shadows.sm, pressed && styles.pressedOpacity]}
-            onPress={() => router.push('/(protected)/(tabs)/live-score')}
-          >
-            <View style={styles.livePromoContent}>
-              <View style={styles.liveTagHeader}>
-                <View style={styles.liveTagRed}>
-                  <Text style={styles.liveTagRedText}>LIVE MATCHES</Text>
-                </View>
-                <Text style={styles.livePromoSub}>Real-Time Scores</Text>
-              </View>
-              <Text style={styles.livePromoTitle}>Track ongoing tournaments and live team matches</Text>
-            </View>
-            <Ionicons name="radio" size={28} color={colors.live} />
-          </Pressable>
         </>
       )}
     </ScreenContainer>
@@ -384,7 +546,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   liveBadgeRow: {
     flexDirection: 'row',
@@ -424,6 +586,10 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
     fontSize: 12,
+  },
+  subscriptionChipRow: {
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
   },
   profileHeaderRow: {
     flexDirection: 'row',
@@ -550,19 +716,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   sectionTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
+  glowingLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.live,
+  },
   sectionTitle: {
     ...typography.overline,
     color: colors.textMuted,
     fontSize: 11,
     letterSpacing: 1,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   seeAllText: {
     ...typography.caption,
@@ -570,6 +742,230 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12,
   },
+  /* Compact Sports Quick Access Row Styles */
+  compactSportsScroll: {
+    marginHorizontal: -spacing.xs,
+    paddingHorizontal: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  compactSportCard: {
+    width: 104,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    marginRight: 8,
+    alignItems: 'center',
+    shadowColor: colors.navy,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  compactSportIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  compactSportName: {
+    ...typography.body,
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  compactStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  compactGreenDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+  },
+  compactStatusText: {
+    ...typography.caption,
+    color: colors.success,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  compactAddCard: {
+    width: 90,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactAddIconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  compactAddText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  /* Live Scoring & Streaming Panel Styles */
+  liveMatchCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    shadowColor: colors.navy,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  liveCardTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: spacing.xs + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.sm,
+  },
+  liveTagHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  liveTagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+  },
+  liveMatchSport: {
+    ...typography.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  formatPill: {
+    backgroundColor: colors.cardSubtle,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.xs,
+  },
+  formatPillText: {
+    ...typography.caption,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  liveTeamsCenterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: spacing.xs,
+  },
+  teamSideCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  teamAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.primaryLight,
+    marginBottom: 4,
+  },
+  teamTitle: {
+    ...typography.caption,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  scoreCenterBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  liveScoreBig: {
+    ...typography.h2,
+    fontSize: 17,
+    fontWeight: '900',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  venueSubText: {
+    ...typography.caption,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 2,
+    maxWidth: 120,
+    textAlign: 'center',
+  },
+  liveActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  streamBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.live,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  streamBtnText: {
+    ...typography.caption,
+    color: colors.white,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+  scoreDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  scoreDetailText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  /* Analytics Styles */
   sportSwapperScroll: {
     flexGrow: 0,
     marginBottom: spacing.xs + 4,
@@ -718,80 +1114,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 11,
   },
-  horizontalScroll: {
-    marginHorizontal: -spacing.xs,
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  quickSportCard: {
-    width: 125,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginRight: spacing.sm,
-    alignItems: 'center',
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  quickSportIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  quickSportName: {
-    ...typography.body,
-    fontWeight: '700',
-    fontSize: 13,
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  quickStatusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  quickStatusText: {
-    ...typography.caption,
-    color: colors.success,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  addQuickCard: {
-    width: 100,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
-    borderStyle: 'dashed',
-    padding: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addQuickIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  addQuickText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 12,
-  },
   activityCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
@@ -886,13 +1208,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.liveBorder,
     padding: spacing.md,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   livePromoContent: {
     flex: 1,
     paddingRight: spacing.sm,
   },
-  liveTagHeader: {
+  livePromoTagHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

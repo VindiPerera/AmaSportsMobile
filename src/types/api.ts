@@ -9,6 +9,8 @@ export interface ApiErrorResponse {
   success: false;
   message: string;
   errors?: Record<string, string[]>;
+  /** Stable machine-readable code for errors the client branches on — currently only 'subscription_required' (402). */
+  error_code?: string;
 }
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
@@ -17,12 +19,19 @@ export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 export class ApiError extends Error {
   readonly status: number | null;
   readonly errors: Record<string, string[]> | null;
+  readonly code: string | null;
 
-  constructor(message: string, status: number | null = null, errors: Record<string, string[]> | null = null) {
+  constructor(
+    message: string,
+    status: number | null = null,
+    errors: Record<string, string[]> | null = null,
+    code: string | null = null
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
+    this.code = code;
   }
 
   /** First validation message, useful for single-line toasts. */

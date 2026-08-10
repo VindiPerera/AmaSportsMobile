@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from '../constants/config';
 import { setUnauthorizedHandler } from '../services/apiClient';
 import { authService } from '../services/authService';
 import { secureStorage } from '../services/secureStorage';
+import { useSubscriptionStore } from './subscriptionStore';
 import { ApiError } from '../types/api';
 import {
   ForgotPasswordPayload,
@@ -129,6 +130,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await authService.logout().catch(() => undefined);
     } finally {
       await clearSession();
+      useSubscriptionStore.getState().reset();
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },
@@ -150,4 +152,5 @@ setUnauthorizedHandler(() => {
     isAuthenticated: false,
   });
   clearSession();
+  useSubscriptionStore.getState().reset();
 });

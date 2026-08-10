@@ -47,7 +47,8 @@
           "photosPermission": "Allow AmaX to access your photos to set your cover and profile picture.",
           "cameraPermission": "Allow AmaX to use the camera to take your cover and profile picture."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "apiUrl": "http://127.0.0.1:8000/api"

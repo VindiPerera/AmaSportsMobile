@@ -23,3 +23,4 @@ export * from './beachVolleyball';
 export * from './elle';
 export * from './match';
 export * from './contact';
+export * from './subscription';

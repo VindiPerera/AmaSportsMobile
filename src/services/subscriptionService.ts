@@ -1,0 +1,20 @@
+import { apiClient } from './apiClient';
+import { ApiSuccessResponse, SubscriptionOrder, SubscriptionStatus } from '../types';
+
+export const subscriptionService = {
+  /** Drives the Add Sport / Analysis paywall gate + the Profile/Home status displays. */
+  async fetchStatus() {
+    const { data } = await apiClient.get<ApiSuccessResponse<SubscriptionStatus>>(
+      '/player/subscription-status'
+    );
+    return data.data;
+  },
+
+  /** Starts (or renews) the $10/year subscription — open `approve_url` in an in-app browser. */
+  async createOrder() {
+    const { data } = await apiClient.post<ApiSuccessResponse<SubscriptionOrder>>(
+      '/subscriptions/create-order'
+    );
+    return data.data;
+  },
+};

@@ -34,6 +34,18 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler;
 }
 
+/**
+ * Optional hook the root layout wires up to redirect to the paywall on a
+ * 402 `subscription_required` — fired by any sport-profile write or the
+ * Analysis endpoints once a subscription has lapsed (EnsureActiveSubscription
+ * on the backend). Centralized here instead of duplicated in ~19 nearly
+ * identical sport-profile screens' submit handlers.
+ */
+let onSubscriptionRequired: (() => void) | null = null;
+export function setSubscriptionRequiredHandler(handler: (() => void) | null) {
+  onSubscriptionRequired = handler;
+}
+
 /** Normalize every failure into an ApiError so screens never touch AxiosError directly. */
 apiClient.interceptors.response.use(
   (response) => response,
@@ -50,9 +62,13 @@ apiClient.interceptors.response.use(
       onUnauthorized?.();
     }
 
+    if (status === 402 && data?.error_code === 'subscription_required') {
+      onSubscriptionRequired?.();
+    }
+
     const message = data?.message ?? 'Something went wrong. Please try again.';
     const errors = data?.errors ?? null;
 
-    return Promise.reject(new ApiError(message, status, errors));
+    return Promise.reject(new ApiError(message, status, errors, data?.error_code ?? null));
   }
 );

@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
+import { Button } from '../../../src/components/ui/Button';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { playerService } from '../../../src/services/playerService';
 import { resolveSportRoute } from '../../../src/utils/sportRoutes';
 import { sportIconFor } from '../../../src/constants/sportIcons';
@@ -16,6 +18,9 @@ import { SportOption } from '../../../src/types';
 export default function SportPickerScreen() {
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
+  const subscriptionStatus = useSubscriptionStore((s) => s.status);
+  const isSubscriptionLoading = useSubscriptionStore((s) => s.isLoading);
+  const ensureSubscriptionLoaded = useSubscriptionStore((s) => s.ensureLoaded);
 
   const [addedSportIds, setAddedSportIds] = useState<Set<number> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,11 +28,12 @@ export default function SportPickerScreen() {
 
   useEffect(() => {
     ensureLoaded();
+    ensureSubscriptionLoaded();
     playerService
       .fetchSports()
       .then((sports) => setAddedSportIds(new Set(sports.map((s) => s.sport.id))))
       .catch(() => setAddedSportIds(new Set()));
-  }, [ensureLoaded]);
+  }, [ensureLoaded, ensureSubscriptionLoaded]);
 
   const availableSports = useMemo(() => {
     if (!lookups || !addedSportIds) return [];
@@ -63,54 +69,80 @@ export default function SportPickerScreen() {
 
       <ErrorBanner message={error} />
 
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={18} color={colors.textMuted} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search sports (e.g. Karate, Cricket)..."
-          placeholderTextColor={colors.textFaint}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
-          </Pressable>
-        )}
-      </View>
-
-      {isLoading ? (
+      {isSubscriptionLoading && !subscriptionStatus ? (
         <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
-      ) : availableSports.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="checkmark-circle-outline" size={32} color={colors.primary} />
+      ) : subscriptionStatus && !subscriptionStatus.is_active ? (
+        /* Paywall — an active subscription is required to add a sport. */
+        <View style={styles.paywallCard}>
+          <View style={styles.emptyIconCircleLarge}>
+            <Ionicons name="lock-closed" size={28} color={colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>
-            {searchQuery ? 'No matching sports found' : 'All sports added!'}
+            {subscriptionStatus.has_subscribed ? 'Subscription expired' : 'Subscribe to add a sport'}
           </Text>
           <Text style={styles.emptyText}>
-            {searchQuery
-              ? 'Try searching for another sport term.'
-              : "You've already created profiles for every available sport."}
+            {subscriptionStatus.has_subscribed
+              ? 'Your AmaSports subscription has expired. Renew for $10/year to add new sports again.'
+              : 'A $10/year AmaSports subscription unlocks adding sports and the Analysis tab.'}
           </Text>
+          <Button
+            label={subscriptionStatus.has_subscribed ? 'Renew Subscription' : 'Subscribe Now'}
+            onPress={() => router.push('/(protected)/subscription/paywall')}
+            style={styles.paywallButton}
+          />
         </View>
       ) : (
-        availableSports.map((sport) => (
-          <Pressable
-            key={sport.id}
-            style={({ pressed }) => [styles.rowCard, shadows.sm, pressed && styles.rowPressed]}
-            onPress={() => handlePick(sport)}
-          >
-            <View style={styles.iconCircle}>
-              <Ionicons name={sportIconFor(sport.slug)} size={22} color={colors.primary} />
+        <>
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={18} color={colors.textMuted} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search sports (e.g. Karate, Cricket)..."
+              placeholderTextColor={colors.textFaint}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={colors.textFaint} />
+              </Pressable>
+            )}
+          </View>
+
+          {isLoading ? (
+            <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
+          ) : availableSports.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Ionicons name="checkmark-circle-outline" size={32} color={colors.primary} />
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? 'No matching sports found' : 'All sports added!'}
+              </Text>
+              <Text style={styles.emptyText}>
+                {searchQuery
+                  ? 'Try searching for another sport term.'
+                  : "You've already created profiles for every available sport."}
+              </Text>
             </View>
-            <View style={styles.rowTextBlock}>
-              <Text style={styles.rowText}>{sport.name}</Text>
-              <Text style={styles.rowSubtext}>Tap to set up profile form</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </Pressable>
-        ))
+          ) : (
+            availableSports.map((sport) => (
+              <Pressable
+                key={sport.id}
+                style={({ pressed }) => [styles.rowCard, shadows.sm, pressed && styles.rowPressed]}
+                onPress={() => handlePick(sport)}
+              >
+                <View style={styles.iconCircle}>
+                  <Ionicons name={sportIconFor(sport.slug)} size={22} color={colors.primary} />
+                </View>
+                <View style={styles.rowTextBlock}>
+                  <Text style={styles.rowText}>{sport.name}</Text>
+                  <Text style={styles.rowSubtext}>Tap to set up profile form</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </Pressable>
+            ))
+          )}
+        </>
       )}
     </ScreenContainer>
   );
@@ -180,6 +212,28 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.bodyMuted,
     textAlign: 'center',
+  },
+  paywallCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  emptyIconCircleLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  paywallButton: {
+    marginTop: spacing.md,
   },
   rowCard: {
     flexDirection: 'row',

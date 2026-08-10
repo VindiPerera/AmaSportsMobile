@@ -4,8 +4,10 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { SubscriptionStatusCard } from '../../../src/components/subscription/SubscriptionStatusCard';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
+import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { playerService } from '../../../src/services/playerService';
 import { resolveSportRoute } from '../../../src/utils/sportRoutes';
 import { sportIconFor } from '../../../src/constants/sportIcons';
@@ -19,6 +21,8 @@ import { PlayerProfile, PlayerSportEntry } from '../../../src/types';
 export default function PlayerProfileHubScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const subscriptionStatus = useSubscriptionStore((s) => s.status);
+  const refreshSubscription = useSubscriptionStore((s) => s.refresh);
 
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
   const [sports, setSports] = useState<PlayerSportEntry[]>([]);
@@ -30,6 +34,7 @@ export default function PlayerProfileHubScreen() {
       const [playerData, sportsData] = await Promise.all([
         playerService.fetchProfile(),
         playerService.fetchSports(),
+        refreshSubscription(),
       ]);
       setPlayer(playerData);
       setSports(sportsData);
@@ -38,7 +43,7 @@ export default function PlayerProfileHubScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshSubscription]);
 
   useFocusEffect(
     useCallback(() => {
@@ -123,6 +128,8 @@ export default function PlayerProfileHubScreen() {
 
       {/* Main Body: My Sports Section */}
       <View style={styles.bodySection}>
+        <SubscriptionStatusCard status={subscriptionStatus} />
+
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>MY SPORTS</Text>
           <View style={styles.countBadge}>

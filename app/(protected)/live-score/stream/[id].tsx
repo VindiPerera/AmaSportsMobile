@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { ScreenContainer } from '../../../../src/components/ui/ScreenContainer';
 import { ErrorBanner } from '../../../../src/components/ui/ErrorBanner';
+import { BottomNavigation } from '../../../../src/components/ui/BottomNavigation';
 import { colors, spacing, typography } from '../../../../src/theme';
 import { matchService } from '../../../../src/services/matchService';
 import { extractYouTubeId } from '../../../../src/utils/youtube';
@@ -42,28 +43,34 @@ export default function LiveStreamScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer edges={['bottom']}>
-        <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
-      </ScreenContainer>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ScreenContainer edges={['top']}>
+          <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
+        </ScreenContainer>
+        <BottomNavigation activeTab="live-score" />
+      </View>
     );
   }
 
   return (
-    <ScreenContainer edges={['bottom']}>
-      <ErrorBanner message={error} />
-      {videoId ? (
-        <View style={styles.playerWrapper}>
-          <YoutubePlayer
-            height={(width - spacing.lg * 2) * 0.5625}
-            play={isPlaying}
-            videoId={videoId}
-            onChangeState={onStateChange}
-          />
-        </View>
-      ) : (
-        <Text style={styles.fallbackText}>No live stream is available for this match yet.</Text>
-      )}
-    </ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScreenContainer edges={['top']}>
+        <ErrorBanner message={error} />
+        {videoId ? (
+          <View style={styles.playerWrapper}>
+            <YoutubePlayer
+              height={(width - spacing.lg * 2) * 0.5625}
+              play={isPlaying}
+              videoId={videoId}
+              onChangeState={onStateChange}
+            />
+          </View>
+        ) : (
+          <Text style={styles.fallbackText}>No live stream is available for this match yet.</Text>
+        )}
+      </ScreenContainer>
+      <BottomNavigation activeTab="live-score" />
+    </View>
   );
 }
 
