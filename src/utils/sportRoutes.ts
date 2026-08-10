@@ -31,13 +31,26 @@ export interface RouteTarget {
   params?: Record<string, string>;
 }
 
-/** Resolves a sport to its form route, or the "coming soon" placeholder if it doesn't have one yet. */
-export function resolveSportRoute(sport: { slug: string; name: string }): RouteTarget {
+/**
+ * Resolves a sport to its form route, or the "coming soon" placeholder if it
+ * doesn't have one yet. `mode: 'view'` opens the same screen read-only (used
+ * by the Home dashboard's quick-access cards); omit it (or pass 'edit') for
+ * the normal editable form, which is how the Profile tab always opens it.
+ */
+export function resolveSportRoute(
+  sport: { slug: string; name: string },
+  mode: 'view' | 'edit' = 'edit'
+): RouteTarget {
+  const modeParam: Record<string, string> = mode === 'view' ? { mode: 'view' } : {};
+
   if (DIRECT_ROUTES[sport.slug]) {
-    return { pathname: DIRECT_ROUTES[sport.slug] };
+    return { pathname: DIRECT_ROUTES[sport.slug], params: modeParam };
   }
   if (RACKET_SPORT_SLUGS.has(sport.slug)) {
-    return { pathname: '/(protected)/player-profile/racket-sport', params: { sport: sport.slug } };
+    return {
+      pathname: '/(protected)/player-profile/racket-sport',
+      params: { sport: sport.slug, ...modeParam },
+    };
   }
   return { pathname: '/(protected)/player-profile/coming-soon', params: { sport: sport.name } };
 }

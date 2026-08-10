@@ -3,6 +3,7 @@ export * from './api';
 export * from './lookup';
 export * from './player';
 export * from './cricket';
+export * from './cricketAnalysis';
 export * from './hockey';
 export * from './baseball';
 export * from './netball';

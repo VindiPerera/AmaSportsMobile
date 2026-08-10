@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -12,7 +13,9 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable, StatColumn } from '../../../src/components/player/StatTable';
-import { colors, spacing, typography } from '../../../src/theme';
+import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
+import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { playerService } from '../../../src/services/playerService';
 import { racketSportService } from '../../../src/services/racketSportService';
@@ -58,7 +61,8 @@ const SPORT_LABELS: Record<string, string> = {
 };
 
 export default function RacketSportProfileScreen() {
-  const { sport: sportSlug } = useLocalSearchParams<{ sport: string }>();
+  const { mode, sport: sportSlug } = useLocalSearchParams<{ mode?: string; sport?: string }>();
+  const [isViewing, setIsViewing] = useState(mode !== 'edit');
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
 
@@ -73,15 +77,17 @@ export default function RacketSportProfileScreen() {
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
-  const { control, handleSubmit, reset, setValue, getValues } = useForm<RacketSportProfileFormValues>({
+  const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<RacketSportProfileFormValues>({
     defaultValues: EMPTY_FORM,
   });
+
+  const formValues = watch();
 
   const sport = useMemo(
     () => lookups?.sports.find((s) => s.slug === sportSlug) ?? null,
     [lookups, sportSlug]
   );
-  const sportLabel = SPORT_LABELS[sportSlug ?? ''] ?? 'Player';
+  const sportLabel = SPORT_LABELS[sportSlug ?? ''] ?? 'Tennis / Badminton';
 
   useEffect(() => {
     (async () => {
@@ -164,7 +170,7 @@ export default function RacketSportProfileScreen() {
         photo: avatarPicked,
       });
       await racketSportService.saveProfile(sport.id, values);
-      router.replace('/(protected)/(tabs)/player-profile');
+      setIsViewing(true);
     } catch {
       setError(`Could not save your ${sportLabel} profile. Please check your entries and try again.`);
     } finally {
@@ -172,12 +178,58 @@ export default function RacketSportProfileScreen() {
     }
   };
 
-  if (isLoading || !lookups || !sport) {
+  if (isLoading || !lookups) {
     return (
       <ScreenContainer edges={['bottom']}>
-        <ErrorBanner message={error} />
         <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
       </ScreenContainer>
+    );
+  }
+
+  if (isViewing) {
+    const fields = [
+      { label: 'RANKING', value: formValues.current_ranking },
+      { label: 'PLAYING HAND', value: formValues.dominant_hand },
+      { label: 'HEIGHT', value: formValues.height },
+      { label: 'WEIGHT', value: formValues.weight },
+    ];
+
+    const mappedRecent = (formValues.recent_matches || []).map((m) => ({
+      match_date: m.match_date,
+      opponent: m.opponent,
+      scoreOrStat: m.set_1 ? `Sets: ${m.set_1}-${m.set_2}` : '--',
+      result: m.win ? 'WIN' : (m.lost ? 'LOSS' : 'DRAW'),
+    }));
+
+    const combinedCareerStats = [
+      ...(formValues.single_stats || []),
+      ...(formValues.double_stats || []),
+      ...(formValues.mix_double_stats || []),
+    ];
+
+    return (
+      <PlayerSportDetailView
+        sportName={sportLabel}
+        fullName={fullName}
+        country={country}
+        photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        born={formValues.born}
+        age={formValues.age}
+        teams={formValues.teams}
+        fields={fields}
+        careerStatsHeader={`${sportLabel} Stats`}
+        careerStatsColumns={[
+          { key: 'format_id', label: 'Format', width: 90 },
+          { key: 'matches', label: 'Mat', width: 50 },
+          { key: 'win', label: 'Win', width: 50 },
+          { key: 'lost', label: 'Lost', width: 50 },
+          { key: 'champion', label: 'Titles', width: 55 },
+        ]}
+        careerStatsRows={combinedCareerStats}
+        recentMatches={mappedRecent}
+        onEditPress={() => setIsViewing(false)}
+        onBackPress={() => router.back()}
+      />
     );
   }
 
@@ -204,6 +256,14 @@ export default function RacketSportProfileScreen() {
   return (
     <ScreenContainer edges={['bottom']} scroll>
       <ErrorBanner message={error} />
+
+      <View style={styles.topModeBar}>
+        <Text style={styles.topModeTitle}>Editing {sportLabel} Profile</Text>
+        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
+          <Ionicons name="eye-outline" size={16} color={colors.primary} />
+          <Text style={styles.previewButtonText}>View Player Stats</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.coverBlock}>
         <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
@@ -321,7 +381,7 @@ export default function RacketSportProfileScreen() {
         ]}
       />
 
-      <Button label="Submit" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
+      <Button label={`Save ${sportLabel} Profile`} onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </ScreenContainer>
   );
 }
@@ -329,6 +389,40 @@ export default function RacketSportProfileScreen() {
 const styles = StyleSheet.create({
   loadingIndicator: {
     marginTop: spacing.xl,
+  },
+  topModeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardSubtle,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: spacing.xs,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  topModeTitle: {
+    ...typography.subtitle,
+    color: colors.navy,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  previewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primaryLight,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  previewButtonText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 12,
   },
   coverBlock: {
     marginTop: spacing.md,

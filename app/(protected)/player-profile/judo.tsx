@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { TextField } from '../../../src/components/ui/TextField';
 import { Button } from '../../../src/components/ui/Button';
@@ -12,7 +13,9 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
-import { colors, spacing, typography } from '../../../src/theme';
+import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
+import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { playerService } from '../../../src/services/playerService';
 import { judoService } from '../../../src/services/judoService';
@@ -48,6 +51,9 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 }
 
 export default function JudoProfileScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
 
@@ -62,9 +68,11 @@ export default function JudoProfileScreen() {
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
-  const { control, handleSubmit, reset, setValue, getValues } = useForm<JudoProfileFormValues>({
+  const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<JudoProfileFormValues>({
     defaultValues: EMPTY_FORM,
   });
+
+  const formValues = watch();
 
   useEffect(() => {
     (async () => {
@@ -128,7 +136,7 @@ export default function JudoProfileScreen() {
         photo: avatarPicked,
       });
       await judoService.saveProfile(values);
-      router.replace('/(protected)/(tabs)/player-profile');
+      setIsViewing(true);
     } catch {
       setError('Could not save your Judo profile. Please check your entries and try again.');
     } finally {
@@ -144,17 +152,64 @@ export default function JudoProfileScreen() {
     );
   }
 
+  if (isViewing) {
+    const fields = [
+      { label: 'RANKING', value: formValues.current_ranking },
+      { label: 'HEIGHT', value: formValues.height },
+      { label: 'WEIGHT', value: formValues.weight },
+      { label: 'EDUCATION', value: formValues.college_university },
+    ];
+
+    const mappedRecent = (formValues.recent_fights || []).map((f) => ({
+      match_date: f.fight_date,
+      opponent: f.opponent,
+      scoreOrStat: f.place ? `Rank ${f.place}` : '--',
+      result: f.win ? 'WIN' : (f.lost ? 'LOSS' : 'DRAW'),
+    }));
+
+    return (
+      <PlayerSportDetailView
+        sportName="Judo"
+        fullName={fullName}
+        country={country}
+        photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        born={formValues.born}
+        age={formValues.age}
+        teams={formValues.teams}
+        fields={fields}
+        careerStatsHeader="Judo Fight Stats"
+        careerStatsColumns={[
+          { key: 'format_id', label: 'Format', width: 90 },
+          { key: 'matches', label: 'Fights', width: 55 },
+          { key: 'win', label: 'Win', width: 50 },
+          { key: 'lost', label: 'Lost', width: 50 },
+          { key: 'champion', label: 'Title', width: 60 },
+        ]}
+        careerStatsRows={formValues.career_stats}
+        recentMatches={mappedRecent}
+        onEditPress={() => setIsViewing(false)}
+        onBackPress={() => router.back()}
+      />
+    );
+  }
+
   const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
   const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
-  // Independent dropdowns — no assumed mapping between weight class and
-  // competition level (spec Phase 2 §B5, pending client confirmation).
   const weightPositionOptions = lookups.weight_positions.map((w) => ({ label: w.label, value: String(w.id) }));
   const competitionLevelOptions = lookups.competition_levels.map((c) => ({ label: c.name, value: String(c.id) }));
 
   return (
     <ScreenContainer edges={['bottom']} scroll>
       <ErrorBanner message={error} />
+
+      <View style={styles.topModeBar}>
+        <Text style={styles.topModeTitle}>Editing Judo Profile</Text>
+        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
+          <Ionicons name="eye-outline" size={16} color={colors.primary} />
+          <Text style={styles.previewButtonText}>View Player Stats</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.coverBlock}>
         <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
@@ -262,7 +317,7 @@ export default function JudoProfileScreen() {
         ]}
       />
 
-      <Button label="Submit" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
+      <Button label="Save Judo Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </ScreenContainer>
   );
 }
@@ -270,6 +325,40 @@ export default function JudoProfileScreen() {
 const styles = StyleSheet.create({
   loadingIndicator: {
     marginTop: spacing.xl,
+  },
+  topModeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardSubtle,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: spacing.xs,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  topModeTitle: {
+    ...typography.subtitle,
+    color: colors.navy,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  previewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primaryLight,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  previewButtonText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 12,
   },
   coverBlock: {
     marginTop: spacing.md,
