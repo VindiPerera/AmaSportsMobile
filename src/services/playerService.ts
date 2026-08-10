@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import { isBlankRow, parseFloatOrNull, parseIntOrNull } from '../utils/numeric';
 import {
   ApiSuccessResponse,
+  CricketAnalysisResponse,
   CricketProfileFormValues,
   CricketProfileResponse,
   HockeyProfileFormValues,
@@ -195,6 +196,15 @@ export const playerService = {
     const { data } = await apiClient.put<ApiSuccessResponse<CricketProfileResponse>>(
       '/player/cricket-profile',
       cricketFormToPayload(values)
+    );
+    return data.data;
+  },
+
+  /** Read-only, server-aggregated stats for the Analysis tab. `formatId` omitted (or null) means "All". */
+  async fetchCricketAnalysis(formatId?: number | null) {
+    const { data } = await apiClient.get<ApiSuccessResponse<CricketAnalysisResponse>>(
+      '/player/cricket-analysis',
+      { params: formatId ? { format: formatId } : undefined }
     );
     return data.data;
   },

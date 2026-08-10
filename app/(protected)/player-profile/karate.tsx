@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -14,6 +14,8 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
+import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
+import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { playerService } from '../../../src/services/playerService';
@@ -50,6 +52,9 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 }
 
 export default function KarateProfileScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
 
@@ -64,9 +69,11 @@ export default function KarateProfileScreen() {
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
-  const { control, handleSubmit, reset, setValue, getValues } = useForm<KarateProfileFormValues>({
+  const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<KarateProfileFormValues>({
     defaultValues: EMPTY_FORM,
   });
+
+  const formValues = watch();
 
   useEffect(() => {
     (async () => {
@@ -131,7 +138,7 @@ export default function KarateProfileScreen() {
         photo: avatarPicked,
       });
       await karateService.saveProfile(values);
-      router.replace('/(protected)/(tabs)/player-profile');
+      setIsViewing(true);
     } catch {
       setError('Could not save your Karate profile. Please check your entries and try again.');
     } finally {
@@ -144,6 +151,47 @@ export default function KarateProfileScreen() {
       <ScreenContainer edges={['bottom']}>
         <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
       </ScreenContainer>
+    );
+  }
+
+  if (isViewing) {
+    const fields = [
+      { label: 'RANKING', value: formValues.current_ranking },
+      { label: 'HEIGHT', value: formValues.height },
+      { label: 'WEIGHT', value: formValues.weight },
+      { label: 'EDUCATION', value: formValues.college_university },
+    ];
+
+    const mappedRecent = (formValues.recent_matches || []).map((m) => ({
+      match_date: m.match_date,
+      opponent: m.opponent,
+      scoreOrStat: m.place ? `Rank ${m.place}` : '--',
+      result: m.win ? 'WIN' : (m.lost ? 'LOSS' : 'DRAW'),
+    }));
+
+    return (
+      <PlayerSportDetailView
+        sportName="Karate"
+        fullName={fullName}
+        country={country}
+        photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        born={formValues.born}
+        age={formValues.age}
+        teams={formValues.teams}
+        fields={fields}
+        careerStatsHeader="Karate Fight Stats"
+        careerStatsColumns={[
+          { key: 'format_id', label: 'Format', width: 90 },
+          { key: 'matches', label: 'Bouts', width: 55 },
+          { key: 'win', label: 'Win', width: 50 },
+          { key: 'lost', label: 'Lost', width: 50 },
+          { key: 'champion', label: 'Gold', width: 55 },
+        ]}
+        careerStatsRows={formValues.career_stats}
+        recentMatches={mappedRecent}
+        onEditPress={() => setIsViewing(false)}
+        onBackPress={() => router.back()}
+      />
     );
   }
 
@@ -171,7 +219,11 @@ export default function KarateProfileScreen() {
           </View>
         </View>
         <Text style={styles.headerTitle}>{fullName || 'Karate Athlete'}</Text>
-        <Text style={styles.headerSubtitle}>Edit career statistics, physical stats, and match history.</Text>
+        <Text style={styles.headerSubtitle}>
+          {isViewOnly
+            ? 'Viewing career statistics, physical stats, and match history.'
+            : 'Edit career statistics, physical stats, and match history.'}
+        </Text>
       </LinearGradient>
 
       <ErrorBanner message={error} />
@@ -325,6 +377,9 @@ export default function KarateProfileScreen() {
 const styles = StyleSheet.create({
   loadingIndicator: {
     marginTop: spacing.xl,
+  },
+  viewOnlyContent: {
+    opacity: 0.7,
   },
   heroHeader: {
     borderRadius: radius.card,

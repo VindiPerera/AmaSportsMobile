@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { TextField } from '../../../src/components/ui/TextField';
 import { Button } from '../../../src/components/ui/Button';
@@ -12,7 +13,9 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
-import { colors, spacing, typography } from '../../../src/theme';
+import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
+import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
+import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { playerService } from '../../../src/services/playerService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
@@ -59,6 +62,9 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 }
 
 export default function CricketProfileScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
 
@@ -73,9 +79,11 @@ export default function CricketProfileScreen() {
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
-  const { control, handleSubmit, reset, setValue, getValues } = useForm<CricketProfileFormValues>({
+  const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<CricketProfileFormValues>({
     defaultValues: EMPTY_FORM,
   });
+
+  const formValues = watch();
 
   useEffect(() => {
     (async () => {
@@ -143,7 +151,7 @@ export default function CricketProfileScreen() {
         photo: avatarPicked,
       });
       await playerService.saveCricketProfile(values);
-      router.replace('/(protected)/(tabs)/player-profile');
+      setIsViewing(true);
     } catch {
       setError('Could not save your Cricket profile. Please check your entries and try again.');
     } finally {
@@ -159,6 +167,23 @@ export default function CricketProfileScreen() {
     );
   }
 
+  // If in View Mode, render the Cricbuzz-style Player Detail View
+  if (isViewing) {
+    return (
+      <CricketPlayerDetailView
+        fullName={fullName}
+        country={country}
+        photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        coverUrl={coverPicked?.uri || existingCoverUrl}
+        values={formValues}
+        lookups={lookups}
+        onEditPress={() => setIsViewing(false)}
+        onBackPress={() => router.back()}
+      />
+    );
+  }
+
+
   const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
   const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
@@ -168,158 +193,172 @@ export default function CricketProfileScreen() {
     <ScreenContainer edges={['bottom']} scroll>
       <ErrorBanner message={error} />
 
-      <View style={styles.coverBlock}>
-        <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-        <View style={styles.avatarOverlay}>
-          <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
+      <View style={styles.topModeBar}>
+        <View style={styles.topModeTitleRow}>
+          <Ionicons name="create-outline" size={18} color={colors.energy} />
+          <Text style={styles.topModeTitle}>Editing Cricket Profile</Text>
+        </View>
+        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
+          <Ionicons name="eye-outline" size={15} color={colors.white} />
+          <Text style={styles.previewButtonText}>View Stats View</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.cardSection}>
+        <View style={styles.coverBlock}>
+          <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
+          <View style={styles.avatarOverlay}>
+            <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
+          </View>
+        </View>
+
+        <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Sport" value="cricket" onChange={() => {}} options={[{ label: 'Cricket', value: 'cricket' }]} disabled />
+          </View>
         </View>
       </View>
 
-      <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
-      <View style={styles.headerRow}>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
-        </View>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Sport" value="cricket" onChange={() => {}} options={[{ label: 'Cricket', value: 'cricket' }]} disabled />
-        </View>
+      <View style={styles.cardSection}>
+        <Text style={styles.sectionLabel}>Overview & Playing Style</Text>
+        <Controller
+          control={control}
+          name="born"
+          render={({ field: { value, onChange } }) => (
+            <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="age"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="batting_style"
+          render={({ field: { value, onChange } }) => (
+            <Dropdown label="Batting Style" value={value} onChange={onChange} options={BATTING_STYLE_OPTIONS} placeholder="Select batting style" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="bowling_style"
+          render={({ field: { value, onChange } }) => (
+            <Dropdown label="Bowling Style" value={value} onChange={onChange} options={BOWLING_STYLE_OPTIONS} placeholder="Select bowling style" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="playing_role"
+          render={({ field: { value, onChange } }) => (
+            <Dropdown label="Playing Role" value={value} onChange={onChange} options={PLAYING_ROLE_OPTIONS} placeholder="Select playing role" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="height"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Height" value={value} onChangeText={onChange} placeholder="e.g. 5 ft 10 in" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="college_university"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="College / University" value={value} onChangeText={onChange} placeholder="School or University" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="teams"
+          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+        />
       </View>
 
-      <Text style={styles.sectionLabel}>Overview</Text>
-      <TextField label="Full name" value={fullName} onChangeText={setFullName} />
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="batting_style"
-        render={({ field: { value, onChange } }) => (
-          <Dropdown label="Batting Style" value={value} onChange={onChange} options={BATTING_STYLE_OPTIONS} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="bowling_style"
-        render={({ field: { value, onChange } }) => (
-          <Dropdown label="Bowling Style" value={value} onChange={onChange} options={BOWLING_STYLE_OPTIONS} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="playing_role"
-        render={({ field: { value, onChange } }) => (
-          <Dropdown label="Playing Role" value={value} onChange={onChange} options={PLAYING_ROLE_OPTIONS} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} placeholder="e.g. 5ft 10in" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="college_university"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="College/University" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="teams"
-        render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
-      />
+      <View style={styles.cardSection}>
+        <Text style={styles.sectionLabel}>Batting Career Stats</Text>
+        <StatTable
+          title="Batting Stats"
+          control={control}
+          name="batting"
+          emptyRow={EMPTY_BATTING_ROW}
+          columns={[
+            { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
+            { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+            { key: 'matches', label: 'Matches', type: 'number' },
+            { key: 'innings', label: 'Innings', type: 'number' },
+            { key: 'runs', label: 'Runs', type: 'number' },
+            { key: 'highest_score', label: 'High Score', type: 'number' },
+            { key: 'average', label: 'Average', type: 'text' },
+            { key: 'strike_rate', label: 'Strike Rate', type: 'text' },
+            { key: 'hundreds', label: '100s', type: 'number' },
+            { key: 'fifties', label: '50s', type: 'number' },
+            { key: 'fours', label: '4s', type: 'number' },
+            { key: 'sixes', label: '6s', type: 'number' },
+            { key: 'catches', label: 'Catches', type: 'number' },
+            { key: 'stumpings', label: 'Stumpings', type: 'number' },
+          ]}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>Career Status</Text>
-      <StatTable
-        title="Batting & Fielding"
-        control={control}
-        name="batting"
-        emptyRow={EMPTY_BATTING_ROW}
-        columns={[
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'cricket_match_type_id', label: 'Type', type: 'select', options: matchTypeOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'won', label: 'Won', type: 'number' },
-          { key: 'lost', label: 'Lost', type: 'number' },
-          { key: 'innings', label: 'Innings', type: 'number' },
-          { key: 'not_out', label: 'Not Out', type: 'number' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'hs', label: 'HS', type: 'text' },
-          { key: 'average', label: 'Average', type: 'decimal' },
-          { key: 'best', label: 'Best', type: 'number' },
-          { key: 'sr', label: 'SR', type: 'decimal' },
-          { key: 'hundreds', label: '100s', type: 'number' },
-          { key: 'fifties', label: '50s', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
-          { key: 'sixes', label: '6s', type: 'number' },
-          { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
-        ]}
-      />
-      <StatTable
-        title="Bowling"
-        control={control}
-        name="bowling"
-        emptyRow={EMPTY_BOWLING_ROW}
-        columns={[
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'cricket_match_type_id', label: 'Type', type: 'select', options: matchTypeOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'innings', label: 'Innings', type: 'number' },
-          { key: 'balls', label: 'Balls', type: 'number' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'wickets', label: 'Wickets', type: 'number' },
-          { key: 'bbi', label: 'BBI', type: 'text' },
-          { key: 'bbm', label: 'BBM', type: 'text' },
-          { key: 'average', label: 'Average', type: 'decimal' },
-          { key: 'economy', label: 'Economy', type: 'decimal' },
-          { key: 'sr', label: 'SR', type: 'decimal' },
-          { key: 'four_w', label: '4w', type: 'number' },
-          { key: 'five_w', label: '5w', type: 'number' },
-          { key: 'ten_w', label: '10w', type: 'number' },
-        ]}
-      />
+      <View style={styles.cardSection}>
+        <Text style={styles.sectionLabel}>Bowling Career Stats</Text>
+        <StatTable
+          title="Bowling Stats"
+          control={control}
+          name="bowling"
+          emptyRow={EMPTY_BOWLING_ROW}
+          columns={[
+            { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
+            { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+            { key: 'matches', label: 'Matches', type: 'number' },
+            { key: 'innings', label: 'Innings', type: 'number' },
+            { key: 'overs', label: 'Overs', type: 'text' },
+            { key: 'runs', label: 'Runs', type: 'number' },
+            { key: 'wickets', label: 'Wickets', type: 'number' },
+            { key: 'best_bowling', label: 'Best Bowling', type: 'text' },
+            { key: 'average', label: 'Average', type: 'text' },
+            { key: 'economy', label: 'Economy', type: 'text' },
+            { key: 'five_wickets', label: '5w', type: 'number' },
+          ]}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>Recent Matches</Text>
-      <StatTable
-        title="Recent Matches"
-        control={control}
-        name="recent_matches"
-        emptyRow={EMPTY_RECENT_MATCH_ROW}
-        columns={[
-          { key: 'match_date', label: 'Date', type: 'date' },
-          { key: 'opponent', label: 'Match vs', type: 'text' },
-          { key: 'played_xi', label: 'XI', type: 'boolean' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'balls', label: 'Balls', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
-          { key: 'sixes', label: '6s', type: 'number' },
-          { key: 'overs', label: 'Overs', type: 'decimal' },
-          { key: 'maidens', label: 'Maidens', type: 'number' },
-          { key: 'wickets', label: 'Wickets', type: 'number' },
-          { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
-        ]}
-      />
+      <View style={styles.cardSection}>
+        <Text style={styles.sectionLabel}>Recent Matches</Text>
+        <StatTable
+          title="Recent Matches"
+          control={control}
+          name="recent_matches"
+          emptyRow={EMPTY_RECENT_MATCH_ROW}
+          columns={[
+            { key: 'match_date', label: 'Date', type: 'date' },
+            { key: 'opponent', label: 'Match vs', type: 'text' },
+            { key: 'played_xi', label: 'Played XI', type: 'boolean' },
+            { key: 'runs', label: 'Runs', type: 'number' },
+            { key: 'balls', label: 'Balls', type: 'number' },
+            { key: 'fours', label: '4s', type: 'number' },
+            { key: 'sixes', label: '6s', type: 'number' },
+            { key: 'overs', label: 'Overs', type: 'text' },
+            { key: 'maidens', label: 'Maidens', type: 'number' },
+            { key: 'wickets', label: 'Wkts', type: 'number' },
+            { key: 'catches', label: 'Catches', type: 'number' },
+            { key: 'stumpings', label: 'Stumpings', type: 'number' },
+          ]}
+        />
+      </View>
 
-      <Button label="Submit" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
+      <Button label="Save Cricket Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </ScreenContainer>
   );
 }
@@ -328,8 +367,58 @@ const styles = StyleSheet.create({
   loadingIndicator: {
     marginTop: spacing.xl,
   },
+  topModeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.navyDark,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.card,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...shadows.sm,
+  },
+  topModeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  topModeTitle: {
+    ...typography.subtitle,
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  previewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    ...shadows.sm,
+  },
+  previewButtonText: {
+    ...typography.caption,
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  cardSection: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
+  },
   coverBlock: {
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
     marginBottom: spacing['2xl'],
   },
   avatarOverlay: {
@@ -346,11 +435,15 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...typography.overline,
-    marginTop: spacing.lg,
+    marginTop: spacing.xs,
     marginBottom: spacing.md,
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.8,
   },
   submitButton: {
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
     marginBottom: spacing['2xl'],
   },
 });

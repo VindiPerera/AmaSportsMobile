@@ -64,7 +64,8 @@ export default function PlayerProfileHubScreen() {
   };
 
   const openSport = (entry: PlayerSportEntry) => {
-    router.push(resolveSportRoute(entry.sport));
+    // Both Home and Profile tab open the player detail view with an "Edit Profile" button option.
+    router.push(resolveSportRoute(entry.sport, 'view'));
   };
 
   return (
