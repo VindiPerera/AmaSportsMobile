@@ -36,4 +36,9 @@ export interface Lookups {
   swimming_events: LookupOption[];
   boxing_weight_classes: LookupOption[];
   karate_styles: LookupOption[];
+  // Phase 7 additions — Cricket Fielding/Bowling Analyses.
+  field_positions: LookupOption[];
+  drop_reasons: LookupOption[];
+  pitching_lines: LookupOption[];
+  ball_types: LookupOption[];
 }

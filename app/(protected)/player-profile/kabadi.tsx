@@ -18,6 +18,7 @@ import { GlossaryDisclosure } from '../../../src/components/player/GlossaryDiscl
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
 import { kabadiService } from '../../../src/services/kabadiService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
@@ -153,13 +154,20 @@ export default function KabadiProfileScreen() {
     setError(null);
     setIsSaving(true);
     try {
-      await playerService.updateProfile({
+      const updatedProfile = await playerService.updateProfile({
         full_name: fullName.trim(),
         country: country || undefined,
         cover_photo: coverPicked,
         photo: avatarPicked,
       });
+      if (updatedProfile) {
+        if (updatedProfile.photo_url) setExistingPhotoUrl(updatedProfile.photo_url);
+        if (updatedProfile.cover_photo_url) setExistingCoverUrl(updatedProfile.cover_photo_url);
+        setAvatarPicked(null);
+        setCoverPicked(null);
+      }
       await kabadiService.saveProfile(values);
+      await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
     } catch (err) {
       setError(

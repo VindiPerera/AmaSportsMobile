@@ -42,6 +42,18 @@ function buildProfileFormData(payload: UpdatePlayerProfilePayload): FormData {
   return formData;
 }
 
+/** Drops blank/zero entries so an untouched breakdown category is sent as
+ * absent rather than `0` — keeps the payload small and matches how the
+ * numeric StatTable rows already treat blank cells as "not entered". */
+function breakdownToPayload(breakdown: Record<string, string>): Record<string, number> {
+  const result: Record<string, number> = {};
+  Object.entries(breakdown).forEach(([key, value]) => {
+    const count = idOrNull(value);
+    if (count !== null) result[key] = count;
+  });
+  return result;
+}
+
 function cricketFormToPayload(values: CricketProfileFormValues) {
   return {
     born: values.born || null,
@@ -51,6 +63,8 @@ function cricketFormToPayload(values: CricketProfileFormValues) {
     playing_role: values.playing_role || null,
     height: values.height || null,
     college_university: values.college_university || null,
+    pitching_line_breakdown: breakdownToPayload(values.pitching_line_breakdown),
+    ball_type_breakdown: breakdownToPayload(values.ball_type_breakdown),
     teams: values.teams.filter((team) => team.trim() !== ''),
     batting: values.batting
       .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
@@ -75,6 +89,11 @@ function cricketFormToPayload(values: CricketProfileFormValues) {
         sixes: idOrNull(row.sixes),
         catches: idOrNull(row.catches),
         stumpings: idOrNull(row.stumpings),
+        run_outs: idOrNull(row.run_outs),
+        direct_hits: idOrNull(row.direct_hits),
+        runs_saved: idOrNull(row.runs_saved),
+        runs_giving: idOrNull(row.runs_giving),
+        stumps_missing: idOrNull(row.stumps_missing),
       })),
     bowling: values.bowling
       .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
@@ -86,6 +105,9 @@ function cricketFormToPayload(values: CricketProfileFormValues) {
         matches: idOrNull(row.matches),
         innings: idOrNull(row.innings),
         balls: idOrNull(row.balls),
+        dot_balls: idOrNull(row.dot_balls),
+        wide_balls: idOrNull(row.wide_balls),
+        no_balls: idOrNull(row.no_balls),
         runs: idOrNull(row.runs),
         wickets: idOrNull(row.wickets),
         bbi: row.bbi || null,
@@ -112,6 +134,15 @@ function cricketFormToPayload(values: CricketProfileFormValues) {
         wickets: idOrNull(row.wickets),
         catches: idOrNull(row.catches),
         stumpings: idOrNull(row.stumpings),
+      })),
+    drop_catches: values.drop_catches
+      .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
+      .map((row) => ({
+        format_id: idOrNull(row.format_id),
+        age_category_id: idOrNull(row.age_category_id),
+        match_category_id: idOrNull(row.match_category_id),
+        field_position_id: idOrNull(row.field_position_id),
+        drop_reason_id: idOrNull(row.drop_reason_id),
       })),
   };
 }

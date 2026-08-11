@@ -16,12 +16,12 @@ export interface StatColumn {
 }
 
 const DEFAULT_WIDTH: Record<ColumnType, number> = {
-  text: 130,
+  text: 140,
   number: 84,
   decimal: 90,
-  date: 124,
+  date: 130,
   boolean: 64,
-  select: 140,
+  select: 150,
 };
 
 interface StatTableProps<TFieldValues extends FieldValues> {
@@ -70,7 +70,13 @@ export function StatTable<TFieldValues extends FieldValues>({
           <Text style={styles.emptyText}>No entries added yet — tap &quot;Add Row&quot; to begin.</Text>
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator style={styles.scrollWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator
+          keyboardShouldPersistTaps="handled"
+          style={styles.scrollWrapper}
+          contentContainerStyle={styles.scrollContentContainer}
+        >
           <View>
             <View style={styles.headerRow}>
               {columns.map((column) => (
@@ -267,6 +273,9 @@ const styles = StyleSheet.create({
   scrollWrapper: {
     borderRadius: radius.md,
     overflow: 'hidden',
+  },
+  scrollContentContainer: {
+    paddingRight: spacing.sm,
   },
   headerRow: {
     flexDirection: 'row',
