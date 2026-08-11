@@ -23,7 +23,7 @@ import { kabadiService } from '../../../src/services/kabadiService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { KABADI_GLOSSARY } from '../../../src/constants/kabadiGlossary';
 import { calculateAge } from '../../../src/utils/date';
-import { KabadiProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, KabadiProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_STAT_FIELDS = {
   cbp: '', raids: '', successful_raids: '', unsuccessful_raids: '', raid_touch_point: '',
@@ -76,7 +76,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function KabadiProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -161,8 +161,12 @@ export default function KabadiProfileScreen() {
       });
       await kabadiService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Kabadi profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Kabadi profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

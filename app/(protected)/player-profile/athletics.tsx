@@ -22,7 +22,7 @@ import { playerService } from '../../../src/services/playerService';
 import { athleticsService } from '../../../src/services/athleticsService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { calculateAge } from '../../../src/utils/date';
-import { AthleticsProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, AthleticsProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', athletics_event_id: '',
@@ -52,7 +52,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function AthleticsProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -137,8 +137,12 @@ export default function AthleticsProfileScreen() {
       });
       await athleticsService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Athletics profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Athletics profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

@@ -21,7 +21,7 @@ import { playerService } from '../../../src/services/playerService';
 import { rugbyService } from '../../../src/services/rugbyService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { calculateAge } from '../../../src/utils/date';
-import { PickedImage, RugbyProfileFormValues } from '../../../src/types';
+import { ApiError, PickedImage, RugbyProfileFormValues } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
@@ -52,7 +52,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function RugbyProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -137,8 +137,12 @@ export default function RugbyProfileScreen() {
       });
       await rugbyService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Rugby profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Rugby profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

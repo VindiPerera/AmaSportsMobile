@@ -22,7 +22,7 @@ import { elleService } from '../../../src/services/elleService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { DOMINANT_HAND_OPTIONS } from '../../../src/constants/hockeyOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { ElleProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, ElleProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
@@ -52,7 +52,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function ElleProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -137,8 +137,12 @@ export default function ElleProfileScreen() {
       });
       await elleService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Elle profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Elle profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

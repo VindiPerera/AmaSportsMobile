@@ -21,7 +21,7 @@ import { playerService } from '../../../src/services/playerService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { DOMINANT_HAND_OPTIONS, PLAYER_POSITION_OPTIONS } from '../../../src/constants/hockeyOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { HockeyProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, HockeyProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', kit_number: '', matches: '',
@@ -53,7 +53,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function HockeyProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -139,8 +139,12 @@ export default function HockeyProfileScreen() {
       });
       await playerService.saveHockeyProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Hockey profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Hockey profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

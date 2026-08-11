@@ -12,6 +12,13 @@ const extra = (Constants.expoConfig?.extra ?? {}) as { apiUrl?: string };
 function getApiUrl(): string {
   const envUrl = process.env.EXPO_PUBLIC_API_URL ?? extra.apiUrl;
 
+  // An explicit override always wins — otherwise EXPO_PUBLIC_API_URL would
+  // be silently ignored whenever the web preview happens to be served from
+  // localhost (e.g. pointing at a hosted backend while testing web builds).
+  if (envUrl) {
+    return envUrl;
+  }
+
   if (Platform.OS === 'web') {
     if (typeof window !== 'undefined' && window.location) {
       const hostname = window.location.hostname;
@@ -21,7 +28,7 @@ function getApiUrl(): string {
     }
   }
 
-  return envUrl ?? 'http://127.0.0.1:8000/api';
+  return 'http://127.0.0.1:8000/api';
 }
 
 export const API_URL = getApiUrl();

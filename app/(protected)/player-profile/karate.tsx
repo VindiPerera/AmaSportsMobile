@@ -22,7 +22,7 @@ import { playerService } from '../../../src/services/playerService';
 import { karateService } from '../../../src/services/karateService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { calculateAge } from '../../../src/utils/date';
-import { KarateProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, KarateProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', fights: '', win: '', lost: '',
@@ -53,7 +53,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function KarateProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -139,8 +139,12 @@ export default function KarateProfileScreen() {
       });
       await karateService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Karate profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Karate profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

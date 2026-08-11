@@ -22,7 +22,7 @@ import { footballService } from '../../../src/services/footballService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { DOMINANT_LEG_OPTIONS } from '../../../src/constants/commonOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { FootballProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, FootballProfileFormValues, PickedImage } from '../../../src/types';
 
 // GK columns (goalkeeper_clean_sheets/goalkeeper_goals_conceded) are always
 // present but optional — client-confirmed to not hide them per position.
@@ -59,7 +59,7 @@ const STAT_KEYS = ['goals', 'assists', 'defensive_actions', 'goalkeeper_clean_sh
 
 export default function FootballProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -144,8 +144,12 @@ export default function FootballProfileScreen() {
       });
       await footballService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Football profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Football profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

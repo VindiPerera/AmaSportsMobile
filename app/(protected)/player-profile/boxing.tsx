@@ -21,7 +21,7 @@ import { playerService } from '../../../src/services/playerService';
 import { boxingService } from '../../../src/services/boxingService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { calculateAge } from '../../../src/utils/date';
-import { BoxingProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, BoxingProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', weight_class_id: '',
@@ -51,7 +51,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function BoxingProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -137,8 +137,12 @@ export default function BoxingProfileScreen() {
       });
       await boxingService.saveProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Boxing profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Boxing profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

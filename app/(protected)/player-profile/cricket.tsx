@@ -25,7 +25,7 @@ import {
   PLAYING_ROLE_OPTIONS,
 } from '../../../src/constants/cricketOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { CricketProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '',
@@ -63,7 +63,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function CricketProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -152,8 +152,12 @@ export default function CricketProfileScreen() {
       });
       await playerService.saveCricketProfile(values);
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Cricket profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Cricket profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }
