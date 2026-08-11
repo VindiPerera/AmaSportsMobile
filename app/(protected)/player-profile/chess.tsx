@@ -17,6 +17,7 @@ import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
 import { chessService } from '../../../src/services/chessService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
@@ -127,13 +128,20 @@ export default function ChessProfileScreen() {
     setError(null);
     setIsSaving(true);
     try {
-      await playerService.updateProfile({
+      const updatedProfile = await playerService.updateProfile({
         full_name: fullName.trim(),
         country: country || undefined,
         cover_photo: coverPicked,
         photo: avatarPicked,
       });
+      if (updatedProfile) {
+        if (updatedProfile.photo_url) setExistingPhotoUrl(updatedProfile.photo_url);
+        if (updatedProfile.cover_photo_url) setExistingCoverUrl(updatedProfile.cover_photo_url);
+        setAvatarPicked(null);
+        setCoverPicked(null);
+      }
       await chessService.saveProfile(values);
+      await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
     } catch (err) {
       setError(

@@ -142,8 +142,8 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Welcome back,</Text>
             <Text style={styles.name}>{player?.full_name || user?.name || 'Athlete'}</Text>
           </View>
-          {player?.photo_url ? (
-            <Image source={{ uri: player.photo_url }} style={styles.heroAvatar} />
+          {player?.photo_url || user?.photo_url ? (
+            <Image source={{ uri: player?.photo_url || user?.photo_url }} style={styles.heroAvatar} />
           ) : (
             <View style={styles.heroAvatarFallback}>
               <Text style={styles.heroAvatarText}>
@@ -157,20 +157,28 @@ export default function HomeScreen() {
         <View style={styles.statChipRow}>
           <View style={styles.statChip}>
             <Ionicons name="trophy-outline" size={14} color={colors.energy} />
-            <Text style={styles.statChipNumber}>{sports.length}</Text>
-            <Text style={styles.statChipLabel}>My Sports</Text>
+            <View style={styles.statChipTextCol}>
+              <Text style={styles.statChipNumber}>{sports.length}</Text>
+              <Text style={styles.statChipLabel} numberOfLines={1}>My Sports</Text>
+            </View>
           </View>
 
           <View style={styles.statChip}>
             <Ionicons name="radio-outline" size={14} color={colors.live} />
-            <Text style={styles.statChipNumber}>{liveMatches.length}</Text>
-            <Text style={styles.statChipLabel}>Live Now</Text>
+            <View style={styles.statChipTextCol}>
+              <Text style={styles.statChipNumber}>{liveMatches.length}</Text>
+              <Text style={styles.statChipLabel} numberOfLines={1}>Live Now</Text>
+            </View>
           </View>
 
           <View style={styles.statChip}>
             <Ionicons name="stats-chart-outline" size={14} color={colors.primaryLight} />
-            <Text style={styles.statChipNumber}>{cricketAnalysis?.has_any_stats ? 'Active' : 'Setup'}</Text>
-            <Text style={styles.statChipLabel}>Analytics</Text>
+            <View style={styles.statChipTextCol}>
+              <Text style={styles.statChipNumber} numberOfLines={1}>
+                {cricketAnalysis?.has_any_stats ? 'Active' : 'Setup'}
+              </Text>
+              <Text style={styles.statChipLabel} numberOfLines={1}>Analytics</Text>
+            </View>
           </View>
         </View>
       </LinearGradient>
@@ -648,19 +656,27 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: radius.lg,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    overflow: 'hidden',
+  },
+  statChipTextCol: {
+    flex: 1,
+    justifyContent: 'center',
   },
   statChipNumber: {
     ...typography.body,
     color: colors.white,
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
   },
   statChipLabel: {
     ...typography.caption,
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 12,
   },
   loadingIndicator: {
     marginVertical: spacing.xl,
