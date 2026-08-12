@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { Logo } from '../../../src/components/ui/Logo';
 import { SubscriptionStatusChip } from '../../../src/components/subscription/SubscriptionStatusChip';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -118,6 +119,14 @@ export default function HomeScreen() {
         end={{ x: 0.9, y: 1 }}
         style={[styles.heroCard, shadows.md]}
       >
+        {/* Top Brand Logo Bar */}
+        <View style={styles.topBrandRow}>
+          <Logo size={28} />
+          <View style={styles.subscriptionChipRow}>
+            <SubscriptionStatusChip status={subscriptionStatus} />
+          </View>
+        </View>
+
         {/* Live Score & Stream Quick Pill */}
         <Pressable
           style={({ pressed }) => [styles.liveBadgeRow, pressed && styles.pressedOpacity]}
@@ -554,6 +563,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  topBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
   liveBadgeRow: {

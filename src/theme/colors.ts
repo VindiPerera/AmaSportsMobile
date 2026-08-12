@@ -1,32 +1,31 @@
 /**
- * Brand color tokens.
- * Keep all raw hex values confined to this file — every other module should
- * reference `colors.*` (or the semantic aliases below) instead of hex codes.
- *
- * Background stays pure white (#FFFFFF) throughout the app per brand — all
- * "color" comes from accents, gradients, and imagery on top of that white,
- * not from tinted page backgrounds.
+ * Brand color tokens based on the official AmaX business logo identity.
+ * - Primary: AmaX Vibrant Red (#E31B23)
+ * - Energy / Accent: AmaX Gold Yellow (#F59E0B)
+ * - Charcoal / Navy: AmaX Dark Gray (#111827)
  */
 export const colors = {
-  primary: '#155EEF',
-  primaryDark: '#0E42B3',
-  primaryLight: '#E8EFFE',
+  // Primary AmaX Red Palette
+  primary: '#E31B23',
+  primaryDark: '#B91C1C',
+  primaryLight: '#FFF1F2',
 
-  // Secondary "energy" accent — sport intensity, highlights & badges
-  energy: '#FF6B35',
-  energyDark: '#E4501B',
-  energyLight: '#FFE8DE',
+  // Secondary AmaX Energy Accent — Gold Yellow from logo X mark
+  energy: '#F59E0B',
+  energyDark: '#D97706',
+  energyLight: '#FEF3C7',
 
-  navy: '#0B1F3A',
-  navyDark: '#0B1E3D',
+  // Dark Charcoal / Navy from logo X diagonal stroke
+  navy: '#111827',
+  navyDark: '#030712',
 
   success: '#22C55E',
   successLight: '#DCFCE7',
   successBorder: '#BBF0D0',
 
-  live: '#EF4444',
-  liveLight: '#FEE2E2',
-  liveBorder: '#FBD5D5',
+  live: '#E31B23',
+  liveLight: '#FFE4E6',
+  liveBorder: '#FECDD3',
 
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
@@ -47,11 +46,11 @@ export const colors = {
   transparent: 'transparent',
 
   // Gradient pairs — [start, end]
-  gradientPrimary: ['#0B1E3D', '#1B3A6B'] as const,
-  gradientHero: ['#0B1E3D', '#1B3A6B'] as const,
-  gradientDark: ['#071224', '#0F264A'] as const,
-  gradientEnergy: ['#FF6B35', '#EF4444'] as const,
-  gradientAccent: ['#155EEF', '#004EEB'] as const,
+  gradientPrimary: ['#E31B23', '#B91C1C'] as const,
+  gradientHero: ['#1F2937', '#111827'] as const,
+  gradientDark: ['#111827', '#030712'] as const,
+  gradientEnergy: ['#F59E0B', '#D97706'] as const,
+  gradientAccent: ['#E31B23', '#F59E0B'] as const,
 } as const;
 
 export type ColorToken = keyof typeof colors;
