@@ -72,6 +72,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="player-search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="contact-us"
         options={{
           title: 'Contact Us',

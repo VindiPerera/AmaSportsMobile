@@ -2,6 +2,7 @@ export * from './auth';
 export * from './api';
 export * from './lookup';
 export * from './player';
+export * from './playerSearch';
 export * from './cricket';
 export * from './cricketAnalysis';
 export * from './hockey';

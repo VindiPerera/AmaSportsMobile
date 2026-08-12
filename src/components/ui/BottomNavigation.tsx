@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 
-export type TabKey = 'home' | 'live-score' | 'player-profile' | 'analysis' | 'contact-us';
+export type TabKey = 'home' | 'live-score' | 'player-profile' | 'analysis' | 'player-search' | 'contact-us';
 
 interface BottomNavigationProps {
   activeTab?: TabKey;
@@ -15,6 +15,7 @@ const TABS: { key: TabKey; title: string; icon: keyof typeof Ionicons.glyphMap; 
   { key: 'live-score', title: 'Live Score', icon: 'radio', iconOutline: 'radio-outline', route: '/(protected)/(tabs)/live-score' },
   { key: 'player-profile', title: 'Player Profile', icon: 'person', iconOutline: 'person-outline', route: '/(protected)/(tabs)/player-profile' },
   { key: 'analysis', title: 'Analysis', icon: 'stats-chart', iconOutline: 'stats-chart-outline', route: '/(protected)/(tabs)/analysis' },
+  { key: 'player-search', title: 'Search', icon: 'search', iconOutline: 'search-outline', route: '/(protected)/(tabs)/player-search' },
   { key: 'contact-us', title: 'Contact Us', icon: 'mail', iconOutline: 'mail-outline', route: '/(protected)/(tabs)/contact-us' },
 ];
 

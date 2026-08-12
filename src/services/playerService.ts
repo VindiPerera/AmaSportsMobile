@@ -8,7 +8,9 @@ import {
   HockeyProfileFormValues,
   HockeyProfileResponse,
   PlayerProfile,
+  PlayerSearchResult,
   PlayerSportEntry,
+  PublicPlayerProfile,
   UpdatePlayerProfilePayload,
 } from '../types';
 
@@ -219,6 +221,22 @@ export const playerService = {
   async fetchCricketProfile() {
     const { data } = await apiClient.get<ApiSuccessResponse<CricketProfileResponse>>(
       '/player/cricket-profile'
+    );
+    return data.data;
+  },
+
+  /** Player Search (Cricket-only for now) — name search, min 2 characters. */
+  async searchPlayers(query: string) {
+    const { data } = await apiClient.get<ApiSuccessResponse<PlayerSearchResult[]>>('/players/search', {
+      params: { q: query },
+    });
+    return data.data;
+  },
+
+  /** Read-only profile for any player, by id — feeds CricketPlayerDetailView for "View Full Profile". */
+  async fetchPublicCricketProfile(playerId: number) {
+    const { data } = await apiClient.get<ApiSuccessResponse<PublicPlayerProfile>>(
+      `/players/${playerId}/cricket-profile`
     );
     return data.data;
   },

@@ -95,6 +95,18 @@ export function CricketBattingSection({ batting, boundaries, recentForm }: Crick
                 color={colors.primary}
                 thickness={2.5}
                 dataPointsColor={colors.primary}
+                // Bare dot, not the library's built-in data-point circle: that
+                // circle attaches onPress/onPressOut directly to a raw SVG
+                // <Circle> with no Pressable wrapper (unlike BarChart's bars,
+                // which correctly wrap in TouchableOpacity) — react-native-web
+                // doesn't recognize onPressOut as a DOM prop and logs a
+                // console.error, which Expo's web dev overlay then renders as
+                // a blocking "Console Error" full-screen page. We never use
+                // per-point press interactivity here, so render a plain,
+                // non-interactive dot instead of hitting that code path.
+                customDataPoint={() => <View style={styles.dataPointDot} />}
+                dataPointsWidth={8}
+                dataPointsHeight={8}
                 curved
                 hideRules
                 xAxisThickness={1}
@@ -221,6 +233,12 @@ const styles = StyleSheet.create({
   axisText: {
     color: colors.textFaint,
     fontSize: 10,
+  },
+  dataPointDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
   emptyNote: {
     flexDirection: 'row',
