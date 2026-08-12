@@ -8,6 +8,7 @@ import { formatShortMatchDate } from '../../utils/date';
 import { chartMaxValue } from '../../utils/chart';
 import { fmtDecimal, fmtFigure } from '../../utils/statFormat';
 import { AnalysisSectionCard } from './AnalysisSectionCard';
+import { ChartErrorBoundary } from './ChartErrorBoundary';
 import { StatCard } from './StatCard';
 
 interface CricketBowlingSectionProps {
@@ -39,25 +40,27 @@ export function CricketBowlingSection({ bowling, recentForm }: CricketBowlingSec
         {wicketsByFormat.length === 0 ? (
           <EmptyChartNote text="Add bowling stats for a format to see this chart." />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <BarChart
-              data={wicketsByFormat}
-              maxValue={chartMaxValue(wicketsByFormat.map((d) => d.value))}
-              barWidth={BAR_WIDTH}
-              spacing={22}
-              barBorderRadius={6}
-              roundedTop
-              hideRules
-              xAxisThickness={1}
-              yAxisThickness={0}
-              xAxisColor={colors.border}
-              yAxisTextStyle={styles.axisText}
-              xAxisLabelTextStyle={styles.axisText}
-              noOfSections={4}
-              height={140}
-              isAnimated
-            />
-          </ScrollView>
+          <ChartErrorBoundary>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <BarChart
+                data={wicketsByFormat}
+                maxValue={chartMaxValue(wicketsByFormat.map((d) => d.value))}
+                barWidth={BAR_WIDTH}
+                spacing={22}
+                barBorderRadius={6}
+                roundedTop
+                hideRules
+                xAxisThickness={1}
+                yAxisThickness={0}
+                xAxisColor={colors.border}
+                yAxisTextStyle={styles.axisText}
+                xAxisLabelTextStyle={styles.axisText}
+                noOfSections={4}
+                height={140}
+                isAnimated
+              />
+            </ScrollView>
+          </ChartErrorBoundary>
         )}
       </View>
 
@@ -73,25 +76,27 @@ export function CricketBowlingSection({ bowling, recentForm }: CricketBowlingSec
         {wicketsByMatch.length === 0 ? (
           <EmptyChartNote text="No recent matches with bowling figures recorded yet." />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <BarChart
-              data={wicketsByMatch}
-              maxValue={chartMaxValue(wicketsByMatch.map((d) => d.value))}
-              barWidth={BAR_WIDTH}
-              spacing={22}
-              barBorderRadius={6}
-              roundedTop
-              hideRules
-              xAxisThickness={1}
-              yAxisThickness={0}
-              xAxisColor={colors.border}
-              yAxisTextStyle={styles.axisText}
-              xAxisLabelTextStyle={styles.axisText}
-              noOfSections={4}
-              height={140}
-              isAnimated
-            />
-          </ScrollView>
+          <ChartErrorBoundary>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <BarChart
+                data={wicketsByMatch}
+                maxValue={chartMaxValue(wicketsByMatch.map((d) => d.value))}
+                barWidth={BAR_WIDTH}
+                spacing={22}
+                barBorderRadius={6}
+                roundedTop
+                hideRules
+                xAxisThickness={1}
+                yAxisThickness={0}
+                xAxisColor={colors.border}
+                yAxisTextStyle={styles.axisText}
+                xAxisLabelTextStyle={styles.axisText}
+                noOfSections={4}
+                height={140}
+                isAnimated
+              />
+            </ScrollView>
+          </ChartErrorBoundary>
         )}
         <View style={styles.noteRow}>
           <Ionicons name="information-circle-outline" size={14} color={colors.textFaint} />

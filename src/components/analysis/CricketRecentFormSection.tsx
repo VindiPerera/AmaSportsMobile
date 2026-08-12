@@ -7,6 +7,7 @@ import { CricketAnalysisResponse } from '../../types';
 import { formatShortMatchDate } from '../../utils/date';
 import { chartMaxValue } from '../../utils/chart';
 import { AnalysisSectionCard } from './AnalysisSectionCard';
+import { ChartErrorBoundary } from './ChartErrorBoundary';
 
 interface CricketRecentFormSectionProps {
   recentForm: CricketAnalysisResponse['recent_form'];
@@ -45,48 +46,52 @@ export function CricketRecentFormSection({ recentForm }: CricketRecentFormSectio
         <>
           <View style={styles.block}>
             <Text style={styles.blockTitle}>Runs (oldest → newest)</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <BarChart
-                data={runsData}
-                maxValue={chartMaxValue(runsData.map((d) => d.value))}
-                barWidth={BAR_WIDTH}
-                spacing={18}
-                barBorderRadius={5}
-                roundedTop
-                hideRules
-                xAxisThickness={1}
-                yAxisThickness={0}
-                xAxisColor={colors.border}
-                yAxisTextStyle={styles.axisText}
-                xAxisLabelTextStyle={styles.axisText}
-                noOfSections={4}
-                height={120}
-                isAnimated
-              />
-            </ScrollView>
+            <ChartErrorBoundary>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <BarChart
+                  data={runsData}
+                  maxValue={chartMaxValue(runsData.map((d) => d.value))}
+                  barWidth={BAR_WIDTH}
+                  spacing={18}
+                  barBorderRadius={5}
+                  roundedTop
+                  hideRules
+                  xAxisThickness={1}
+                  yAxisThickness={0}
+                  xAxisColor={colors.border}
+                  yAxisTextStyle={styles.axisText}
+                  xAxisLabelTextStyle={styles.axisText}
+                  noOfSections={4}
+                  height={120}
+                  isAnimated
+                />
+              </ScrollView>
+            </ChartErrorBoundary>
           </View>
 
           <View style={styles.block}>
             <Text style={styles.blockTitle}>Wickets (oldest → newest)</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <BarChart
-                data={wicketsData}
-                maxValue={chartMaxValue(wicketsData.map((d) => d.value))}
-                barWidth={BAR_WIDTH}
-                spacing={18}
-                barBorderRadius={5}
-                roundedTop
-                hideRules
-                xAxisThickness={1}
-                yAxisThickness={0}
-                xAxisColor={colors.border}
-                yAxisTextStyle={styles.axisText}
-                xAxisLabelTextStyle={styles.axisText}
-                noOfSections={4}
-                height={100}
-                isAnimated
-              />
-            </ScrollView>
+            <ChartErrorBoundary>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <BarChart
+                  data={wicketsData}
+                  maxValue={chartMaxValue(wicketsData.map((d) => d.value))}
+                  barWidth={BAR_WIDTH}
+                  spacing={18}
+                  barBorderRadius={5}
+                  roundedTop
+                  hideRules
+                  xAxisThickness={1}
+                  yAxisThickness={0}
+                  xAxisColor={colors.border}
+                  yAxisTextStyle={styles.axisText}
+                  xAxisLabelTextStyle={styles.axisText}
+                  noOfSections={4}
+                  height={100}
+                  isAnimated
+                />
+              </ScrollView>
+            </ChartErrorBoundary>
           </View>
 
           <Text style={styles.blockTitle}>Match Log (most recent first)</Text>

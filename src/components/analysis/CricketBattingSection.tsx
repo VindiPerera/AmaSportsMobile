@@ -7,6 +7,7 @@ import { CricketAnalysisResponse } from '../../types';
 import { formatShortMatchDate } from '../../utils/date';
 import { chartMaxValue } from '../../utils/chart';
 import { AnalysisSectionCard } from './AnalysisSectionCard';
+import { ChartErrorBoundary } from './ChartErrorBoundary';
 
 interface CricketBattingSectionProps {
   batting: CricketAnalysisResponse['batting'];
@@ -45,25 +46,27 @@ export function CricketBattingSection({ batting, boundaries, recentForm }: Crick
         {runsByFormat.length === 0 ? (
           <EmptyChartNote text="Add batting stats for a format to see this chart." />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <BarChart
-              data={runsByFormat}
-              maxValue={chartMaxValue(runsByFormat.map((d) => d.value))}
-              barWidth={BAR_WIDTH}
-              spacing={22}
-              barBorderRadius={6}
-              roundedTop
-              hideRules
-              xAxisThickness={1}
-              yAxisThickness={0}
-              xAxisColor={colors.border}
-              yAxisTextStyle={styles.axisText}
-              xAxisLabelTextStyle={styles.axisText}
-              noOfSections={4}
-              height={140}
-              isAnimated
-            />
-          </ScrollView>
+          <ChartErrorBoundary>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <BarChart
+                data={runsByFormat}
+                maxValue={chartMaxValue(runsByFormat.map((d) => d.value))}
+                barWidth={BAR_WIDTH}
+                spacing={22}
+                barBorderRadius={6}
+                roundedTop
+                hideRules
+                xAxisThickness={1}
+                yAxisThickness={0}
+                xAxisColor={colors.border}
+                yAxisTextStyle={styles.axisText}
+                xAxisLabelTextStyle={styles.axisText}
+                noOfSections={4}
+                height={140}
+                isAnimated
+              />
+            </ScrollView>
+          </ChartErrorBoundary>
         )}
       </ChartBlock>
 
@@ -73,6 +76,9 @@ export function CricketBattingSection({ batting, boundaries, recentForm }: Crick
           // internal bezier math divides by (data.length - 1) = 0, which
           // produces a NaN SVG path. Native RN quietly ignores that; the web
           // renderer's real <svg> throws on it, crashing the whole screen.
+          // The ChartErrorBoundary below is a second line of defense for
+          // any OTHER data shape that hits the same class of bug (confirmed
+          // happening in practice — see ChartErrorBoundary's docblock).
           <EmptyChartNote
             text={
               strikeRatePoints.length === 0
@@ -81,44 +87,48 @@ export function CricketBattingSection({ batting, boundaries, recentForm }: Crick
             }
           />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <LineChart
-              data={strikeRatePoints}
-              maxValue={chartMaxValue(strikeRatePoints.map((d) => d.value))}
-              color={colors.primary}
-              thickness={2.5}
-              dataPointsColor={colors.primary}
-              curved
-              hideRules
-              xAxisThickness={1}
-              yAxisThickness={0}
-              xAxisColor={colors.border}
-              yAxisTextStyle={styles.axisText}
-              xAxisLabelTextStyle={styles.axisText}
-              height={140}
-              spacing={44}
-              initialSpacing={20}
-              isAnimated
-            />
-          </ScrollView>
+          <ChartErrorBoundary>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <LineChart
+                data={strikeRatePoints}
+                maxValue={chartMaxValue(strikeRatePoints.map((d) => d.value))}
+                color={colors.primary}
+                thickness={2.5}
+                dataPointsColor={colors.primary}
+                curved
+                hideRules
+                xAxisThickness={1}
+                yAxisThickness={0}
+                xAxisColor={colors.border}
+                yAxisTextStyle={styles.axisText}
+                xAxisLabelTextStyle={styles.axisText}
+                height={140}
+                spacing={44}
+                initialSpacing={20}
+                isAnimated
+              />
+            </ScrollView>
+          </ChartErrorBoundary>
         )}
       </ChartBlock>
 
       <View style={styles.splitRow}>
         <ChartBlock title="4s vs 6s" style={styles.halfBlock}>
           <View style={styles.donutRow}>
-            <PieChart
-              data={boundaryData}
-              donut
-              radius={54}
-              innerRadius={36}
-              innerCircleColor={colors.card}
-              centerLabelComponent={() =>
-                hasBoundaries ? (
-                  <Text style={styles.donutCenter}>{boundaries.fours + boundaries.sixes}</Text>
-                ) : null
-              }
-            />
+            <ChartErrorBoundary>
+              <PieChart
+                data={boundaryData}
+                donut
+                radius={54}
+                innerRadius={36}
+                innerCircleColor={colors.card}
+                centerLabelComponent={() =>
+                  hasBoundaries ? (
+                    <Text style={styles.donutCenter}>{boundaries.fours + boundaries.sixes}</Text>
+                  ) : null
+                }
+              />
+            </ChartErrorBoundary>
             <View style={styles.legend}>
               <LegendRow color={colors.primary} label="4s" value={boundaries.fours} />
               <LegendRow color={colors.energy} label="6s" value={boundaries.sixes} />
