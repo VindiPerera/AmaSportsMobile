@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -10,7 +10,6 @@ import { colors, radius, spacing, typography } from '../../../src/theme';
 import { matchService } from '../../../src/services/matchService';
 import {
   subscribeToLiveScore,
-  publishLiveScoreUpdate,
   MultiSportLiveScore,
   seedInitialLiveScores,
   CricketTeamInnings,
@@ -21,8 +20,8 @@ import { MatchSummary } from '../../../src/types';
 function overDotStyle(code: string) {
   if (code === '4') return styles.overDot4;
   if (code === '6') return styles.overDot6;
-  if (code === 'W' || code === 'NB') return styles.overDotExtra;
-  if (code === 'X') return styles.overDotOut;
+  if (code === 'W' || code === 'X') return styles.overDotOut;
+  if (code === 'NB') return styles.overDotExtra;
   return styles.overDotDefault;
 }
 
@@ -117,7 +116,7 @@ function CricketBowlingTable({ team }: { team: CricketTeamInnings }) {
               <Text style={[styles.statsCell, styles.statsNameCell, styles.statsNameText]} numberOfLines={1}>{b.name}</Text>
               <Text style={styles.statsCell}>{b.overs}.{b.balls}</Text>
               <Text style={styles.statsCell}>{b.runs}</Text>
-              <Text style={styles.statsCell}>{b.wickets}</Text>
+              <Text style={[styles.statsCell, styles.statsWicketsCell]}>{b.wickets}</Text>
               <Text style={styles.statsCell}>{b.maidens}</Text>
               <Text style={styles.statsCell}>{econ}</Text>
             </View>
@@ -134,7 +133,6 @@ export default function MatchDetailScreen() {
   const [liveData, setLiveData] = useState<MultiSportLiveScore | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -156,34 +154,6 @@ export default function MatchDetailScreen() {
     });
     return () => unsub();
   }, [id]);
-
-  const handlePointIncrement = (team: 'home' | 'away') => {
-    if (!match || !liveData) return;
-    const matchIdNum = Number(id);
-
-    if (liveData.racket_scores) {
-      const rs = { ...liveData.racket_scores };
-      if (team === 'home') {
-        rs.points_home = (rs.points_home ?? 0) + 1;
-      } else {
-        rs.points_away = (rs.points_away ?? 0) + 1;
-      }
-      publishLiveScoreUpdate(matchIdNum, { racket_scores: rs });
-    } else if (liveData.cricket_score) {
-      const cs = { ...liveData.cricket_score };
-      cs.runs = (cs.runs ?? 0) + (team === 'home' ? 4 : 1);
-      cs.summary = `Realtime Firebase Update: +${team === 'home' ? 4 : 1} runs scored!`;
-      publishLiveScoreUpdate(matchIdNum, { cricket_score: cs });
-    } else if (liveData.team_score) {
-      const ts = { ...liveData.team_score };
-      if (team === 'home') {
-        ts.home_total = (ts.home_total ?? 0) + 2;
-      } else {
-        ts.away_total = (ts.away_total ?? 0) + 2;
-      }
-      publishLiveScoreUpdate(matchIdNum, { team_score: ts });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -261,15 +231,12 @@ export default function MatchDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenContainer edges={['top']} scroll>
-        {/* Top Header Controls */}
+        {/* Top Header Controls — back navigation already lives in the native
+            Stack header (see live-score/_layout.tsx); this row is just status. */}
         <View style={styles.topNavRow}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color={colors.navy} />
-            <Text style={styles.backText}>Back to Live Scores</Text>
-          </Pressable>
           <View style={styles.liveIndicatorPill}>
             <View style={styles.livePulseDot} />
-            <Text style={styles.liveIndicatorText}>FIREBASE LIVE</Text>
+            <Text style={styles.liveIndicatorText}>LIVE SYNC</Text>
           </View>
         </View>
 
@@ -323,16 +290,6 @@ export default function MatchDetailScreen() {
                   <Text style={styles.subScoreText}>Set {racketScores.current_set ?? 1}</Text>
                 ) : null}
               </View>
-
-              {/* Quick Live Point Simulation Buttons */}
-              <View style={styles.simControlsRow}>
-                <Pressable style={styles.simAddBtn} onPress={() => handlePointIncrement('home')}>
-                  <Text style={styles.simAddBtnText}>+ Home Point</Text>
-                </Pressable>
-                <Pressable style={styles.simAddBtn} onPress={() => handlePointIncrement('away')}>
-                  <Text style={styles.simAddBtnText}>+ Away Point</Text>
-                </Pressable>
-              </View>
             </View>
 
             {/* Away Player / Team Profile */}
@@ -346,7 +303,7 @@ export default function MatchDetailScreen() {
         </View>
 
         {/* Sport Specific Scoreboard Matrix matching PDF Layouts (Pages 1-16) */}
-        <Text style={styles.sectionTitle}>Real-time Score Matrix</Text>
+        <Text style={styles.sectionTitle}>{sportSlug === 'cricket' ? 'Live Innings' : 'Real-time Score Matrix'}</Text>
 
         {/* 1. Badminton / Tennis / Table Tennis Racket Score Matrix */}
         {racketScores ? (
@@ -413,6 +370,20 @@ export default function MatchDetailScreen() {
                 <Ionicons name="trophy-outline" size={16} color={colors.primary} />
                 <Text style={styles.summaryText}>{cricketScore.result.margin}</Text>
               </View>
+            ) : null}
+            {!cricketScore.result && cricketScore.innings === 2 && cricketScore.team_a && cricketBattingTeamName ? (
+              (() => {
+                const runsNeeded = cricketScore.team_a.runs + 1 - cricketRuns;
+                if (runsNeeded <= 0) return null;
+                return (
+                  <View style={styles.needBanner}>
+                    <View style={styles.needBannerDot} />
+                    <Text style={styles.needBannerText}>
+                      {cricketBattingTeamName} need {runsNeeded} run{runsNeeded === 1 ? '' : 's'} to win
+                    </Text>
+                  </View>
+                );
+              })()
             ) : null}
             <View style={styles.cricketRow}>
               <Text style={styles.cricketLabel}>Batting Team</Text>
@@ -569,18 +540,8 @@ const styles = StyleSheet.create({
   topNavRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     marginVertical: spacing.sm,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  backText: {
-    ...typography.body,
-    fontWeight: '700',
-    color: colors.navy,
   },
   liveIndicatorPill: {
     flexDirection: 'row',
@@ -707,39 +668,23 @@ const styles = StyleSheet.create({
     color: colors.navy,
   },
   realtimeScoreBox: {
-    backgroundColor: 'rgba(21, 94, 239, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: colors.navy,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: radius.lg,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(21, 94, 239, 0.3)',
   },
   realtimeScoreText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
-    color: colors.primary,
+    color: colors.energy,
+    letterSpacing: -0.3,
   },
   subScoreText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.textMuted,
-  },
-  simControlsRow: {
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 4,
-  },
-  simAddBtn: {
-    backgroundColor: colors.navy,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-  },
-  simAddBtnText: {
-    color: colors.white,
-    fontSize: 9,
-    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.55)',
+    marginTop: 2,
   },
   sectionTitle: {
     ...typography.h3,
@@ -854,7 +799,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   statsRowActive: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.energyLight,
   },
   statsCell: {
     width: 44,
@@ -865,6 +810,10 @@ const styles = StyleSheet.create({
   statsNameText: {
     fontWeight: '700',
     textAlign: 'left',
+  },
+  statsWicketsCell: {
+    fontWeight: '800',
+    color: colors.live,
   },
   statsStatusText: {
     textAlign: 'left',
@@ -886,6 +835,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     gap: spacing.xs,
   },
+  needBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.energyLight,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: spacing.xs,
+  },
+  needBannerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: radius.full,
+    backgroundColor: colors.energy,
+  },
+  needBannerText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: '#3F4A17',
+    flex: 1,
+  },
   cricketRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -902,7 +873,7 @@ const styles = StyleSheet.create({
   cricketValHighlight: {
     ...typography.body,
     fontWeight: '900',
-    color: colors.primary,
+    color: colors.live,
   },
   playerScoreCardWrap: {
     marginBottom: spacing.lg,
@@ -921,15 +892,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   playerScoreCardActive: {
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    borderWidth: 1.5,
+    borderColor: colors.energy,
+    backgroundColor: colors.energyLight,
   },
   playerScoreLabel: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-    color: colors.primary,
+    color: '#7A8A0E',
     marginBottom: 4,
   },
   playerScoreLabelMuted: {

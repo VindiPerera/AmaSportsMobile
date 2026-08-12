@@ -4,6 +4,19 @@ import { API_TIMEOUT_MS, API_URL, STORAGE_KEYS } from '../constants/config';
 import { ApiError, ApiErrorResponse } from '../types/api';
 import { secureStorage } from './secureStorage';
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /**
+     * Set on requests that fetch subscription-gated data for a soft/optional
+     * preview (e.g. Home's dashboard summary) rather than a screen whose
+     * whole purpose is that data — those callers already handle the failure
+     * gracefully themselves and shouldn't be hijacked by the global
+     * redirect-to-paywall side effect below.
+     */
+    skipSubscriptionRedirect?: boolean;
+  }
+}
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   timeout: API_TIMEOUT_MS,
@@ -62,7 +75,7 @@ apiClient.interceptors.response.use(
       onUnauthorized?.();
     }
 
-    if (status === 402 && data?.error_code === 'subscription_required') {
+    if (status === 402 && data?.error_code === 'subscription_required' && !error.config?.skipSubscriptionRedirect) {
       onSubscriptionRequired?.();
     }
 

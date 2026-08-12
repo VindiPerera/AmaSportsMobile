@@ -82,8 +82,8 @@ export default function SportPickerScreen() {
           </Text>
           <Text style={styles.emptyText}>
             {subscriptionStatus.has_subscribed
-              ? 'Your AmaSports subscription has expired. Renew for $10/year to add new sports again.'
-              : 'A $10/year AmaSports subscription unlocks adding sports and the Analysis tab.'}
+              ? 'Your AmaX subscription has expired. Renew for $10/year to add new sports again.'
+              : 'A $10/year AmaX subscription unlocks adding sports and the Analysis tab.'}
           </Text>
           <Button
             label={subscriptionStatus.has_subscribed ? 'Renew Subscription' : 'Subscribe Now'}

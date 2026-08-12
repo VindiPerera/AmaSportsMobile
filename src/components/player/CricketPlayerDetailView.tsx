@@ -603,7 +603,7 @@ export function CricketPlayerDetailView({
             {/* Footer Copyright notice matching Cricbuzz layout */}
             <View style={styles.footerBranding}>
               <Text style={styles.footerLegal}>Terms of Use | Privacy Policy | Feedback</Text>
-              <Text style={styles.footerCopyright}>© 2026 AmaSports Ltd. All rights reserved</Text>
+              <Text style={styles.footerCopyright}>© 2026 AmaX Ltd. All rights reserved</Text>
             </View>
           </>
         )}

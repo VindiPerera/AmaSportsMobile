@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { colors, radius, spacing, typography } from '../../theme';
+import { ScrollView, StyleSheet } from 'react-native';
+import { spacing } from '../../theme';
 import { CricketFormatOption } from '../../types';
+import { Chip } from '../ui/Chip';
 
 interface FormatFilterChipsProps {
   formats: CricketFormatOption[];
@@ -38,17 +39,6 @@ export function FormatFilterChips({ formats, selectedId, onSelect }: FormatFilte
   );
 }
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.chipPressed]}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   scrollWrapper: {
     flexGrow: 0,
@@ -59,31 +49,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingVertical: 2,
-  },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  chipPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.97 }],
-  },
-  chipText: {
-    ...typography.caption,
-    fontWeight: '600',
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  chipTextActive: {
-    fontWeight: '700',
-    color: colors.white,
   },
 });

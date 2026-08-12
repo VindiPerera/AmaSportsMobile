@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,13 +10,32 @@ import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { subscriptionService } from '../../../src/services/subscriptionService';
+import { lookupService } from '../../../src/services/lookupService';
+import { sportIconFor } from '../../../src/constants/sportIcons';
 import { formatBornDate } from '../../../src/utils/date';
-import { ApiError } from '../../../src/types';
+import { ApiError, SportOption } from '../../../src/types';
 
 const BENEFITS = [
-  { icon: 'add-circle-outline' as const, title: 'Add any sport', text: 'Register and build profiles for as many sports as you play.' },
-  { icon: 'stats-chart-outline' as const, title: 'Analysis tab', text: 'Unlock career, format, and recent-form breakdowns.' },
-  { icon: 'sync-outline' as const, title: 'Keep editing your stats', text: 'Stay renewed and every sport profile you’ve built stays fully editable.' },
+  {
+    icon: 'add-circle-outline' as const,
+    title: 'Add every sport you play',
+    text: 'Register and build a full profile for any of AmaX’s sports — one subscription covers every one of them, no per-sport fee.',
+  },
+  {
+    icon: 'create-outline' as const,
+    title: 'Edit your stats anytime',
+    text: 'Career numbers, recent matches, personal bests — every sport profile you’ve built stays fully editable for as long as you’re subscribed.',
+  },
+  {
+    icon: 'stats-chart-outline' as const,
+    title: 'Analysis tab',
+    text: 'In-depth career, format, and recent-form breakdowns. Cricket analytics are live now, with more sports rolling out.',
+  },
+  {
+    icon: 'calendar-outline' as const,
+    title: 'One price, a full year',
+    text: '$10 covers everything above for 12 months from the day you subscribe — no extra or per-sport charges until it’s time to renew.',
+  },
 ];
 
 /** How many times to poll subscription-status after the in-app browser closes, before giving up and asking the player to check manually. */
@@ -35,7 +54,6 @@ function sleep(ms: number) {
  * any reason, it polls subscription-status itself.
  */
 export default function SubscriptionPaywallScreen() {
-  const { reason } = useLocalSearchParams<{ reason?: string }>();
   const status = useSubscriptionStore((s) => s.status);
   const refresh = useSubscriptionStore((s) => s.refresh);
 
@@ -43,6 +61,7 @@ export default function SubscriptionPaywallScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pollState, setPollState] = useState<'idle' | 'polling' | 'timed-out'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [sports, setSports] = useState<SportOption[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -50,6 +69,17 @@ export default function SubscriptionPaywallScreen() {
       refresh().finally(() => setIsCheckingStatus(false));
     }, [refresh])
   );
+
+  // Real sport list from the backend rather than a hardcoded copy of it —
+  // stays correct as sports get added without anyone remembering to update
+  // this screen. Purely informational here, so a failure just leaves the
+  // chip row empty instead of blocking anything.
+  useEffect(() => {
+    lookupService
+      .fetchAll()
+      .then((lookups) => setSports(lookups.sports.filter((sport) => sport.has_full_form)))
+      .catch(() => undefined);
+  }, []);
 
   const isRenewal = status?.has_subscribed && !status?.is_active;
 
@@ -105,9 +135,9 @@ export default function SubscriptionPaywallScreen() {
         <View style={styles.heroIconCircle}>
           <Ionicons name="ribbon" size={28} color={colors.energy} />
         </View>
-        <Text style={styles.heroTitle}>{isRenewal ? 'Renew your subscription' : 'Unlock AmaSports'}</Text>
+        <Text style={styles.heroTitle}>{isRenewal ? 'Renew your subscription' : 'Unlock AmaX'}</Text>
         <Text style={styles.heroSubtitle}>
-          {reason === 'expired'
+          {isRenewal
             ? 'Your subscription has expired. Renew to keep adding sports, editing your stats, and viewing Analysis.'
             : 'One subscription unlocks every sport you want to play and your full performance analytics.'}
         </Text>
@@ -146,6 +176,20 @@ export default function SubscriptionPaywallScreen() {
             ))}
           </View>
 
+          {sports.length > 0 && (
+            <View style={styles.sportsCard}>
+              <Text style={styles.sportsTitle}>Sports included</Text>
+              <View style={styles.sportsChipRow}>
+                {sports.map((sport) => (
+                  <View key={sport.id} style={styles.sportChip}>
+                    <Ionicons name={sportIconFor(sport.slug)} size={14} color={colors.primary} />
+                    <Text style={styles.sportChipText}>{sport.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {pollState === 'polling' ? (
             <View style={styles.pollingCard}>
               <ActivityIndicator color={colors.primary} />
@@ -171,7 +215,10 @@ export default function SubscriptionPaywallScreen() {
             style={styles.subscribeButton}
           />
           <Text style={styles.disclaimer}>
-            Payment is handled entirely by PayPal{Platform.OS !== 'web' ? " in an in-app browser" : ''}. AmaSports never sees or stores your card details.
+            Payment is handled entirely by PayPal{Platform.OS !== 'web' ? " in an in-app browser" : ''}. AmaX never sees or stores your card details.
+          </Text>
+          <Text style={styles.disclaimer}>
+            This doesn&rsquo;t include VIP live-stream access, which is unlocked separately per match for $5.
           </Text>
         </>
       )}
@@ -281,6 +328,39 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     marginTop: 1,
+  },
+  sportsCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  sportsTitle: {
+    ...typography.body,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  sportsChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  sportChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+  },
+  sportChipText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
   },
   pollingCard: {
     backgroundColor: colors.cardSubtle,

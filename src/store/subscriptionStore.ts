@@ -39,14 +39,15 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 }));
 
 // A stale cached "active" status shouldn't keep gating screens open after the
-// backend has rejected a write as expired — force a re-fetch so the paywall
-// gates (sport-picker, Analysis) reflect reality on the very next check.
+// backend has rejected a write as needing a subscription — force a re-fetch so
+// the paywall (which reads status.has_subscribed itself to tell "never
+// subscribed" from "lapsed") reflects reality on the very next check.
 let redirectInFlight = false;
 setSubscriptionRequiredHandler(() => {
   useSubscriptionStore.setState({ status: null });
   if (redirectInFlight) return;
   redirectInFlight = true;
-  router.push({ pathname: '/(protected)/subscription/paywall', params: { reason: 'expired' } });
+  router.push('/(protected)/subscription/paywall');
   setTimeout(() => {
     redirectInFlight = false;
   }, 1000);

@@ -4,6 +4,15 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from '@expo-google-fonts/inter';
 import { useAuthStore } from '../src/store/authStore';
 import { useOnboardingStore } from '../src/store/onboardingStore';
 
@@ -15,13 +24,21 @@ export default function RootLayout() {
   const hydrateOnboarding = useOnboardingStore((s) => s.hydrate);
   const isAuthHydrating = useAuthStore((s) => s.isHydrating);
   const isOnboardingHydrating = useOnboardingStore((s) => s.isHydrating);
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
 
   useEffect(() => {
     hydrateAuth();
     hydrateOnboarding();
   }, [hydrateAuth, hydrateOnboarding]);
 
-  const isReady = !isAuthHydrating && !isOnboardingHydrating;
+  const isReady = !isAuthHydrating && !isOnboardingHydrating && fontsLoaded;
 
   const onLayoutRootView = useCallback(async () => {
     if (isReady) {

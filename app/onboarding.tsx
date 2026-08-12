@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,9 +9,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ScreenContainer } from '../src/components/ui/ScreenContainer';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Button } from '../src/components/ui/Button';
-import { Logo } from '../src/components/ui/Logo';
 import { SlideDots } from '../src/components/onboarding/SlideDots';
 import { OnboardingSlideView } from '../src/components/onboarding/OnboardingSlideView';
 import { ONBOARDING_SLIDES } from '../src/constants/onboarding';
@@ -25,6 +24,7 @@ export default function OnboardingScreen() {
   const { width } = useWindowDimensions();
   const completeOnboarding = useOnboardingStore((s) => s.complete);
 
+  const currentSlide = ONBOARDING_SLIDES[activeIndex];
   const isLastSlide = activeIndex === ONBOARDING_SLIDES.length - 1;
 
   const goToAuth = async () => {
@@ -48,102 +48,94 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <ScreenContainer edges={['top', 'bottom']} style={styles.screenBg}>
-      {/* Light Header Bar */}
-      <View style={styles.topRow}>
-        <Logo size={34} />
-      </View>
+    <View style={styles.root}>
+      {/* Dark hero fills the screen — light status bar icons read correctly on it. */}
+      <StatusBar style="light" />
 
-      {/* Main Full-Bleed Onboarding Carousel */}
       <ScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleMomentumScrollEnd}
-        style={styles.pager}
+        style={StyleSheet.absoluteFill}
+        contentContainerStyle={styles.pagerContent}
       >
         {ONBOARDING_SLIDES.map((slide) => (
-          <View key={slide.id} style={[styles.page, { width }]}>
+          <View key={slide.id} style={{ width, height: '100%' }}>
             <OnboardingSlideView slide={slide} />
           </View>
         ))}
       </ScrollView>
 
-      {/* Light Theme Footer Actions (Matches Reference UI) */}
-      <View style={styles.footer}>
-        <SlideDots count={ONBOARDING_SLIDES.length} activeIndex={activeIndex} />
+      {/* Bottom sheet overlay — shared across slides, updates instantly with activeIndex
+          instead of scrolling per-slide (dots/CTA never need to stay in sync mid-swipe). */}
+      <SafeAreaView edges={['bottom']} style={styles.sheet} pointerEvents="box-none">
+        <Text style={styles.sheetTitle}>
+          {currentSlide.headline}{' '}
+          <Text style={styles.sheetTitleAccent}>{currentSlide.headlineAccent}</Text>
+        </Text>
+        <Text style={styles.sheetDescription}>{currentSlide.description}</Text>
 
-        <View style={styles.actionGroup}>
+        <View style={styles.footer}>
+          <SlideDots count={ONBOARDING_SLIDES.length} activeIndex={activeIndex} />
           <Button
             label={isLastSlide ? "LET'S GO" : 'NEXT'}
             variant="primary"
             onPress={handleNext}
             style={styles.pillButton}
           />
-
-          {!isLastSlide ? (
-            <Pressable onPress={goToAuth} style={({ pressed }) => [styles.skipLink, pressed && styles.pressedOpacity]}>
-              <Text style={styles.skipLinkText}>SKIP FOR NOW</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.skipPlaceholder} />
-          )}
         </View>
-      </View>
-    </ScreenContainer>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screenBg: {
-    backgroundColor: '#FFFFFF',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  pager: {
+  root: {
     flex: 1,
-    marginHorizontal: -spacing.lg,
+    backgroundColor: colors.navy,
   },
-  page: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  pagerContent: {
+    height: '100%',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    gap: spacing.sm,
+  },
+  sheetTitle: {
+    ...typography.h1,
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.text,
+  },
+  sheetTitleAccent: {
+    backgroundColor: colors.energy,
+    color: colors.navy,
+    borderRadius: radius.xs,
+    paddingHorizontal: 4,
+    overflow: 'hidden',
+  },
+  sheetDescription: {
+    ...typography.bodyMuted,
+    fontSize: 14,
+    lineHeight: 22,
   },
   footer: {
     gap: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  actionGroup: {
-    alignItems: 'center',
-    gap: spacing.sm,
-    width: '100%',
+    marginTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   pillButton: {
     borderRadius: radius.full,
-    height: 52,
-  },
-  skipLink: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-  },
-  skipLinkText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontWeight: '800',
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-  skipPlaceholder: {
-    height: 24,
-  },
-  pressedOpacity: {
-    opacity: 0.7,
+    height: 54,
   },
 });

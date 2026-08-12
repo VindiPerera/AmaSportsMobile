@@ -76,4 +76,20 @@ export interface MatchSummary {
   date?: string;
   live_score: CricketLiveScore | RacketLiveScore | JudoLiveScore | Record<string, unknown> | null;
   youtube_stream_url: string | null;
+  /**
+   * Whether the $5 "VIP" live-stream unlock is currently active for this
+   * match — separate from `youtube_stream_url` so the stream screen can
+   * tell "not unlocked yet" (show the VIP paywall) apart from "unlocked,
+   * but the admin hasn't pasted a stream URL yet" (show a waiting state).
+   */
+  stream_access_active: boolean;
+  stream_access_amount: number;
+  stream_access_currency: string;
+}
+
+/** POST /matches/{id}/stream-access/create-order response. */
+export interface StreamAccessOrder {
+  access_id: number;
+  order_id: string;
+  approve_url: string;
 }

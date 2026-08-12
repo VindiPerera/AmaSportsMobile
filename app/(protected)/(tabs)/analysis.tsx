@@ -93,8 +93,8 @@ export default function AnalysisScreen() {
           </Text>
           <Text style={styles.centerText}>
             {subscriptionStatus.has_subscribed
-              ? 'Renew your $10/year AmaSports subscription to keep viewing performance analytics.'
-              : 'A $10/year AmaSports subscription unlocks the Analysis tab and adding new sports.'}
+              ? 'Renew your $10/year AmaX subscription to keep viewing performance analytics.'
+              : 'A $10/year AmaX subscription unlocks the Analysis tab and adding new sports.'}
           </Text>
           <Button
             label={subscriptionStatus.has_subscribed ? 'Renew Subscription' : 'Subscribe Now'}

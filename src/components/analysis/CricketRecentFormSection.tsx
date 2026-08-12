@@ -184,7 +184,10 @@ const styles = StyleSheet.create({
   matchFigureSub: {
     ...typography.caption,
     fontSize: 11,
-    color: colors.energy,
+    // Raw lime is too light to read as small text on a white card — same
+    // dark-olive tone used for the equivalent lime-on-white text elsewhere
+    // (e.g. the Match Detail striker card / live-innings banner).
+    color: '#7A8A0E',
     fontWeight: '700',
     marginTop: 2,
   },

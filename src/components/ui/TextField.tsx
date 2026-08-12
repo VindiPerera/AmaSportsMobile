@@ -33,7 +33,7 @@ export function TextField({
 
   let iconColor: string = colors.textFaint;
   if (error) iconColor = colors.live;
-  else if (isFocused) iconColor = colors.primary;
+  else if (isFocused) iconColor = colors.text;
 
   return (
     <View style={styles.container}>
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   inputWrapperFocused: {
-    borderColor: colors.primary,
-    backgroundColor: colors.background,
+    borderColor: colors.energy,
+    backgroundColor: colors.card,
   },
   inputWrapperError: {
     borderColor: colors.live,

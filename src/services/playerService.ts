@@ -231,11 +231,20 @@ export const playerService = {
     return data.data;
   },
 
-  /** Read-only, server-aggregated stats for the Analysis tab. `formatId` omitted (or null) means "All". */
-  async fetchCricketAnalysis(formatId?: number | null) {
+  /**
+   * Read-only, server-aggregated stats for the Analysis tab. `formatId`
+   * omitted (or null) means "All". Pass `silent: true` for background/
+   * preview fetches (e.g. Home's dashboard) that already handle a lapsed
+   * subscription gracefully and shouldn't trigger the global paywall
+   * redirect — only the Analysis tab itself (a deliberate visit) should.
+   */
+  async fetchCricketAnalysis(formatId?: number | null, options?: { silent?: boolean }) {
     const { data } = await apiClient.get<ApiSuccessResponse<CricketAnalysisResponse>>(
       '/player/cricket-analysis',
-      { params: formatId ? { format: formatId } : undefined }
+      {
+        params: formatId ? { format: formatId } : undefined,
+        skipSubscriptionRedirect: options?.silent,
+      }
     );
     return data.data;
   },

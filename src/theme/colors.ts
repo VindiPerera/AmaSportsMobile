@@ -1,21 +1,24 @@
 /**
- * Brand color tokens based on the official AmaX business logo identity.
- * - Primary: AmaX Vibrant Red (#E31B23)
- * - Energy / Accent: AmaX Gold Yellow (#F59E0B)
- * - Charcoal / Navy: AmaX Dark Gray (#111827)
+ * Brand color tokens — AmaX restyle, phase 1 (Claude Design handoff,
+ * project "AmaX Restyle").
+ * - Primary: Navy/charcoal (was AmaX red) — the primary action color now.
+ * - Energy / Accent: Lime-gold (was amber) — chips, highlights, focus states.
+ * - Red is kept but narrowed to one job: the LIVE badge and score alerts.
+ * Token keys are unchanged from the original AmaX palette so nothing
+ * downstream breaks — only values moved.
  */
 export const colors = {
-  // Primary AmaX Red Palette
-  primary: '#E31B23',
-  primaryDark: '#B91C1C',
-  primaryLight: '#FFF1F2',
+  // Primary — navy/charcoal, now the primary action color
+  primary: '#111827',
+  primaryDark: '#030712',
+  primaryLight: '#F1F1EC',
 
-  // Secondary AmaX Energy Accent — Gold Yellow from logo X mark
-  energy: '#F59E0B',
-  energyDark: '#D97706',
-  energyLight: '#FEF3C7',
+  // Secondary — lime-gold accent (chips, highlights, focus rings)
+  energy: '#D7FF3F',
+  energyDark: '#A6D90A',
+  energyLight: '#F5FFDB',
 
-  // Dark Charcoal / Navy from logo X diagonal stroke
+  // Dark Charcoal / Navy — unchanged, same family as primary
   navy: '#111827',
   navyDark: '#030712',
 
@@ -23,6 +26,7 @@ export const colors = {
   successLight: '#DCFCE7',
   successBorder: '#BBF0D0',
 
+  // Reserved for LIVE badges / score alerts only — unchanged
   live: '#E31B23',
   liveLight: '#FFE4E6',
   liveBorder: '#FECDD3',
@@ -30,11 +34,11 @@ export const colors = {
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
 
-  background: '#F8FAFC',
+  background: '#F7F7F2',
   card: '#FFFFFF',
-  cardSubtle: '#F1F5F9',
-  border: '#E2E8F0',
-  borderStrong: '#CBD5E1',
+  cardSubtle: '#F1F1EC',
+  border: '#E4E4DC',
+  borderStrong: '#D3D3C7',
 
   text: '#0F172A',
   textMuted: '#64748B',
@@ -46,11 +50,11 @@ export const colors = {
   transparent: 'transparent',
 
   // Gradient pairs — [start, end]
-  gradientPrimary: ['#E31B23', '#B91C1C'] as const,
+  gradientPrimary: ['#111827', '#030712'] as const,
   gradientHero: ['#1F2937', '#111827'] as const,
   gradientDark: ['#111827', '#030712'] as const,
-  gradientEnergy: ['#F59E0B', '#D97706'] as const,
-  gradientAccent: ['#E31B23', '#F59E0B'] as const,
+  gradientEnergy: ['#D7FF3F', '#A6D90A'] as const,
+  gradientAccent: ['#111827', '#D7FF3F'] as const,
 } as const;
 
 export type ColorToken = keyof typeof colors;

@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border,
     height: Platform.OS === 'ios' ? 78 : 64,
     paddingBottom: Platform.OS === 'ios' ? 20 : 6,
     paddingTop: 8,

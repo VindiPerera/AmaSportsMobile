@@ -3,8 +3,10 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { Logo } from '../../../src/components/ui/Logo';
+import { Chip } from '../../../src/components/ui/Chip';
 import { SubscriptionStatusChip } from '../../../src/components/subscription/SubscriptionStatusChip';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -63,7 +65,7 @@ export default function HomeScreen() {
         playerService.fetchProfile().catch(() => null),
         playerService.fetchSports().catch(() => []),
         matchService.fetchAll().catch(() => []),
-        playerService.fetchCricketAnalysis().catch(() => null),
+        playerService.fetchCricketAnalysis(undefined, { silent: true }).catch(() => null),
         refreshSubscription(),
       ]).then(([profileData, sportsData, matchesData, analysisData]) => {
         if (isMounted) {
@@ -119,6 +121,19 @@ export default function HomeScreen() {
         end={{ x: 0.9, y: 1 }}
         style={[styles.heroCard, shadows.md]}
       >
+        {/* Decorative lime glow blob, top-right — echoes the splash screen's glow. */}
+        <View style={styles.heroGlow} pointerEvents="none">
+          <Svg width="100%" height="100%" viewBox="0 0 100 100">
+            <Defs>
+              <RadialGradient id="heroGlow" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor={colors.energy} stopOpacity={0.22} />
+                <Stop offset="70%" stopColor={colors.energy} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Circle cx="50" cy="50" r="50" fill="url(#heroGlow)" />
+          </Svg>
+        </View>
+
         {/* Top Brand Logo Bar */}
         <View style={styles.topBrandRow}>
           <Logo size={28} />
@@ -142,10 +157,6 @@ export default function HomeScreen() {
           <Ionicons name="chevron-forward" size={14} color={colors.white} />
         </Pressable>
 
-        <View style={styles.subscriptionChipRow}>
-          <SubscriptionStatusChip status={subscriptionStatus} />
-        </View>
-
         <View style={styles.profileHeaderRow}>
           <View style={styles.greetingBlock}>
             <Text style={styles.greeting}>Welcome back,</Text>
@@ -165,29 +176,20 @@ export default function HomeScreen() {
         {/* Real Data Stat Chips */}
         <View style={styles.statChipRow}>
           <View style={styles.statChip}>
-            <Ionicons name="trophy-outline" size={14} color={colors.energy} />
-            <View style={styles.statChipTextCol}>
-              <Text style={styles.statChipNumber}>{sports.length}</Text>
-              <Text style={styles.statChipLabel} numberOfLines={1}>My Sports</Text>
-            </View>
+            <Text style={styles.statChipNumber}>{sports.length}</Text>
+            <Text style={styles.statChipLabel} numberOfLines={1}>My Sports</Text>
           </View>
 
           <View style={styles.statChip}>
-            <Ionicons name="radio-outline" size={14} color={colors.live} />
-            <View style={styles.statChipTextCol}>
-              <Text style={styles.statChipNumber}>{liveMatches.length}</Text>
-              <Text style={styles.statChipLabel} numberOfLines={1}>Live Now</Text>
-            </View>
+            <Text style={styles.statChipNumber}>{liveMatches.length}</Text>
+            <Text style={styles.statChipLabel} numberOfLines={1}>Live Now</Text>
           </View>
 
           <View style={styles.statChip}>
-            <Ionicons name="stats-chart-outline" size={14} color={colors.primaryLight} />
-            <View style={styles.statChipTextCol}>
-              <Text style={styles.statChipNumber} numberOfLines={1}>
-                {cricketAnalysis?.has_any_stats ? 'Active' : 'Setup'}
-              </Text>
-              <Text style={styles.statChipLabel} numberOfLines={1}>Analytics</Text>
-            </View>
+            <Text style={styles.statChipNumber} numberOfLines={1}>
+              {cricketAnalysis?.has_any_stats ? 'Active' : 'Setup'}
+            </Text>
+            <Text style={styles.statChipLabel} numberOfLines={1}>Analytics</Text>
           </View>
         </View>
       </LinearGradient>
@@ -205,7 +207,7 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.ctaTitle}>Complete your player profile</Text>
           <Text style={styles.ctaText}>
-            Add your sports and career statistics so coaches and teams can find you on AmaSports.
+            Add your sports and career statistics so coaches and teams can find you on AmaX.
           </Text>
           <View style={styles.ctaButton}>
             <Text style={styles.ctaButtonText}>Get Started</Text>
@@ -351,7 +353,7 @@ export default function HomeScreen() {
                   onPress={() => router.push(`/(protected)/live-score/${featuredMatch.id}`)}
                 >
                   <Text style={styles.scoreDetailText}>Details</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                  <Ionicons name="chevron-forward" size={14} color={colors.live} />
                 </Pressable>
               </View>
             </View>
@@ -395,24 +397,20 @@ export default function HomeScreen() {
               {sports.map((entry) => {
                 const active = entry.sport.slug === activeSlug;
                 return (
-                  <Pressable
+                  <Chip
                     key={entry.id}
+                    label={entry.sport.name}
+                    active={active}
+                    tone="primary"
                     onPress={() => setSelectedAnalyticsSlug(entry.sport.slug)}
-                    style={({ pressed }) => [
-                      styles.sportSwapperChip,
-                      active && styles.sportSwapperChipActive,
-                      pressed && styles.pressedOpacity,
-                    ]}
-                  >
-                    <Ionicons
-                      name={sportIconFor(entry.sport.slug)}
-                      size={14}
-                      color={active ? colors.white : colors.primary}
-                    />
-                    <Text style={[styles.sportSwapperText, active && styles.sportSwapperTextActive]}>
-                      {entry.sport.name}
-                    </Text>
-                  </Pressable>
+                    icon={
+                      <Ionicons
+                        name={sportIconFor(entry.sport.slug)}
+                        size={14}
+                        color={active ? colors.white : colors.textMuted}
+                      />
+                    }
+                  />
                 );
               })}
             </ScrollView>
@@ -564,6 +562,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
     marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    top: -40,
+    right: -50,
+    width: 180,
+    height: 180,
   },
   topBrandRow: {
     flexDirection: 'row',
@@ -666,25 +672,19 @@ const styles = StyleSheet.create({
   },
   statChip: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    gap: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: radius.lg,
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 8,
     overflow: 'hidden',
-  },
-  statChipTextCol: {
-    flex: 1,
-    justifyContent: 'center',
   },
   statChipNumber: {
     ...typography.body,
     color: colors.white,
     fontWeight: '800',
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 18,
   },
   statChipLabel: {
     ...typography.caption,
@@ -985,14 +985,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.liveLight,
     borderRadius: radius.md,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
   scoreDetailText: {
     ...typography.caption,
-    color: colors.primary,
+    color: colors.live,
     fontWeight: '700',
     fontSize: 11,
   },
@@ -1006,31 +1006,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingVertical: 2,
-  },
-  sportSwapperChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.card,
-    borderRadius: radius.full,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sportSwapperChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  sportSwapperText: {
-    ...typography.caption,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  sportSwapperTextActive: {
-    fontWeight: '700',
-    color: colors.white,
   },
   analyticsWidgetCard: {
     backgroundColor: colors.card,

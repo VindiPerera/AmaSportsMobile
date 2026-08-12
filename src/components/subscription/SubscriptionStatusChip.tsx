@@ -22,9 +22,9 @@ export function SubscriptionStatusChip({ status }: Props) {
 
   if (status.is_active && !status.expiring_soon) {
     return (
-      <View style={styles.chip}>
-        <Ionicons name="shield-checkmark" size={12} color={colors.success} />
-        <Text style={styles.chipText}>Subscribed</Text>
+      <View style={[styles.chip, styles.chipPremium]}>
+        <Ionicons name="shield-checkmark" size={12} color={colors.energy} />
+        <Text style={[styles.chipText, styles.chipPremiumText]}>Subscribed</Text>
       </View>
     );
   }
@@ -57,6 +57,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingVertical: 5,
     paddingHorizontal: 10,
+  },
+  chipPremium: {
+    backgroundColor: 'rgba(215, 255, 63, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(215, 255, 63, 0.4)',
+  },
+  chipPremiumText: {
+    color: colors.energy,
   },
   chipAlert: {
     backgroundColor: 'rgba(255, 107, 53, 0.18)',

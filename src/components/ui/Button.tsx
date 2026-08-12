@@ -41,7 +41,9 @@ export function Button({
   const gradient = GRADIENT_VARIANTS[variant];
 
   const inner = loading ? (
-    <ActivityIndicator color={gradient ? colors.white : colors.primary} />
+    <ActivityIndicator color={gradient ? textVariantStyles[variant].color : colors.primary} />
+  ) : variant === 'ghost' ? (
+    <Text style={[typography.button, textVariantStyles[variant], styles.ghostText]}>{label}</Text>
   ) : (
     <Text style={[typography.button, textVariantStyles[variant]]}>{label}</Text>
   );
@@ -77,7 +79,7 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     height: 54,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -93,6 +95,11 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     transform: [{ scale: 0.99 }],
   },
+  ghostText: {
+    textDecorationLine: 'underline',
+    textDecorationColor: colors.energy,
+    textDecorationStyle: 'solid',
+  },
 });
 
 const variantStyles: Record<Variant, ViewStyle> = {
@@ -102,14 +109,15 @@ const variantStyles: Record<Variant, ViewStyle> = {
   outline: {
     backgroundColor: colors.transparent,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.primary,
   },
   ghost: { backgroundColor: colors.transparent },
 };
 
 const textVariantStyles: Record<Variant, { color: string }> = {
   primary: { color: colors.white },
-  energy: { color: colors.white },
+  // Lime is a bright accent — dark text reads correctly on it, unlike white.
+  energy: { color: colors.navy },
   secondary: { color: colors.white },
   outline: { color: colors.text },
   ghost: { color: colors.primary },
