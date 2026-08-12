@@ -77,33 +77,11 @@ export function PlayerSportDetailView({
   const nameParts = displayName.trim().split(' ');
   const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : displayName;
 
-  // Fallback career stats if none provided
-  const displayCareerRows = careerStatsRows.length > 0
-    ? careerStatsRows
-    : [
-        { format: 'Senior League', matches: '14', goals: '8', assists: '5', rating: '7.8' },
-        { format: 'National Cup', matches: '5', goals: '3', assists: '2', rating: '8.1' },
-      ];
-
-  // Fallback recent matches if none provided
-  const displayRecentMatches = recentMatches.length > 0
-    ? recentMatches
-    : [
-        { match_date: '2024-08-02', opponent: `${sportName} League Finals`, scoreOrStat: '2 Goals', result: 'W 3-1' },
-        { match_date: '2024-07-25', opponent: 'Regional Qualifiers', scoreOrStat: '1 Goal, 1 Assist', result: 'W 2-0' },
-        { match_date: '2024-06-18', opponent: 'National Invitational', scoreOrStat: '1 Assist', result: 'D 1-1' },
-      ];
-
-  // Fallback debut/last matches
-  const displayDebutMatches = debutMatches.length > 0
-    ? debutMatches
-    : [
-        {
-          category: `${sportName.toUpperCase()} COMPETITIONS`,
-          debut: `Debuted in Regional Championship - Jan 15, 2024`,
-          last: `Last played vs National Selection - Aug 02, 2024`,
-        },
-      ];
+  // Real data only — no placeholder/sample rows. Each table renders its own
+  // empty state below when the player hasn't entered anything yet.
+  const displayCareerRows = careerStatsRows;
+  const displayRecentMatches = recentMatches;
+  const displayDebutMatches = debutMatches;
 
   return (
     <View style={styles.container}>
@@ -292,65 +270,76 @@ export function PlayerSportDetailView({
                   ))}
                 </View>
               </ScrollView>
+              {displayCareerRows.length === 0 && (
+                <Text style={styles.emptyStateText}>No career stats added yet.</Text>
+              )}
             </View>
 
             {/* Card 3: Recent Matches */}
             <View style={[styles.card, shadows.sm]}>
               <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
 
-              <View style={styles.recentMatchesTable}>
-                <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                  <Text style={styles.thCellStat}>Perf</Text>
-                  <Text style={styles.thCellResult}>Result</Text>
-                  <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                </View>
-
-                {displayRecentMatches.map((m, idx) => (
-                  <View
-                    key={idx}
-                    style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                  >
-                    <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
-                      {m.opponent || 'Match'}
-                    </Text>
-                    <Text style={styles.tdCellStat}>{m.scoreOrStat || '--'}</Text>
-                    <Text style={styles.tdCellResult}>{m.result || '--'}</Text>
-                    <Text style={[styles.tdCellFaint, styles.thDate]}>
-                      {formatShortMatchDate(m.match_date)}
-                    </Text>
+              {displayRecentMatches.length === 0 ? (
+                <Text style={styles.emptyStateText}>No recent matches added yet.</Text>
+              ) : (
+                <View style={styles.recentMatchesTable}>
+                  <View style={styles.tableHeaderRow}>
+                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
+                    <Text style={styles.thCellStat}>Perf</Text>
+                    <Text style={styles.thCellResult}>Result</Text>
+                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
                   </View>
-                ))}
-              </View>
+
+                  {displayRecentMatches.map((m, idx) => (
+                    <View
+                      key={idx}
+                      style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                    >
+                      <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
+                        {m.opponent || 'Match'}
+                      </Text>
+                      <Text style={styles.tdCellStat}>{m.scoreOrStat || '--'}</Text>
+                      <Text style={styles.tdCellResult}>{m.result || '--'}</Text>
+                      <Text style={[styles.tdCellFaint, styles.thDate]}>
+                        {formatShortMatchDate(m.match_date)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Card 4: Debut/Last Matches */}
             <View style={[styles.card, shadows.sm]}>
               <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
 
-              {displayDebutMatches.map((item, idx) => (
-                <View key={idx} style={styles.debutBlock}>
-                  <View style={styles.debutCategoryHeader}>
-                    <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                  </View>
-
-                  <View style={styles.debutRow}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>DEBUT</Text>
-                      <Text style={styles.debutMatchText}>{item.debut}</Text>
+              {displayDebutMatches.length === 0 ? (
+                <Text style={styles.emptyStateText}>No debut/last match recorded yet.</Text>
+              ) : (
+                displayDebutMatches.map((item, idx) => (
+                  <View key={idx} style={styles.debutBlock}>
+                    <View style={styles.debutCategoryHeader}>
+                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                  </View>
 
-                  <View style={[styles.debutRow, styles.borderTopDivider]}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>LAST</Text>
-                      <Text style={styles.debutMatchText}>{item.last}</Text>
+                    <View style={styles.debutRow}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>DEBUT</Text>
+                        <Text style={styles.debutMatchText}>{item.debut}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+
+                    <View style={[styles.debutRow, styles.borderTopDivider]}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>LAST</Text>
+                        <Text style={styles.debutMatchText}>{item.last}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))
+              )}
             </View>
           </>
         ) : (
@@ -359,58 +348,66 @@ export function PlayerSportDetailView({
             <View style={[styles.card, shadows.sm]}>
               <Text style={styles.cardHeaderTitle}>Debut/Last Matches - Player</Text>
 
-              {displayDebutMatches.map((item, idx) => (
-                <View key={idx} style={styles.debutBlock}>
-                  <View style={styles.debutCategoryHeader}>
-                    <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                  </View>
-
-                  <View style={styles.debutRow}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>DEBUT</Text>
-                      <Text style={styles.debutMatchText}>{item.debut}</Text>
+              {displayDebutMatches.length === 0 ? (
+                <Text style={styles.emptyStateText}>No debut/last match recorded yet.</Text>
+              ) : (
+                displayDebutMatches.map((item, idx) => (
+                  <View key={idx} style={styles.debutBlock}>
+                    <View style={styles.debutCategoryHeader}>
+                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                  </View>
 
-                  <View style={[styles.debutRow, styles.borderTopDivider]}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>LAST</Text>
-                      <Text style={styles.debutMatchText}>{item.last}</Text>
+                    <View style={styles.debutRow}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>DEBUT</Text>
+                        <Text style={styles.debutMatchText}>{item.debut}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+
+                    <View style={[styles.debutRow, styles.borderTopDivider]}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>LAST</Text>
+                        <Text style={styles.debutMatchText}>{item.last}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))
+              )}
             </View>
 
             <View style={[styles.card, shadows.sm]}>
               <Text style={styles.cardHeaderTitle}>Recent Matches - Player</Text>
 
-              <View style={styles.recentMatchesTable}>
-                <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                  <Text style={styles.thCellStat}>Perf</Text>
-                  <Text style={styles.thCellResult}>Result</Text>
-                  <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                </View>
-
-                {displayRecentMatches.map((m, idx) => (
-                  <View
-                    key={idx}
-                    style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                  >
-                    <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
-                      {m.opponent || 'Match'}
-                    </Text>
-                    <Text style={styles.tdCellStat}>{m.scoreOrStat || '--'}</Text>
-                    <Text style={styles.tdCellResult}>{m.result || '--'}</Text>
-                    <Text style={[styles.tdCellFaint, styles.thDate]}>
-                      {formatShortMatchDate(m.match_date)}
-                    </Text>
+              {displayRecentMatches.length === 0 ? (
+                <Text style={styles.emptyStateText}>No recent matches added yet.</Text>
+              ) : (
+                <View style={styles.recentMatchesTable}>
+                  <View style={styles.tableHeaderRow}>
+                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
+                    <Text style={styles.thCellStat}>Perf</Text>
+                    <Text style={styles.thCellResult}>Result</Text>
+                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
                   </View>
-                ))}
-              </View>
+
+                  {displayRecentMatches.map((m, idx) => (
+                    <View
+                      key={idx}
+                      style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                    >
+                      <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
+                        {m.opponent || 'Match'}
+                      </Text>
+                      <Text style={styles.tdCellStat}>{m.scoreOrStat || '--'}</Text>
+                      <Text style={styles.tdCellResult}>{m.result || '--'}</Text>
+                      <Text style={[styles.tdCellFaint, styles.thDate]}>
+                        {formatShortMatchDate(m.match_date)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           </>
         )}
@@ -769,5 +766,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
+  },
+  emptyStateText: {
+    ...typography.body,
+    color: colors.textMuted,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: spacing.md,
   },
 });

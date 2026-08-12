@@ -65,7 +65,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   compactContainer: {
-    minWidth: 130,
+    minWidth: 140,
+    width: '100%',
   },
   label: {
     ...typography.caption,

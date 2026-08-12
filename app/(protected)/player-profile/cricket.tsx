@@ -17,6 +17,7 @@ import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import {
@@ -25,18 +26,20 @@ import {
   PLAYING_ROLE_OPTIONS,
 } from '../../../src/constants/cricketOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { CricketProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '',
   matches: '', won: '', lost: '', innings: '', not_out: '', runs: '', hs: '', average: '',
   best: '', sr: '', hundreds: '', fifties: '', fours: '', sixes: '', catches: '', stumpings: '',
+  run_outs: '', direct_hits: '', runs_saved: '', runs_giving: '', stumps_missing: '',
 };
 
 const EMPTY_BOWLING_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '',
-  matches: '', innings: '', balls: '', runs: '', wickets: '', bbi: '', bbm: '', average: '',
-  economy: '', sr: '', four_w: '', five_w: '', ten_w: '',
+  matches: '', innings: '', balls: '', dot_balls: '', wide_balls: '', no_balls: '',
+  runs: '', wickets: '', bbi: '', bbm: '', average: '', economy: '', sr: '',
+  four_w: '', five_w: '', ten_w: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
@@ -44,9 +47,14 @@ const EMPTY_RECENT_MATCH_ROW = {
   overs: '', maidens: '', wickets: '', catches: '', stumpings: '',
 };
 
+const EMPTY_DROP_CATCH_ROW = {
+  format_id: '', age_category_id: '', match_category_id: '', field_position_id: '', drop_reason_id: '',
+};
+
 const EMPTY_FORM: CricketProfileFormValues = {
   born: '', age: '', batting_style: '', bowling_style: '', playing_role: '', height: '',
-  college_university: '', teams: [], batting: [], bowling: [], recent_matches: [],
+  college_university: '', pitching_line_breakdown: {}, ball_type_breakdown: {},
+  teams: [], batting: [], bowling: [], recent_matches: [], drop_catches: [],
 };
 
 function toFormString(value: unknown): string {
@@ -61,9 +69,18 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
   return mapped;
 }
 
+/** Converts the API's `{ [lookupId]: count }` breakdown map to form-state strings. */
+function breakdownToFormValues(breakdown: Record<string, number>): Record<string, string> {
+  const mapped: Record<string, string> = {};
+  Object.entries(breakdown ?? {}).forEach(([key, value]) => {
+    mapped[key] = toFormString(value);
+  });
+  return mapped;
+}
+
 export default function CricketProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -107,6 +124,8 @@ export default function CricketProfileScreen() {
           playing_role: cricketProfile.playing_role ?? '',
           height: cricketProfile.height ?? '',
           college_university: cricketProfile.college_university ?? '',
+          pitching_line_breakdown: breakdownToFormValues(cricketProfile.pitching_line_breakdown),
+          ball_type_breakdown: breakdownToFormValues(cricketProfile.ball_type_breakdown),
           teams: cricketProfile.teams ?? [],
           batting: cricketProfile.batting.map((row) =>
             mapRow(row, Object.keys(EMPTY_BATTING_ROW))
@@ -118,6 +137,9 @@ export default function CricketProfileScreen() {
             ...mapRow(row, ['match_date', 'opponent', 'runs', 'balls', 'fours', 'sixes', 'overs', 'maidens', 'wickets', 'catches', 'stumpings']),
             played_xi: Boolean(row.played_xi),
           })) as unknown as CricketProfileFormValues['recent_matches'],
+          drop_catches: cricketProfile.drop_catches.map((row) =>
+            mapRow(row, Object.keys(EMPTY_DROP_CATCH_ROW))
+          ) as unknown as CricketProfileFormValues['drop_catches'],
         });
       } catch {
         setError('Could not load your Cricket profile. Please try again.');
@@ -144,16 +166,27 @@ export default function CricketProfileScreen() {
     setError(null);
     setIsSaving(true);
     try {
-      await playerService.updateProfile({
+      const updatedProfile = await playerService.updateProfile({
         full_name: fullName.trim(),
         country: country || undefined,
         cover_photo: coverPicked,
         photo: avatarPicked,
       });
+      if (updatedProfile) {
+        if (updatedProfile.photo_url) setExistingPhotoUrl(updatedProfile.photo_url);
+        if (updatedProfile.cover_photo_url) setExistingCoverUrl(updatedProfile.cover_photo_url);
+        setAvatarPicked(null);
+        setCoverPicked(null);
+      }
       await playerService.saveCricketProfile(values);
+      await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Cricket profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Cricket profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -188,6 +221,8 @@ export default function CricketProfileScreen() {
   const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
   const matchTypeOptions = lookups.cricket_match_types.map((m) => ({ label: m.name, value: String(m.id) }));
+  const fieldPositionOptions = lookups.field_positions.map((p) => ({ label: p.name, value: String(p.id) }));
+  const dropReasonOptions = lookups.drop_reasons.map((r) => ({ label: r.name, value: String(r.id) }));
 
   return (
     <ScreenContainer edges={['bottom']} scroll>
@@ -281,82 +316,149 @@ export default function CricketProfileScreen() {
         />
       </View>
 
+      <StatTable
+        title="Batting Career Stats"
+        control={control}
+        name="batting"
+        emptyRow={EMPTY_BATTING_ROW}
+        columns={[
+          { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
+          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'matches', label: 'Matches', type: 'number' },
+          { key: 'innings', label: 'Innings', type: 'number' },
+          { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'highest_score', label: 'High Score', type: 'number' },
+          { key: 'average', label: 'Average', type: 'text' },
+          { key: 'strike_rate', label: 'Strike Rate', type: 'text' },
+          { key: 'hundreds', label: '100s', type: 'number' },
+          { key: 'fifties', label: '50s', type: 'number' },
+          { key: 'fours', label: '4s', type: 'number' },
+          { key: 'sixes', label: '6s', type: 'number' },
+          { key: 'catches', label: 'Catches', type: 'number' },
+          { key: 'stumpings', label: 'Stumpings (Successful)', type: 'number' },
+          { key: 'stumps_missing', label: 'Stumpings (Missed)', type: 'number' },
+          { key: 'run_outs', label: 'Run Outs', type: 'number' },
+          { key: 'direct_hits', label: 'Direct Hits', type: 'number' },
+          { key: 'runs_saved', label: 'Runs Saved', type: 'number' },
+          { key: 'runs_giving', label: 'Runs Giving', type: 'number' },
+        ]}
+      />
+
+      <StatTable
+        title="Bowling Career Stats"
+        control={control}
+        name="bowling"
+        emptyRow={EMPTY_BOWLING_ROW}
+        columns={[
+          { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
+          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'matches', label: 'Matches', type: 'number' },
+          { key: 'innings', label: 'Innings', type: 'number' },
+          { key: 'overs', label: 'Overs', type: 'text' },
+          { key: 'dot_balls', label: 'Dot Balls', type: 'number' },
+          { key: 'wide_balls', label: 'Wide Balls', type: 'number' },
+          { key: 'no_balls', label: 'No Balls', type: 'number' },
+          { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'wickets', label: 'Wickets', type: 'number' },
+          { key: 'best_bowling', label: 'Best Bowling', type: 'text' },
+          { key: 'average', label: 'Average', type: 'text' },
+          { key: 'economy', label: 'Economy', type: 'text' },
+          { key: 'five_wickets', label: '5w', type: 'number' },
+        ]}
+      />
+
       <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Batting Career Stats</Text>
-        <StatTable
-          title="Batting Stats"
-          control={control}
-          name="batting"
-          emptyRow={EMPTY_BATTING_ROW}
-          columns={[
-            { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
-            { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-            { key: 'matches', label: 'Matches', type: 'number' },
-            { key: 'innings', label: 'Innings', type: 'number' },
-            { key: 'runs', label: 'Runs', type: 'number' },
-            { key: 'highest_score', label: 'High Score', type: 'number' },
-            { key: 'average', label: 'Average', type: 'text' },
-            { key: 'strike_rate', label: 'Strike Rate', type: 'text' },
-            { key: 'hundreds', label: '100s', type: 'number' },
-            { key: 'fifties', label: '50s', type: 'number' },
-            { key: 'fours', label: '4s', type: 'number' },
-            { key: 'sixes', label: '6s', type: 'number' },
-            { key: 'catches', label: 'Catches', type: 'number' },
-            { key: 'stumpings', label: 'Stumpings', type: 'number' },
-          ]}
-        />
+        <Text style={styles.sectionLabel}>Bowling Breakdown — Pitching Line</Text>
+        <Text style={styles.sectionHint}>
+          Career-to-date count of balls bowled at each pitching line.
+        </Text>
+        <View style={styles.breakdownGrid}>
+          {lookups.pitching_lines.map((line) => (
+            <Controller
+              key={line.id}
+              control={control}
+              name={`pitching_line_breakdown.${line.id}`}
+              render={({ field: { value, onChange } }) => (
+                <View style={styles.breakdownItem}>
+                  <TextField
+                    label={line.name}
+                    value={value ?? ''}
+                    onChangeText={onChange}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                  />
+                </View>
+              )}
+            />
+          ))}
+        </View>
       </View>
 
       <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Bowling Career Stats</Text>
-        <StatTable
-          title="Bowling Stats"
-          control={control}
-          name="bowling"
-          emptyRow={EMPTY_BOWLING_ROW}
-          columns={[
-            { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
-            { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-            { key: 'matches', label: 'Matches', type: 'number' },
-            { key: 'innings', label: 'Innings', type: 'number' },
-            { key: 'overs', label: 'Overs', type: 'text' },
-            { key: 'runs', label: 'Runs', type: 'number' },
-            { key: 'wickets', label: 'Wickets', type: 'number' },
-            { key: 'best_bowling', label: 'Best Bowling', type: 'text' },
-            { key: 'average', label: 'Average', type: 'text' },
-            { key: 'economy', label: 'Economy', type: 'text' },
-            { key: 'five_wickets', label: '5w', type: 'number' },
-          ]}
-        />
+        <Text style={styles.sectionLabel}>Bowling Breakdown — Ball Type</Text>
+        <Text style={styles.sectionHint}>
+          Career-to-date count of balls bowled of each type.
+        </Text>
+        <View style={styles.breakdownGrid}>
+          {lookups.ball_types.map((type) => (
+            <Controller
+              key={type.id}
+              control={control}
+              name={`ball_type_breakdown.${type.id}`}
+              render={({ field: { value, onChange } }) => (
+                <View style={styles.breakdownItem}>
+                  <TextField
+                    label={type.name}
+                    value={value ?? ''}
+                    onChangeText={onChange}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                  />
+                </View>
+              )}
+            />
+          ))}
+        </View>
       </View>
 
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Recent Matches</Text>
-        <StatTable
-          title="Recent Matches"
-          control={control}
-          name="recent_matches"
-          emptyRow={EMPTY_RECENT_MATCH_ROW}
-          columns={[
-            { key: 'match_date', label: 'Date', type: 'date' },
-            { key: 'opponent', label: 'Match vs', type: 'text' },
-            { key: 'played_xi', label: 'Played XI', type: 'boolean' },
-            { key: 'runs', label: 'Runs', type: 'number' },
-            { key: 'balls', label: 'Balls', type: 'number' },
-            { key: 'fours', label: '4s', type: 'number' },
-            { key: 'sixes', label: '6s', type: 'number' },
-            { key: 'overs', label: 'Overs', type: 'text' },
-            { key: 'maidens', label: 'Maidens', type: 'number' },
-            { key: 'wickets', label: 'Wkts', type: 'number' },
-            { key: 'catches', label: 'Catches', type: 'number' },
-            { key: 'stumpings', label: 'Stumpings', type: 'number' },
-          ]}
-        />
-      </View>
+      <StatTable
+        title="Recent Matches"
+        control={control}
+        name="recent_matches"
+        emptyRow={EMPTY_RECENT_MATCH_ROW}
+        columns={[
+          { key: 'match_date', label: 'Date', type: 'date' },
+          { key: 'opponent', label: 'Match vs', type: 'text' },
+          { key: 'played_xi', label: 'Played XI', type: 'boolean' },
+          { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'balls', label: 'Balls', type: 'number' },
+          { key: 'fours', label: '4s', type: 'number' },
+          { key: 'sixes', label: '6s', type: 'number' },
+          { key: 'overs', label: 'Overs', type: 'text' },
+          { key: 'maidens', label: 'Maidens', type: 'number' },
+          { key: 'wickets', label: 'Wkts', type: 'number' },
+          { key: 'catches', label: 'Catches', type: 'number' },
+          { key: 'stumpings', label: 'Stumpings', type: 'number' },
+        ]}
+      />
+
+      <StatTable
+        title="Drop Catches"
+        control={control}
+        name="drop_catches"
+        emptyRow={EMPTY_DROP_CATCH_ROW}
+        columns={[
+          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'field_position_id', label: 'Field Position', type: 'select', options: fieldPositionOptions, width: 160 },
+          { key: 'drop_reason_id', label: 'How to Drop', type: 'select', options: dropReasonOptions, width: 200 },
+        ]}
+      />
 
       <Button label="Save Cricket Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </ScreenContainer>
@@ -441,6 +543,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12,
     letterSpacing: 0.8,
+  },
+  sectionHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+  },
+  breakdownGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  breakdownItem: {
+    width: 140,
   },
   submitButton: {
     marginTop: spacing.sm,

@@ -17,12 +17,13 @@ import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
 import { racketSportService } from '../../../src/services/racketSportService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { DOMINANT_HAND_OPTIONS } from '../../../src/constants/hockeyOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { PickedImage, RacketSportProfileFormValues } from '../../../src/types';
+import { ApiError, PickedImage, RacketSportProfileFormValues } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
@@ -62,7 +63,7 @@ const SPORT_LABELS: Record<string, string> = {
 
 export default function RacketSportProfileScreen() {
   const { mode, sport: sportSlug } = useLocalSearchParams<{ mode?: string; sport?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
 
@@ -163,16 +164,27 @@ export default function RacketSportProfileScreen() {
     setError(null);
     setIsSaving(true);
     try {
-      await playerService.updateProfile({
+      const updatedProfile = await playerService.updateProfile({
         full_name: fullName.trim(),
         country: country || undefined,
         cover_photo: coverPicked,
         photo: avatarPicked,
       });
+      if (updatedProfile) {
+        if (updatedProfile.photo_url) setExistingPhotoUrl(updatedProfile.photo_url);
+        if (updatedProfile.cover_photo_url) setExistingCoverUrl(updatedProfile.cover_photo_url);
+        setAvatarPicked(null);
+        setCoverPicked(null);
+      }
       await racketSportService.saveProfile(sport.id, values);
+      await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
-    } catch {
-      setError(`Could not save your ${sportLabel} profile. Please check your entries and try again.`);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : `Could not save your ${sportLabel} profile. Please check your entries and try again.`
+      );
     } finally {
       setIsSaving(false);
     }

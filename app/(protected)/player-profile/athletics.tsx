@@ -18,11 +18,12 @@ import { EventPersonalBestInput } from '../../../src/components/player/EventPers
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
 import { athleticsService } from '../../../src/services/athleticsService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import { calculateAge } from '../../../src/utils/date';
-import { AthleticsProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, AthleticsProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', athletics_event_id: '',
@@ -52,7 +53,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
 
 export default function AthleticsProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
-  const [isViewing, setIsViewing] = useState(mode !== 'edit');
+  const [isViewing, setIsViewing] = useState(mode === 'view');
 
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
@@ -129,16 +130,27 @@ export default function AthleticsProfileScreen() {
     setError(null);
     setIsSaving(true);
     try {
-      await playerService.updateProfile({
+      const updatedProfile = await playerService.updateProfile({
         full_name: fullName.trim(),
         country: country || undefined,
         cover_photo: coverPicked,
         photo: avatarPicked,
       });
+      if (updatedProfile) {
+        if (updatedProfile.photo_url) setExistingPhotoUrl(updatedProfile.photo_url);
+        if (updatedProfile.cover_photo_url) setExistingCoverUrl(updatedProfile.cover_photo_url);
+        setAvatarPicked(null);
+        setCoverPicked(null);
+      }
       await athleticsService.saveProfile(values);
+      await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
-    } catch {
-      setError('Could not save your Athletics profile. Please check your entries and try again.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not save your Athletics profile. Please check your entries and try again.'
+      );
     } finally {
       setIsSaving(false);
     }

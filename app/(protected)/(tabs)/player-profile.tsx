@@ -90,8 +90,8 @@ export default function PlayerProfileHubScreen() {
 
         <View style={styles.heroContent}>
           <View style={styles.avatarWrapper}>
-            {player?.photo_url ? (
-              <Image source={{ uri: player.photo_url }} style={styles.avatar} />
+            {player?.photo_url || user?.photo_url ? (
+              <Image source={{ uri: player?.photo_url || user?.photo_url }} style={styles.avatar} />
             ) : (
               <LinearGradient
                 colors={colors.gradientAccent}
