@@ -14,20 +14,20 @@ export interface OnboardingSlide {
 
 export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
-    id: 'performance',
-    icon: 'flash-outline',
+    id: 'badminton_performance',
+    icon: 'tennisball-outline',
     title: 'TRACK STATS.\nCRUSH GOALS.',
-    subtitle: 'Performance. Together.',
-    description: 'Log sessions, monitor progress, and turn raw numbers into winning insights.',
-    badgeText: 'AMAX PERFORMANCE',
-    imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=1000&q=80',
+    subtitle: 'Badminton & Racket Sports',
+    description: 'Log match rallies, track smash velocities, and turn game stats into winning insights.',
+    badgeText: 'BADMINTON PERFORMANCE',
+    imageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1000&q=80',
     accent: 'primary',
   },
   {
     id: 'live',
     icon: 'radio-outline',
     title: 'LIVE SCORES.\nREAL-TIME STREAMS.',
-    subtitle: 'Ball-by-Ball Sync',
+    subtitle: 'Point-by-Point Sync',
     description: 'Watch video streams, track real-time scoreboards, and never miss a match moment.',
     badgeText: 'LIVE MATCH HUB',
     imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1000&q=80',
