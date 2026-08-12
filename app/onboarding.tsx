@@ -19,11 +19,6 @@ import { ONBOARDING_SLIDES } from '../src/constants/onboarding';
 import { colors, radius, spacing, typography } from '../src/theme';
 import { useOnboardingStore } from '../src/store/onboardingStore';
 
-/**
- * Uses a horizontally-paging ScrollView instead of react-native-pager-view
- * so the carousel works on iOS, Android, AND web from one implementation —
- * react-native-pager-view has no web target and breaks the Metro web bundle.
- */
 export default function OnboardingScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -53,22 +48,13 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <ScreenContainer edges={['top', 'bottom']}>
+    <ScreenContainer edges={['top', 'bottom']} style={styles.screenBg}>
+      {/* Light Header Bar */}
       <View style={styles.topRow}>
-        <Logo size={36} />
-        {!isLastSlide ? (
-          <Pressable
-            onPress={goToAuth}
-            style={({ pressed }) => [styles.skipButton, pressed && styles.skipButtonPressed]}
-            hitSlop={8}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.skipButton} />
-        )}
+        <Logo size={34} />
       </View>
 
+      {/* Main Full-Bleed Onboarding Carousel */}
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -84,44 +70,42 @@ export default function OnboardingScreen() {
         ))}
       </ScrollView>
 
+      {/* Light Theme Footer Actions (Matches Reference UI) */}
       <View style={styles.footer}>
         <SlideDots count={ONBOARDING_SLIDES.length} activeIndex={activeIndex} />
-        <Button
-          label={isLastSlide ? 'Get Started' : 'Next'}
-          variant={isLastSlide ? 'energy' : 'primary'}
-          onPress={handleNext}
-          style={styles.button}
-        />
+
+        <View style={styles.actionGroup}>
+          <Button
+            label={isLastSlide ? "LET'S GO" : 'NEXT'}
+            variant="primary"
+            onPress={handleNext}
+            style={styles.pillButton}
+          />
+
+          {!isLastSlide ? (
+            <Pressable onPress={goToAuth} style={({ pressed }) => [styles.skipLink, pressed && styles.pressedOpacity]}>
+              <Text style={styles.skipLinkText}>SKIP FOR NOW</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.skipPlaceholder} />
+          )}
+        </View>
       </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  screenBg: {
+    backgroundColor: '#FFFFFF',
+  },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 44,
-    marginHorizontal: -spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  skipButton: {
-    height: 36,
-    minWidth: 64,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.card,
-  },
-  skipButtonPressed: {
-    backgroundColor: colors.border,
-  },
-  skipText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontWeight: '700',
+    height: 48,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   pager: {
     flex: 1,
@@ -133,10 +117,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   footer: {
-    gap: spacing.lg,
-    paddingBottom: spacing.md,
+    gap: spacing.md,
+    paddingBottom: spacing.sm,
   },
-  button: {
-    marginTop: spacing.sm,
+  actionGroup: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    width: '100%',
+  },
+  pillButton: {
+    borderRadius: radius.full,
+    height: 52,
+  },
+  skipLink: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  skipLinkText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  skipPlaceholder: {
+    height: 24,
+  },
+  pressedOpacity: {
+    opacity: 0.7,
   },
 });

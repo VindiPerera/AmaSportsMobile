@@ -6,6 +6,7 @@ import { AuthHeader } from '../../src/components/ui/AuthHeader';
 import { TextField } from '../../src/components/ui/TextField';
 import { Button } from '../../src/components/ui/Button';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
+import { Logo } from '../../src/components/ui/Logo';
 import { colors, spacing, typography } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { validateRegisterForm, RegisterFormErrors } from '../../src/utils/validation';
@@ -50,6 +51,10 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <View style={styles.logoRow}>
+          <Logo size={48} />
+        </View>
+
         <AuthHeader
           title="Create your account"
           subtitle="Join AmaSports to track performance and connect with your team."
@@ -129,6 +134,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: spacing.xl,
+  },
+  logoRow: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   registerButton: {
     marginTop: spacing.sm,
