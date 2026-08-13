@@ -24,6 +24,7 @@ function passwordStrength(password: string): 0 | 1 | 2 | 3 {
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [fieldErrors, setFieldErrors] = useState<RegisterFormErrors>({});
@@ -50,6 +51,7 @@ export default function RegisterScreen() {
       await register({
         name: name.trim(),
         email: email.trim(),
+        phone: phone.trim() || undefined,
         password,
         password_confirmation: passwordConfirmation,
       });
@@ -100,6 +102,16 @@ export default function RegisterScreen() {
             value={email}
             onChangeText={setEmail}
             error={fieldErrors.email}
+            returnKeyType="next"
+          />
+
+          <TextField
+            label="Phone number (optional)"
+            placeholder="07X XXX XXXX"
+            leftIcon="call-outline"
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
             returnKeyType="next"
           />
 
