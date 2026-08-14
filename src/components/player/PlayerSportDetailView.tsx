@@ -120,8 +120,12 @@ export function PlayerSportDetailView({
             <View style={styles.countryRow}>
               <Ionicons name="trophy-outline" size={14} color={colors.energy} />
               <Text style={styles.headerSportTag}>{sportName}</Text>
-              <Text style={styles.headerDot}>•</Text>
-              <Text style={styles.headerCountry}>{country || 'Sri Lanka'}</Text>
+              {!!country && (
+                <>
+                  <Text style={styles.headerDot}>•</Text>
+                  <Text style={styles.headerCountry}>{country}</Text>
+                </>
+              )}
             </View>
           </View>
 
@@ -138,7 +142,7 @@ export function PlayerSportDetailView({
           </View>
         </View>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs — Matches tab only shown when player has match data */}
         <View style={styles.tabsRow}>
           <Pressable
             style={[styles.tabButton, activeTab === 'overview' && styles.tabButtonActive]}
@@ -150,15 +154,17 @@ export function PlayerSportDetailView({
             {activeTab === 'overview' && <View style={styles.activeTabLine} />}
           </Pressable>
 
-          <Pressable
-            style={[styles.tabButton, activeTab === 'matches' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('matches')}
-          >
-            <Text style={[styles.tabText, activeTab === 'matches' && styles.tabTextActive]}>
-              Matches
-            </Text>
-            {activeTab === 'matches' && <View style={styles.activeTabLine} />}
-          </Pressable>
+          {(displayRecentMatches.length > 0 || displayDebutMatches.length > 0) && (
+            <Pressable
+              style={[styles.tabButton, activeTab === 'matches' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('matches')}
+            >
+              <Text style={[styles.tabText, activeTab === 'matches' && styles.tabTextActive]}>
+                Matches
+              </Text>
+              {activeTab === 'matches' && <View style={styles.activeTabLine} />}
+            </Pressable>
+          )}
         </View>
       </LinearGradient>
 
@@ -197,91 +203,81 @@ export function PlayerSportDetailView({
                   ) : null
                 )}
 
-                {/* Teams */}
-                <View style={styles.gridItemFull}>
-                  <Text style={styles.fieldLabel}>TEAMS</Text>
-                  <View style={styles.teamsChipList}>
-                    {teams.length > 0 ? (
-                      teams.map((t, idx) => (
+                {/* Teams — only shown when player has added at least one team */}
+                {teams.length > 0 && (
+                  <View style={styles.gridItemFull}>
+                    <Text style={styles.fieldLabel}>TEAMS</Text>
+                    <View style={styles.teamsChipList}>
+                      {teams.map((t, idx) => (
                         <View key={idx} style={styles.teamBadge}>
                           <View style={styles.teamBadgeIcon}>
                             <Ionicons name="shield" size={14} color={colors.primary} />
                           </View>
                           <Text style={styles.teamBadgeText}>{t}</Text>
                         </View>
-                      ))
-                    ) : (
-                      <View style={styles.teamBadge}>
-                        <View style={styles.teamBadgeIcon}>
-                          <Ionicons name="shield" size={14} color={colors.primary} />
-                        </View>
-                        <Text style={styles.teamBadgeText}>{sportName} Team / Club</Text>
-                      </View>
-                    )}
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
               </View>
             </View>
 
-            {/* Card 2: Career Stats */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>{shortName} {careerStatsHeader}</Text>
+            {/* Card 2: Career Stats — only shown when player has added stats */}
+            {displayCareerRows.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>{shortName} {careerStatsHeader}</Text>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.tableContainer}>
-                  {/* Header Row */}
-                  <View style={styles.tableHeaderRow}>
-                    {careerStatsColumns.map((col, idx) => (
-                      <Text
-                        key={idx}
-                        style={[
-                          styles.thCell,
-                          col.width ? { width: col.width } : { flex: 1 },
-                          idx === 0 && { textAlign: 'left' },
-                        ]}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.tableContainer}>
+                    {/* Header Row */}
+                    <View style={styles.tableHeaderRow}>
+                      {careerStatsColumns.map((col, idx) => (
+                        <Text
+                          key={idx}
+                          style={[
+                            styles.thCell,
+                            col.width ? { width: col.width } : { flex: 1 },
+                            idx === 0 && { textAlign: 'left' },
+                          ]}
+                        >
+                          {col.label}
+                        </Text>
+                      ))}
+                    </View>
+
+                    {/* Data Rows */}
+                    {displayCareerRows.map((row, rIdx) => (
+                      <View
+                        key={rIdx}
+                        style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}
                       >
-                        {col.label}
-                      </Text>
+                        {careerStatsColumns.map((col, cIdx) => {
+                          const val = String(row[col.key] ?? '-');
+                          return (
+                            <Text
+                              key={cIdx}
+                              style={[
+                                cIdx === 0 ? styles.tdCellBold : styles.tdCell,
+                                col.width ? { width: col.width } : { flex: 1 },
+                                cIdx === 0 && { textAlign: 'left' },
+                              ]}
+                            >
+                              {val}
+                            </Text>
+                          );
+                        })}
+                      </View>
                     ))}
                   </View>
+                </ScrollView>
+              </View>
+            )}
 
-                  {/* Data Rows */}
-                  {displayCareerRows.map((row, rIdx) => (
-                    <View
-                      key={rIdx}
-                      style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}
-                    >
-                      {careerStatsColumns.map((col, cIdx) => {
-                        const val = String(row[col.key] ?? '-');
-                        return (
-                          <Text
-                            key={cIdx}
-                            style={[
-                              cIdx === 0 ? styles.tdCellBold : styles.tdCell,
-                              col.width ? { width: col.width } : { flex: 1 },
-                              cIdx === 0 && { textAlign: 'left' },
-                            ]}
-                          >
-                            {val}
-                          </Text>
-                        );
-                      })}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-              {displayCareerRows.length === 0 && (
-                <Text style={styles.emptyStateText}>No career stats added yet.</Text>
-              )}
-            </View>
+            {/* Card 3: Recent Matches — only shown when player has added matches */}
+            {displayRecentMatches.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
 
-            {/* Card 3: Recent Matches */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
-
-              {displayRecentMatches.length === 0 ? (
-                <Text style={styles.emptyStateText}>No recent matches added yet.</Text>
-              ) : (
                 <View style={styles.recentMatchesTable}>
                   <View style={styles.tableHeaderRow}>
                     <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
@@ -306,17 +302,15 @@ export function PlayerSportDetailView({
                     </View>
                   ))}
                 </View>
-              )}
-            </View>
+              </View>
+            )}
 
-            {/* Card 4: Debut/Last Matches */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
+            {/* Card 4: Debut/Last Matches — only shown when player has debut data */}
+            {displayDebutMatches.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
 
-              {displayDebutMatches.length === 0 ? (
-                <Text style={styles.emptyStateText}>No debut/last match recorded yet.</Text>
-              ) : (
-                displayDebutMatches.map((item, idx) => (
+                {displayDebutMatches.map((item, idx) => (
                   <View key={idx} style={styles.debutBlock}>
                     <View style={styles.debutCategoryHeader}>
                       <Text style={styles.debutCategoryTitle}>{item.category}</Text>
@@ -338,20 +332,18 @@ export function PlayerSportDetailView({
                       <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
                     </View>
                   </View>
-                ))
-              )}
-            </View>
+                ))}
+              </View>
+            )}
           </>
         ) : (
-          /* Matches Tab Content */
+          /* Matches Tab Content — only real saved data is shown */
           <>
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Debut/Last Matches - Player</Text>
+            {displayDebutMatches.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
 
-              {displayDebutMatches.length === 0 ? (
-                <Text style={styles.emptyStateText}>No debut/last match recorded yet.</Text>
-              ) : (
-                displayDebutMatches.map((item, idx) => (
+                {displayDebutMatches.map((item, idx) => (
                   <View key={idx} style={styles.debutBlock}>
                     <View style={styles.debutCategoryHeader}>
                       <Text style={styles.debutCategoryTitle}>{item.category}</Text>
@@ -373,16 +365,14 @@ export function PlayerSportDetailView({
                       <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
                     </View>
                   </View>
-                ))
-              )}
-            </View>
+                ))}
+              </View>
+            )}
 
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Recent Matches - Player</Text>
+            {displayRecentMatches.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
 
-              {displayRecentMatches.length === 0 ? (
-                <Text style={styles.emptyStateText}>No recent matches added yet.</Text>
-              ) : (
                 <View style={styles.recentMatchesTable}>
                   <View style={styles.tableHeaderRow}>
                     <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
@@ -407,8 +397,8 @@ export function PlayerSportDetailView({
                     </View>
                   ))}
                 </View>
-              )}
-            </View>
+              </View>
+            )}
           </>
         )}
       </ScrollView>

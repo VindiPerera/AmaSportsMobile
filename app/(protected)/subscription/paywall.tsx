@@ -82,6 +82,28 @@ export default function SubscriptionPaywallScreen() {
   }, []);
 
   const isRenewal = status?.has_subscribed && !status?.is_active;
+  // First-time player who hasn't started (or used up) their one free month
+  // (Phase 8) — show the trial CTA instead of the $10/year flow. Once
+  // trial_eligible flips to false (trial started, or a lapsed trial was
+  // used up), this always falls through to the normal subscribe/renew flow
+  // below, even if `isRenewal` is also true.
+  const isTrialOffer = !status?.is_active && status?.trial_eligible;
+
+  const handleStartTrial = async () => {
+    setError(null);
+    setIsProcessing(true);
+    try {
+      // No PayPal step at all — the backend unlocks access immediately and
+      // returns the updated status directly, so there's nothing to poll for.
+      await subscriptionService.startTrial();
+      await refresh();
+      router.back();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not start your free trial. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleSubscribe = async () => {
     setError(null);
@@ -89,12 +111,16 @@ export default function SubscriptionPaywallScreen() {
     setPollState('idle');
     try {
       const order = await subscriptionService.createOrder();
-      await WebBrowser.openBrowserAsync(order.approve_url);
-
-      // The browser closing doesn't mean payment succeeded — the player
-      // may have just backed out, or PayPal's return page may render before
-      // our webhook/return-capture has actually settled. Poll instead of
-      // trusting the redirect.
+      // openAuthSessionAsync opens PayPal as a secure system browser sheet
+      // (ASWebAuthenticationSession on iOS, Chrome Custom Tabs on Android)
+      // and auto-closes it once the backend's return page bounces the
+      // browser to this deep link — see result.blade.php. Deliberately
+      // ignoring the resolved `result` below: a 'success' redirect just
+      // means the sheet closed, not that payment settled (PayPal's return
+      // page may render before our webhook/return-capture has actually
+      // finished), so we still poll subscription-status ourselves rather
+      // than trusting the sheet's result alone.
+      await WebBrowser.openAuthSessionAsync(order.approve_url, 'amasports://payment-return');
       setPollState('polling');
       for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
         await sleep(POLL_DELAY_MS);
@@ -135,15 +161,40 @@ export default function SubscriptionPaywallScreen() {
         <View style={styles.heroIconCircle}>
           <Ionicons name="ribbon" size={28} color={colors.energy} />
         </View>
-        <Text style={styles.heroTitle}>{isRenewal ? 'Renew your subscription' : 'Unlock AmaX'}</Text>
+        <Text style={styles.heroTitle}>
+          {isTrialOffer ? 'Your first month is free' : isRenewal ? 'Renew your subscription' : 'Unlock AmaX'}
+        </Text>
         <Text style={styles.heroSubtitle}>
-          {isRenewal
-            ? 'Your subscription has expired. Renew to keep adding sports, editing your stats, and viewing Analysis.'
-            : 'One subscription unlocks every sport you want to play and your full performance analytics.'}
+          {isTrialOffer
+            ? 'Start your free trial to add every sport you play and unlock full performance analytics — no payment needed.'
+            : isRenewal
+              ? 'Your subscription has expired. Renew to keep adding sports, editing your stats, and viewing Analysis.'
+              : 'One subscription unlocks every sport you want to play and your full performance analytics.'}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.priceValue}>${(status?.amount ?? 10).toFixed(0)}</Text>
-          <Text style={styles.priceUnit}>/ year</Text>
+          {isTrialOffer ? (
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+                <Text style={styles.priceValue}>Free</Text>
+                <Text style={styles.priceUnit}>for your 1st month</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                <Text style={{ ...typography.body, color: 'rgba(255,255,255,0.85)' }}>
+                  Then
+                </Text>
+                <View style={{ backgroundColor: colors.energy, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 }}>
+                  <Text style={{ ...typography.body, color: colors.navy, fontWeight: '800' }}>
+                    ${(status?.amount || 10).toFixed(0)} / year
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.priceValue}>${(status?.amount || 10).toFixed(0)}</Text>
+              <Text style={styles.priceUnit}>/ year</Text>
+            </>
+          )}
         </View>
       </LinearGradient>
 
@@ -190,33 +241,52 @@ export default function SubscriptionPaywallScreen() {
             </View>
           )}
 
-          {pollState === 'polling' ? (
-            <View style={styles.pollingCard}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={styles.pollingText}>Confirming your payment with PayPal…</Text>
-            </View>
-          ) : pollState === 'timed-out' ? (
-            <View style={styles.pollingCard}>
-              <Ionicons name="time-outline" size={22} color={colors.warning} />
-              <Text style={styles.pollingText}>
-                Still confirming your payment — this can take a minute. Check again, or come back shortly.
+          {isTrialOffer ? (
+            <>
+              <Button
+                label="Start Free Trial"
+                onPress={handleStartTrial}
+                loading={isProcessing}
+                disabled={isProcessing}
+                style={styles.subscribeButton}
+              />
+              <Text style={styles.disclaimer}>
+                Your trial lasts one month from the moment you start it — no PayPal, no charge. After that, keeping
+                your sports and Analysis unlocked requires the ${(status?.amount || 10).toFixed(0)}/year subscription;
+                we&rsquo;ll remind you before it ends.
               </Text>
-              <Pressable onPress={handleCheckAgain} style={styles.checkAgainButton}>
-                <Text style={styles.checkAgainText}>I&apos;ve paid — check again</Text>
-              </Pressable>
-            </View>
-          ) : null}
+            </>
+          ) : (
+            <>
+              {pollState === 'polling' ? (
+                <View style={styles.pollingCard}>
+                  <ActivityIndicator color={colors.primary} />
+                  <Text style={styles.pollingText}>Confirming your payment with PayPal…</Text>
+                </View>
+              ) : pollState === 'timed-out' ? (
+                <View style={styles.pollingCard}>
+                  <Ionicons name="time-outline" size={22} color={colors.warning} />
+                  <Text style={styles.pollingText}>
+                    Still confirming your payment — this can take a minute. Check again, or come back shortly.
+                  </Text>
+                  <Pressable onPress={handleCheckAgain} style={styles.checkAgainButton}>
+                    <Text style={styles.checkAgainText}>I&apos;ve paid — check again</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
-          <Button
-            label={isRenewal ? 'Renew Now — $10/year' : 'Subscribe Now — $10/year'}
-            onPress={handleSubscribe}
-            loading={isProcessing}
-            disabled={isProcessing}
-            style={styles.subscribeButton}
-          />
-          <Text style={styles.disclaimer}>
-            Payment is handled entirely by PayPal{Platform.OS !== 'web' ? " in an in-app browser" : ''}. AmaX never sees or stores your card details.
-          </Text>
+              <Button
+                label={isRenewal ? 'Renew Now — $10/year' : 'Subscribe Now — $10/year'}
+                onPress={handleSubscribe}
+                loading={isProcessing}
+                disabled={isProcessing}
+                style={styles.subscribeButton}
+              />
+              <Text style={styles.disclaimer}>
+                Payment is handled entirely by PayPal{Platform.OS !== 'web' ? " in an in-app browser" : ''}. AmaX never sees or stores your card details.
+              </Text>
+            </>
+          )}
           <Text style={styles.disclaimer}>
             This doesn&rsquo;t include VIP live-stream access, which is unlocked separately per match for $5.
           </Text>

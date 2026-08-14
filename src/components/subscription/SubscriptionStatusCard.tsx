@@ -23,6 +23,25 @@ export function SubscriptionStatusCard({ status }: Props) {
 
   if (status.is_active) {
     const expiringSoon = status.expiring_soon;
+    const isTrial = status.is_trial;
+    // Trial gets its own title/copy throughout (Phase 8) so it never reads
+    // as a paid "Subscription active" — same active/warning card styling
+    // and same "Manage Subscription" tap target otherwise.
+    const title = isTrial
+      ? expiringSoon
+        ? 'Free trial ending soon'
+        : 'Free trial active'
+      : expiringSoon
+        ? 'Subscription expiring soon'
+        : 'Subscription active';
+    const daysLabel = `${status.days_remaining} day${status.days_remaining === 1 ? '' : 's'} left`;
+    const text = expiringSoon
+      ? isTrial
+        ? `Your free trial ends ${formatBornDate(status.expires_at)} (${daysLabel}) — subscribe to keep your access.`
+        : `Renew needed — valid until ${formatBornDate(status.expires_at)} (${daysLabel}).`
+      : isTrial
+        ? `Free trial — ends ${formatBornDate(status.expires_at)}.`
+        : `Valid until ${formatBornDate(status.expires_at)}.`;
     return (
       <Pressable
         style={({ pressed }) => [
@@ -34,20 +53,14 @@ export function SubscriptionStatusCard({ status }: Props) {
       >
         <View style={[styles.iconCircle, expiringSoon ? styles.iconCircleWarning : styles.iconCircleSuccess]}>
           <Ionicons
-            name={expiringSoon ? 'time-outline' : 'checkmark-circle'}
+            name={expiringSoon ? 'time-outline' : isTrial ? 'gift' : 'checkmark-circle'}
             size={20}
             color={expiringSoon ? colors.warning : colors.success}
           />
         </View>
         <View style={styles.textBlock}>
-          <Text style={styles.title}>
-            {expiringSoon ? 'Subscription expiring soon' : 'Subscription active'}
-          </Text>
-          <Text style={styles.text}>
-            {expiringSoon
-              ? `Renews needed — valid until ${formatBornDate(status.expires_at)} (${status.days_remaining} day${status.days_remaining === 1 ? '' : 's'} left).`
-              : `Valid until ${formatBornDate(status.expires_at)}.`}
-          </Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.text}>{text}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </Pressable>

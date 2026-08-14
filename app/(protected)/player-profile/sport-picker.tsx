@@ -78,15 +78,27 @@ export default function SportPickerScreen() {
             <Ionicons name="lock-closed" size={28} color={colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>
-            {subscriptionStatus.has_subscribed ? 'Subscription expired' : 'Subscribe to add a sport'}
+            {subscriptionStatus.has_subscribed 
+              ? 'Subscription expired' 
+              : subscriptionStatus.trial_eligible
+                ? 'Start your free month'
+                : 'Subscribe to add a sport'}
           </Text>
           <Text style={styles.emptyText}>
             {subscriptionStatus.has_subscribed
               ? 'Your AmaX subscription has expired. Renew for $10/year to add new sports again.'
-              : 'A $10/year AmaX subscription unlocks adding sports and the Analysis tab.'}
+              : subscriptionStatus.trial_eligible
+                ? 'Start your free trial to add every sport you play and unlock full analytics — no payment needed.'
+                : 'A $10/year AmaX subscription unlocks adding sports and the Analysis tab.'}
           </Text>
           <Button
-            label={subscriptionStatus.has_subscribed ? 'Renew Subscription' : 'Subscribe Now'}
+            label={
+              subscriptionStatus.has_subscribed 
+                ? 'Renew Subscription' 
+                : subscriptionStatus.trial_eligible
+                  ? 'Start Free Trial'
+                  : 'Subscribe Now'
+            }
             onPress={() => router.push('/(protected)/subscription/paywall')}
             style={styles.paywallButton}
           />

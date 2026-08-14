@@ -17,4 +17,16 @@ export const subscriptionService = {
     );
     return data.data;
   },
+
+  /**
+   * Starts the one-time free trial month (Phase 8) — no PayPal step, unlocks
+   * immediately. Only reachable when `status.trial_eligible` is true; the
+   * backend re-enforces eligibility regardless.
+   */
+  async startTrial() {
+    const { data } = await apiClient.post<ApiSuccessResponse<SubscriptionStatus>>(
+      '/subscriptions/start-trial'
+    );
+    return data.data;
+  },
 };

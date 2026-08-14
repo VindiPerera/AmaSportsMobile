@@ -232,9 +232,7 @@ export default function KarateProfileScreen() {
         </View>
         <Text style={styles.headerTitle}>{fullName || 'Karate Athlete'}</Text>
         <Text style={styles.headerSubtitle}>
-          {isViewOnly
-            ? 'Viewing career statistics, physical stats, and match history.'
-            : 'Edit career statistics, physical stats, and match history.'}
+          {'Edit career statistics, physical stats, and match history.'}
         </Text>
       </LinearGradient>
 

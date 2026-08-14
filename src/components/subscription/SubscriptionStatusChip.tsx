@@ -21,10 +21,12 @@ export function SubscriptionStatusChip({ status }: Props) {
   const goToPaywall = () => router.push('/(protected)/subscription/paywall');
 
   if (status.is_active && !status.expiring_soon) {
+    // Trial gets its own icon/label so it reads as visually distinct from a
+    // paid subscription (Phase 8) — same "comfortable, not urgent" chip style.
     return (
       <View style={[styles.chip, styles.chipPremium]}>
-        <Ionicons name="shield-checkmark" size={12} color={colors.energy} />
-        <Text style={[styles.chipText, styles.chipPremiumText]}>Subscribed</Text>
+        <Ionicons name={status.is_trial ? 'gift' : 'shield-checkmark'} size={12} color={colors.energy} />
+        <Text style={[styles.chipText, styles.chipPremiumText]}>{status.is_trial ? 'Free trial' : 'Subscribed'}</Text>
       </View>
     );
   }
@@ -34,7 +36,9 @@ export function SubscriptionStatusChip({ status }: Props) {
     ? status.has_subscribed
       ? 'Subscription expired — renew'
       : 'Subscribe to unlock more'
-    : `Renews in ${status.days_remaining}d`;
+    : status.is_trial
+      ? `Trial ends in ${status.days_remaining}d`
+      : `Renews in ${status.days_remaining}d`;
 
   return (
     <Pressable

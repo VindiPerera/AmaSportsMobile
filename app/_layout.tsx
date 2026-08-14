@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -18,6 +19,10 @@ import { useOnboardingStore } from '../src/store/onboardingStore';
 
 // Keep the native splash screen visible until we've hydrated auth + onboarding state.
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+// Ensures that if the app is opened via a deep link while the in-app browser is active,
+// the browser sheet is dismissed automatically (e.g. after PayPal checkout).
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
   const hydrateAuth = useAuthStore((s) => s.hydrate);
