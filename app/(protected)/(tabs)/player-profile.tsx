@@ -76,12 +76,17 @@ export default function PlayerProfileHubScreen() {
   return (
     <ScreenContainer edges={['top', 'bottom']} scroll>
       {/* Dark Navy Hero Section */}
-      <LinearGradient
-        colors={colors.gradientHero}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={[styles.heroCard, shadows.md]}
-      >
+      <View style={[styles.heroCard, shadows.md]}>
+        {player?.cover_photo_url ? (
+          <Image source={{ uri: player.cover_photo_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        ) : null}
+        <LinearGradient
+          colors={player?.cover_photo_url ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
         <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={8}>
           <View style={styles.logoutIconWrapper}>
             <Ionicons name="log-out-outline" size={18} color={colors.white} />
@@ -124,7 +129,7 @@ export default function PlayerProfileHubScreen() {
             </View>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Main Body: My Sports Section */}
       <View style={styles.bodySection}>
@@ -205,6 +210,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
+    overflow: 'hidden',
+    position: 'relative',
   },
   logoutButton: {
     alignSelf: 'flex-end',

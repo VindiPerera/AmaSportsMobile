@@ -45,7 +45,7 @@ export function CoverPhotoUpload({ existingUrl, picked, onPick }: CoverPhotoUplo
   return (
     <Pressable onPress={handlePress} style={[styles.container, shadows.sm]} accessibilityRole="button">
       {previewUri ? (
-        <Image source={{ uri: previewUri }} style={styles.image} />
+        <Image source={{ uri: previewUri }} style={styles.image} resizeMode="cover" />
       ) : (
         <LinearGradient
           colors={colors.gradientHero}

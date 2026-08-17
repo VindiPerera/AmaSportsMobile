@@ -187,12 +187,17 @@ export function CricketPlayerDetailView({
   return (
     <View style={styles.container}>
       {/* Dark Navy Header Banner */}
-      <LinearGradient
-        colors={colors.gradientHero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerBanner}
-      >
+      <View style={styles.headerBanner}>
+        {coverUrl ? (
+          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        ) : null}
+        <LinearGradient
+          colors={coverUrl ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
         {/* Navigation Bar */}
         <View style={styles.navBar}>
           <Pressable onPress={onBackPress} style={styles.navIconButton} hitSlop={8}>
@@ -263,7 +268,7 @@ export function CricketPlayerDetailView({
             {activeTab === 'matches' && <View style={styles.activeTabLine} />}
           </Pressable>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Main Tab Content */}
       <ScrollView
@@ -623,6 +628,8 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     borderBottomLeftRadius: radius.lg,
     borderBottomRightRadius: radius.lg,
+    overflow: 'hidden',
+    position: 'relative',
   },
   navBar: {
     flexDirection: 'row',
