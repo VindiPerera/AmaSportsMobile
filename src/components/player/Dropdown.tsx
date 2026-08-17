@@ -49,7 +49,7 @@ export function Dropdown({
           itemStyle={styles.pickerItem}
         >
           <Picker.Item label={placeholder} value="" color={colors.textFaint} />
-          {options.map((option) => (
+          {(options || []).map((option) => (
             <Picker.Item key={option.value} label={option.label} value={option.value} />
           ))}
         </Picker>
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     justifyContent: 'center',
     overflow: 'hidden',
+    minHeight: 50,
   },
   compactWrapper: {
     borderWidth: 1,
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     justifyContent: 'center',
     overflow: 'hidden',
+    minHeight: 44,
   },
   wrapperError: {
     borderColor: colors.live,
@@ -98,6 +100,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     color: colors.text,
+    height: 50,
   },
   compactPicker: {
     color: colors.text,

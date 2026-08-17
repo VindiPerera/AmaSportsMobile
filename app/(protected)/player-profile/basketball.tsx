@@ -15,6 +15,7 @@ import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -31,8 +32,7 @@ const EMPTY_CAREER_ROW = {
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', venue: '', win: false, lost: false,
-  points: '', rebounds: '', assists: '', blocks: '', steals: '', minutes: '',
+  match_date: '', opponent: '', venue: '', points: '', rebounds: '', assists: '', steals: '', blocks: '',
 };
 
 const EMPTY_FORM: BasketballProfileFormValues = {
@@ -103,8 +103,6 @@ export default function BasketballProfileScreen() {
           ) as unknown as BasketballProfileFormValues['career_stats'],
           recent_matches: basketballProfile.recent_matches.map((row) => ({
             ...mapRow(row, ['match_date', 'opponent', 'venue', 'points', 'rebounds', 'assists', 'blocks', 'steals', 'minutes']),
-            win: Boolean(row.win),
-            lost: Boolean(row.lost),
           })) as unknown as BasketballProfileFormValues['recent_matches'],
         });
       } catch {
@@ -177,7 +175,7 @@ export default function BasketballProfileScreen() {
       match_date: m.match_date,
       opponent: m.opponent,
       scoreOrStat: m.points ? `${m.points} PTS` : '--',
-      result: m.win ? 'WIN' : (m.lost ? 'LOSS' : 'DRAW'),
+      result: 'N/A',
     }));
 
     return (
@@ -186,6 +184,7 @@ export default function BasketballProfileScreen() {
         fullName={fullName}
         country={country}
         photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        coverUrl={coverPicked?.uri || existingCoverUrl}
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
@@ -212,129 +211,132 @@ export default function BasketballProfileScreen() {
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
 
   return (
-    <ScreenContainer edges={['bottom']} scroll>
-      <ErrorBanner message={error} />
-
-      <View style={styles.topModeBar}>
-        <Text style={styles.topModeTitle}>Editing Basketball Profile</Text>
-        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
-          <Ionicons name="eye-outline" size={16} color={colors.primary} />
-          <Text style={styles.previewButtonText}>View Player Stats</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.coverBlock}>
+    <SportProfileLayout
+      sportName="Basketball"
+      sportIcon="basketball"
+      fullName={fullName}
+      error={error}
+      onBack={() => router.back()}
+    >
+      <View style={sportStyles.coverBlock}>
         <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-        <View style={styles.avatarOverlay}>
+        <View style={sportStyles.avatarOverlay}>
           <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
       </View>
 
-      <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
-      <View style={styles.headerRow}>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
-        </View>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Sport" value="basketball" onChange={() => {}} options={[{ label: 'Basketball', value: 'basketball' }]} disabled />
-        </View>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="person-outline" size={18} color={colors.primary} />
+          Player Overview
+        </Text>
+        <TextField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Enter full name" />
+        <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+        <Controller
+          control={control}
+          name="born"
+          render={({ field: { value, onChange } }) => (
+            <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="age"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="height"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Height" value={value} onChangeText={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="dominant_hand"
+          render={({ field: { value, onChange } }) => (
+            <Dropdown label="Dominant Hand" value={value} onChange={onChange} options={DOMINANT_HAND_OPTIONS} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="player_position"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Player Position" value={value} onChangeText={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="college_university"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="College/University" value={value} onChangeText={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="teams"
+          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+        />
       </View>
 
-      <Text style={styles.sectionLabel}>Overview</Text>
-      <TextField label="Full name" value={fullName} onChangeText={setFullName} />
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="dominant_hand"
-        render={({ field: { value, onChange } }) => (
-          <Dropdown label="Dominant Hand" value={value} onChange={onChange} options={DOMINANT_HAND_OPTIONS} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="player_position"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Player Position" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="college_university"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="College/University" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="teams"
-        render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
-      />
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+          Career Status
+        </Text>
+        <StatTable
+          title="Career Status"
+          control={control}
+          name="career_stats"
+          emptyRow={EMPTY_CAREER_ROW}
+          columns={[
+            { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+            { key: 'matches', label: 'Matches', type: 'number' },
+            { key: 'win', label: 'Win', type: 'number' },
+            { key: 'lost', label: 'Lost', type: 'number' },
+            { key: 'points', label: 'Points', type: 'number' },
+            { key: 'rebounds', label: 'Rebounds', type: 'number' },
+            { key: 'assists', label: 'Assists', type: 'number' },
+            { key: 'blocks', label: 'Blocks', type: 'number' },
+            { key: 'steals', label: 'Steals', type: 'number' },
+            { key: 'blocks', label: 'BLK', type: 'number', width: 50 },
+          ]}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>Career Status</Text>
-      <StatTable
-        title="Career Status"
-        control={control}
-        name="career_stats"
-        emptyRow={EMPTY_CAREER_ROW}
-        columns={[
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'win', label: 'Win', type: 'number' },
-          { key: 'lost', label: 'Lost', type: 'number' },
-          { key: 'points', label: 'Points', type: 'number' },
-          { key: 'rebounds', label: 'Rebounds', type: 'number' },
-          { key: 'assists', label: 'Assists', type: 'number' },
-          { key: 'blocks', label: 'Blocks', type: 'number' },
-          { key: 'steals', label: 'Steals', type: 'number' },
-          { key: 'minutes', label: 'Minutes', type: 'number' },
-        ]}
-      />
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          Recent Matches
+        </Text>
+        <StatTable
+          title="Recent Matches"
+          control={control}
+          name="recent_matches"
+          emptyRow={EMPTY_RECENT_MATCH_ROW}
+          columns={[
+            { key: 'match_date', label: 'Date', type: 'date' },
+            { key: 'opponent', label: 'Match vs', type: 'text' },
+            { key: 'venue', label: 'Venue', type: 'text' },
+            { key: 'points', label: 'Points', type: 'number' },
+            { key: 'rebounds', label: 'Rebounds', type: 'number' },
+            { key: 'assists', label: 'Assists', type: 'number' },
+            { key: 'blocks', label: 'Blocks', type: 'number' },
+            { key: 'steals', label: 'Steals', type: 'number' },
+            { key: 'blocks', label: 'BLK', type: 'number', width: 50 },
+          ]}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>Recent Matches</Text>
-      <StatTable
-        title="Recent Matches"
-        control={control}
-        name="recent_matches"
-        emptyRow={EMPTY_RECENT_MATCH_ROW}
-        columns={[
-          { key: 'match_date', label: 'Date', type: 'date' },
-          { key: 'opponent', label: 'Match vs', type: 'text' },
-          { key: 'venue', label: 'Venue', type: 'text' },
-          { key: 'win', label: 'Win', type: 'boolean' },
-          { key: 'lost', label: 'Lost', type: 'boolean' },
-          { key: 'points', label: 'Points', type: 'number' },
-          { key: 'rebounds', label: 'Rebounds', type: 'number' },
-          { key: 'assists', label: 'Assists', type: 'number' },
-          { key: 'blocks', label: 'Blocks', type: 'number' },
-          { key: 'steals', label: 'Steals', type: 'number' },
-          { key: 'minutes', label: 'Minutes', type: 'number' },
-        ]}
+      <Button
+        label="Save Basketball Profile"
+        onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton}
       />
-
-      <Button label="Save Basketball Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
-    </ScreenContainer>
+    </SportProfileLayout>
   );
 }
 

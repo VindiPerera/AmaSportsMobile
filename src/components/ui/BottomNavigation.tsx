@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 
@@ -20,12 +21,16 @@ const TABS: { key: TabKey; title: string; icon: keyof typeof Ionicons.glyphMap; 
 ];
 
 export function BottomNavigation({ activeTab = 'live-score' }: BottomNavigationProps) {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 16 : 14);
+  const containerHeight = 54 + bottomInset;
+
   const handlePress = (route: string) => {
     router.replace(route as any);
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height: containerHeight, paddingBottom: bottomInset }]}>
       {TABS.map((tab) => {
         const isFocused = activeTab === tab.key;
         const color = isFocused ? colors.primary : colors.textMuted;
@@ -57,8 +62,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    height: Platform.OS === 'ios' ? 78 : 64,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 6,
     paddingTop: 8,
     elevation: 12,
     shadowColor: colors.navy,

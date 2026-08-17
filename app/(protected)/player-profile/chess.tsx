@@ -15,6 +15,7 @@ import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -182,6 +183,7 @@ export default function ChessProfileScreen() {
         fullName={fullName}
         country={country}
         photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        coverUrl={coverPicked?.uri || existingCoverUrl}
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
@@ -207,28 +209,25 @@ export default function ChessProfileScreen() {
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
 
   return (
-    <ScreenContainer edges={['bottom']} scroll>
-      <ErrorBanner message={error} />
-
-      <View style={styles.topModeBar}>
-        <View style={styles.topModeTitleRow}>
-          <Ionicons name="create-outline" size={18} color={colors.energy} />
-          <Text style={styles.topModeTitle}>Editing Chess Profile</Text>
+    <SportProfileLayout
+      sportName="Chess"
+      sportIcon="game-controller-outline"
+      fullName={fullName}
+      error={error}
+      onBack={() => router.back()}
+    >
+      <View style={sportStyles.coverBlock}>
+        <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
+        <View style={sportStyles.avatarOverlay}>
+          <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
-        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
-          <Ionicons name="eye-outline" size={15} color={colors.white} />
-          <Text style={styles.previewButtonText}>View Stats View</Text>
-        </Pressable>
       </View>
 
-      <View style={styles.cardSection}>
-        <View style={styles.coverBlock}>
-          <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-          <View style={styles.avatarOverlay}>
-            <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
-          </View>
-        </View>
-
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="person-outline" size={18} color={colors.primary} />
+          Player Overview
+        </Text>
         <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
         <View style={styles.headerRow}>
           <View style={styles.headerRowItem}>
@@ -238,10 +237,6 @@ export default function ChessProfileScreen() {
             <Dropdown label="Sport" value="chess" onChange={() => {}} options={[{ label: 'Chess', value: 'chess' }]} disabled />
           </View>
         </View>
-      </View>
-
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Overview & Personal Details</Text>
         <Controller
           control={control}
           name="born"
@@ -284,8 +279,11 @@ export default function ChessProfileScreen() {
         />
       </View>
 
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Career Stats</Text>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+          Career Stats
+        </Text>
         <StatTable
           title="Career Stats"
           control={control}
@@ -305,8 +303,11 @@ export default function ChessProfileScreen() {
         />
       </View>
 
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Recent Matches</Text>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          Recent Matches
+        </Text>
         <StatTable
           title="Recent Matches"
           control={control}
@@ -324,7 +325,7 @@ export default function ChessProfileScreen() {
       </View>
 
       <Button label="Save Chess Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
-    </ScreenContainer>
+    </SportProfileLayout>
   );
 }
 

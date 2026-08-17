@@ -16,6 +16,7 @@ import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -187,6 +188,7 @@ export default function KarateProfileScreen() {
         fullName={fullName}
         country={country}
         photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        coverUrl={coverPicked?.uri || existingCoverUrl}
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
@@ -213,45 +215,27 @@ export default function KarateProfileScreen() {
   const styleOptions = lookups.karate_styles.map((s) => ({ label: s.name, value: String(s.id) }));
 
   return (
-    <ScreenContainer edges={['top', 'bottom']} scroll>
-      {/* Hero Navigation Banner */}
-      <LinearGradient
-        colors={colors.gradientHero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.heroHeader, shadows.md]}
-      >
-        <View style={styles.topRow}>
-          <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
-            <Ionicons name="arrow-back" size={20} color={colors.white} />
-          </Pressable>
-          <View style={styles.sportBadge}>
-            <Ionicons name="body" size={14} color={colors.energy} />
-            <Text style={styles.sportBadgeText}>KARATE PROFILE</Text>
-          </View>
-        </View>
-        <Text style={styles.headerTitle}>{fullName || 'Karate Athlete'}</Text>
-        <Text style={styles.headerSubtitle}>
-          {'Edit career statistics, physical stats, and match history.'}
-        </Text>
-      </LinearGradient>
-
-      <ErrorBanner message={error} />
-
+    <SportProfileLayout
+      sportName="Karate"
+      sportIcon="body"
+      fullName={fullName}
+      error={error}
+      onBack={() => router.back()}
+    >
       {/* Cover & Avatar Upload Block */}
-      <View style={styles.coverBlock}>
+      <View style={sportStyles.coverBlock}>
         <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-        <View style={styles.avatarOverlay}>
+        <View style={sportStyles.avatarOverlay}>
           <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
       </View>
 
       {/* Form Section 1: Overview */}
-      <View style={[styles.sectionCard, shadows.sm]}>
-        <View style={styles.sectionHeaderRow}>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
           <Ionicons name="person-outline" size={18} color={colors.primary} />
-          <Text style={styles.sectionCardTitle}>Player Overview</Text>
-        </View>
+          Player Overview
+        </Text>
 
         <TextField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Enter full name" />
         
@@ -380,7 +364,7 @@ export default function KarateProfileScreen() {
       />
 
       <Button label="Save Karate Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
-    </ScreenContainer>
+    </SportProfileLayout>
   );
 }
 

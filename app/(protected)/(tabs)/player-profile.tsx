@@ -78,13 +78,13 @@ export default function PlayerProfileHubScreen() {
       {/* Dark Navy Hero Section */}
       <View style={[styles.heroCard, shadows.md]}>
         {player?.cover_photo_url ? (
-          <Image source={{ uri: player.cover_photo_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          <Image source={{ uri: player.cover_photo_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
         <LinearGradient
           colors={player?.cover_photo_url ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         />
 
         <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={8}>

@@ -16,6 +16,7 @@ import { StatTable } from '../../../src/components/player/StatTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { EventPersonalBestInput } from '../../../src/components/player/EventPersonalBestInput';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -185,6 +186,7 @@ export default function SwimmingProfileScreen() {
         fullName={fullName}
         country={country}
         photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        coverUrl={coverPicked?.uri || existingCoverUrl}
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
@@ -211,36 +213,34 @@ export default function SwimmingProfileScreen() {
   const eventOptions = lookups.swimming_events.map((e) => ({ label: e.name, value: String(e.id) }));
 
   return (
-    <ScreenContainer edges={['bottom']} scroll>
-      <ErrorBanner message={error} />
-
-      <View style={styles.topModeBar}>
-        <Text style={styles.topModeTitle}>Editing Swimming Profile</Text>
-        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
-          <Ionicons name="eye-outline" size={16} color={colors.primary} />
-          <Text style={styles.previewButtonText}>View Player Stats</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.coverBlock}>
+    <SportProfileLayout
+      sportName="Swimming"
+      sportIcon="water-outline"
+      fullName={fullName}
+      error={error}
+      onBack={() => router.back()}
+    >
+      <View style={sportStyles.coverBlock}>
         <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-        <View style={styles.avatarOverlay}>
+        <View style={sportStyles.avatarOverlay}>
           <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
       </View>
 
-      <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
-      <View style={styles.headerRow}>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="person-outline" size={18} color={colors.primary} />
+          Player Overview
+        </Text>
+        <TextField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Enter full name" />
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Sport" value="swimming" onChange={() => {}} options={[{ label: 'Swimming', value: 'swimming' }]} disabled />
+          </View>
         </View>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Sport" value="swimming" onChange={() => {}} options={[{ label: 'Swimming', value: 'swimming' }]} disabled />
-        </View>
-      </View>
-
-      <Text style={styles.sectionLabel}>Overview</Text>
-      <TextField label="Full name" value={fullName} onChangeText={setFullName} />
       <Controller
         control={control}
         name="born"
@@ -289,13 +289,18 @@ export default function SwimmingProfileScreen() {
           <TextField label="College/University" value={value} onChangeText={onChange} />
         )}
       />
-      <Controller
-        control={control}
-        name="teams"
-        render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
-      />
+        <Controller
+          control={control}
+          name="teams"
+          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>Career Status</Text>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+          Career Status
+        </Text>
       <StatTable
         title="Career Status"
         control={control}
@@ -313,8 +318,13 @@ export default function SwimmingProfileScreen() {
           { key: 'champion', label: 'Champion', type: 'number' },
         ]}
       />
+      </View>
 
-      <Text style={styles.sectionLabel}>Recent Events</Text>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          Recent Events
+        </Text>
       <StatTable
         title="Recent Events"
         control={control}
@@ -330,9 +340,10 @@ export default function SwimmingProfileScreen() {
           { key: 'place', label: 'Place', type: 'text' },
         ]}
       />
+      </View>
 
       <Button label="Save Swimming Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
-    </ScreenContainer>
+    </SportProfileLayout>
   );
 }
 

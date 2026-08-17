@@ -37,6 +37,15 @@ export const typography = {
     lineHeight: 28,
     color: colors.text,
   } as TextStyle,
+  /** Card/section headers and tab labels — a step down from h3, callers
+   * commonly override fontSize/fontWeight/color on top of this. */
+  subtitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 22,
+    color: colors.text,
+  } as TextStyle,
   body: {
     fontFamily: 'Inter_400Regular',
     fontSize: 16,

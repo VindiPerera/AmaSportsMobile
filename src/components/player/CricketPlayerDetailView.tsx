@@ -50,152 +50,34 @@ export function CricketPlayerDetailView({
     return formatId;
   };
 
-  // Process Batting Rows (or supply clean defaults if empty)
+  // Process Batting Rows
   const hasBattingStats = values.batting && values.batting.length > 0;
-  const battingRows = hasBattingStats
-    ? values.batting
-    : [
-        {
-          format_id: '1',
-          matches: '3',
-          innings: '1',
-          not_out: '1',
-          runs: '12',
-          hs: '12*',
-          average: '--',
-          sr: '100.0',
-          hundreds: '0',
-          fifties: '0',
-          fours: '1',
-          sixes: '0',
-          catches: '1',
-          stumpings: '0',
-        },
-        {
-          format_id: '2',
-          matches: '2',
-          innings: '0',
-          not_out: '0',
-          runs: '0',
-          hs: '-',
-          average: '--',
-          sr: '0.0',
-          hundreds: '0',
-          fifties: '0',
-          fours: '0',
-          sixes: '0',
-          catches: '0',
-          stumpings: '0',
-        },
-      ];
+  const battingRows = hasBattingStats ? values.batting : [];
 
   // Process Bowling Rows
   const hasBowlingStats = values.bowling && values.bowling.length > 0;
-  const bowlingRows = hasBowlingStats
-    ? values.bowling
-    : [
-        {
-          format_id: '1',
-          matches: '3',
-          innings: '0',
-          balls: '0',
-          runs: '0',
-          wickets: '0',
-          bbi: '-',
-          bbm: '-',
-          average: '--',
-          economy: '0.0',
-          sr: '0.0',
-          four_w: '0',
-          five_w: '0',
-        },
-        {
-          format_id: '2',
-          matches: '2',
-          innings: '1',
-          balls: '18',
-          runs: '17',
-          wickets: '0',
-          bbi: '0/17',
-          bbm: '0/17',
-          average: '--',
-          economy: '5.66',
-          sr: '0.0',
-          four_w: '0',
-          five_w: '0',
-        },
-      ];
+  const bowlingRows = hasBowlingStats ? values.bowling : [];
 
   // Process Recent Matches
   const hasRecentMatches = values.recent_matches && values.recent_matches.length > 0;
-  const recentMatches = hasRecentMatches
-    ? values.recent_matches
-    : [
-        {
-          match_date: '2024-08-05',
-          opponent: 'Chilaw MCC vs Panadura',
-          runs: '--',
-          wickets: '--',
-          overs: '--',
-        },
-        {
-          match_date: '2024-07-30',
-          opponent: 'Chilaw MCC vs Bloomfield',
-          runs: '12*',
-          wickets: '--',
-          overs: '--',
-        },
-        {
-          match_date: '2024-05-15',
-          opponent: 'Chilaw MCC vs Moors',
-          runs: '--',
-          wickets: '0',
-          overs: '3.0',
-        },
-        {
-          match_date: '2024-05-13',
-          opponent: 'Chilaw MCC vs Burgher',
-          runs: '--',
-          wickets: '--',
-          overs: '--',
-        },
-        {
-          match_date: '2024-01-10',
-          opponent: 'Chilaw MCC vs Badureliya',
-          runs: '--',
-          wickets: '--',
-          overs: '--',
-        },
-      ];
-
+  const recentMatches = hasRecentMatches ? values.recent_matches : [];
   const displayedRecentMatches = showAllRecent ? recentMatches : recentMatches.slice(0, 5);
 
-  // Debut & Last Matches
-  const debutLastData = [
-    {
-      category: 'LIST A MATCHES',
-      debut: 'Badureliya vs Chilaw MCC at Maggona - January 10, 2024',
-      last: 'Chilaw MCC vs Panadura at Galle - August 05, 2024',
-    },
-    {
-      category: 'T20 MATCHES',
-      debut: 'Burgher vs Chilaw MCC at Panagoda - May 13, 2024',
-      last: 'Chilaw MCC vs Moors at Colombo (SSC) - May 15, 2024',
-    },
-  ];
+  // Debut & Last Matches (not supported yet)
+  const debutLastData: any[] = [];
 
   return (
     <View style={styles.container}>
       {/* Dark Navy Header Banner */}
       <View style={styles.headerBanner}>
         {coverUrl ? (
-          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
         <LinearGradient
           colors={coverUrl ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         />
 
         {/* Navigation Bar */}
@@ -307,13 +189,13 @@ export function CricketPlayerDetailView({
                   <View style={styles.gridItemHalf}>
                     <Text style={styles.fieldLabel}>BATTING STYLE</Text>
                     <Text style={styles.fieldValueBold}>
-                      {values.batting_style || 'Right hand Bat'}
+                      {values.batting_style || '-'}
                     </Text>
                   </View>
                   <View style={styles.gridItemHalf}>
                     <Text style={styles.fieldLabel}>BOWLING STYLE</Text>
                     <Text style={styles.fieldValueBold}>
-                      {values.bowling_style || 'Right arm Offbreak'}
+                      {values.bowling_style || '-'}
                     </Text>
                   </View>
                 </View>
@@ -334,276 +216,283 @@ export function CricketPlayerDetailView({
                 ) : null}
 
                 {/* Teams */}
-                <View style={styles.gridItemFull}>
-                  <Text style={styles.fieldLabel}>TEAMS</Text>
-                  <View style={styles.teamsChipList}>
-                    {values.teams && values.teams.length > 0 ? (
-                      values.teams.map((team, idx) => (
+                {values.teams && values.teams.length > 0 && (
+                  <View style={styles.gridItemFull}>
+                    <Text style={styles.fieldLabel}>TEAMS</Text>
+                    <View style={styles.teamsChipList}>
+                      {values.teams.map((team, idx) => (
                         <View key={idx} style={styles.teamBadge}>
                           <View style={styles.teamBadgeIcon}>
                             <Ionicons name="shield" size={14} color={colors.primary} />
                           </View>
                           <Text style={styles.teamBadgeText}>{team}</Text>
                         </View>
-                      ))
-                    ) : (
-                      <View style={styles.teamBadge}>
-                        <View style={styles.teamBadgeIcon}>
-                          <Ionicons name="shield" size={14} color={colors.primary} />
-                        </View>
-                        <Text style={styles.teamBadgeText}>Chilaw Marians Cricket Club</Text>
-                      </View>
-                    )}
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
               </View>
             </View>
 
             {/* Card 2: Career Stats */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>{shortName} Career Stats</Text>
+            {(hasBattingStats || hasBowlingStats) && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>{shortName} Career Stats</Text>
 
-              {/* Batting & Fielding */}
-              <View style={styles.statSubSection}>
-                <Text style={styles.subSectionHeader}>BATTING & FIELDING</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.tableContainer}>
-                    {/* Table Header */}
-                    <View style={styles.tableHeaderRow}>
-                      <Text style={[styles.thCell, styles.thFormat]}>Format</Text>
-                      <Text style={styles.thCell}>Mat</Text>
-                      <Text style={styles.thCell}>Inns</Text>
-                      <Text style={styles.thCell}>NO</Text>
-                      <Text style={styles.thCell}>Runs</Text>
-                      <Text style={styles.thCell}>HS</Text>
-                      <Text style={styles.thCell}>Ave</Text>
-                      <Text style={styles.thCell}>SR</Text>
-                      <Text style={styles.thCell}>100s</Text>
-                      <Text style={styles.thCell}>50s</Text>
-                      <Text style={styles.thCell}>Ct</Text>
-                    </View>
+                {/* Batting & Fielding */}
+                {hasBattingStats && (
+                  <View style={styles.statSubSection}>
+                    <Text style={styles.subSectionHeader}>BATTING & FIELDING</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.tableContainer}>
+                        {/* Table Header */}
+                        <View style={styles.tableHeaderRow}>
+                          <Text style={[styles.thCell, styles.thFormat]}>Format</Text>
+                          <Text style={styles.thCell}>Mat</Text>
+                          <Text style={styles.thCell}>Inns</Text>
+                          <Text style={styles.thCell}>NO</Text>
+                          <Text style={styles.thCell}>Runs</Text>
+                          <Text style={styles.thCell}>HS</Text>
+                          <Text style={styles.thCell}>Ave</Text>
+                          <Text style={styles.thCell}>SR</Text>
+                          <Text style={styles.thCell}>100s</Text>
+                          <Text style={styles.thCell}>50s</Text>
+                          <Text style={styles.thCell}>Ct</Text>
+                        </View>
 
-                    {/* Table Rows */}
-                    {battingRows.map((row, idx) => (
-                      <View
-                        key={idx}
-                        style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                      >
-                        <Text style={[styles.tdCellBold, styles.thFormat]}>
-                          {getFormatName(row.format_id)}
-                        </Text>
-                        <Text style={styles.tdCell}>{row.matches || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.innings || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.not_out || '-'}</Text>
-                        <Text style={styles.tdCellBold}>{row.runs || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.hs || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.average || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.sr || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.hundreds || '0'}</Text>
-                        <Text style={styles.tdCell}>{row.fifties || '0'}</Text>
-                        <Text style={styles.tdCell}>{row.catches || '0'}</Text>
+                        {/* Table Rows */}
+                        {battingRows.map((row, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                          >
+                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                              {getFormatName(row.format_id)}
+                            </Text>
+                            <Text style={styles.tdCell}>{row.matches || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.innings || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.not_out || '-'}</Text>
+                            <Text style={styles.tdCellBold}>{row.runs || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.hs || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.sr || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.hundreds || '0'}</Text>
+                            <Text style={styles.tdCell}>{row.fifties || '0'}</Text>
+                            <Text style={styles.tdCell}>{row.catches || '0'}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
+                    </ScrollView>
                   </View>
-                </ScrollView>
-              </View>
+                )}
 
-              {/* Bowling */}
-              <View style={styles.statSubSection}>
-                <Text style={styles.subSectionHeader}>BOWLING</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.tableContainer}>
-                    {/* Table Header */}
-                    <View style={styles.tableHeaderRow}>
-                      <Text style={[styles.thCell, styles.thFormat]}>Format</Text>
-                      <Text style={styles.thCell}>Mat</Text>
-                      <Text style={styles.thCell}>Inns</Text>
-                      <Text style={styles.thCell}>Balls</Text>
-                      <Text style={styles.thCell}>Runs</Text>
-                      <Text style={styles.thCell}>Wkts</Text>
-                      <Text style={styles.thCell}>BBI</Text>
-                      <Text style={styles.thCell}>Ave</Text>
-                      <Text style={styles.thCell}>Econ</Text>
-                      <Text style={styles.thCell}>4w</Text>
-                      <Text style={styles.thCell}>5w</Text>
-                    </View>
+                {/* Bowling */}
+                {hasBowlingStats && (
+                  <View style={styles.statSubSection}>
+                    <Text style={styles.subSectionHeader}>BOWLING</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.tableContainer}>
+                        {/* Table Header */}
+                        <View style={styles.tableHeaderRow}>
+                          <Text style={[styles.thCell, styles.thFormat]}>Format</Text>
+                          <Text style={styles.thCell}>Mat</Text>
+                          <Text style={styles.thCell}>Inns</Text>
+                          <Text style={styles.thCell}>Balls</Text>
+                          <Text style={styles.thCell}>Runs</Text>
+                          <Text style={styles.thCell}>Wkts</Text>
+                          <Text style={styles.thCell}>BBI</Text>
+                          <Text style={styles.thCell}>Ave</Text>
+                          <Text style={styles.thCell}>Econ</Text>
+                          <Text style={styles.thCell}>4w</Text>
+                          <Text style={styles.thCell}>5w</Text>
+                        </View>
 
-                    {/* Table Rows */}
-                    {bowlingRows.map((row, idx) => (
-                      <View
-                        key={idx}
-                        style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                      >
-                        <Text style={[styles.tdCellBold, styles.thFormat]}>
-                          {getFormatName(row.format_id)}
-                        </Text>
-                        <Text style={styles.tdCell}>{row.matches || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.innings || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.balls || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.runs || '-'}</Text>
-                        <Text style={styles.tdCellBold}>{row.wickets || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.bbi || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.average || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.economy || '-'}</Text>
-                        <Text style={styles.tdCell}>{row.four_w || '0'}</Text>
-                        <Text style={styles.tdCell}>{row.five_w || '0'}</Text>
+                        {/* Table Rows */}
+                        {bowlingRows.map((row, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                          >
+                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                              {getFormatName(row.format_id)}
+                            </Text>
+                            <Text style={styles.tdCell}>{row.matches || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.innings || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.balls || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.runs || '-'}</Text>
+                            <Text style={styles.tdCellBold}>{row.wickets || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.bbi || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.economy || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.four_w || '0'}</Text>
+                            <Text style={styles.tdCell}>{row.five_w || '0'}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
+                    </ScrollView>
                   </View>
-                </ScrollView>
+                )}
               </View>
-            </View>
+            )}
 
             {/* Card 3: Recent Matches */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
+            {hasRecentMatches && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
 
-              <View style={styles.recentMatchesTable}>
-                <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                  <Text style={styles.thCell}>Bat</Text>
-                  <Text style={styles.thCell}>Bowl</Text>
-                  <Text style={[styles.thCell, styles.thDate]}>Date</Text>
+                <View style={styles.recentMatchesTable}>
+                  <View style={styles.tableHeaderRow}>
+                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
+                    <Text style={styles.thCell}>Bat</Text>
+                    <Text style={styles.thCell}>Bowl</Text>
+                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
+                  </View>
+
+                  {displayedRecentMatches.map((m, idx) => {
+                    const bowlStat =
+                      m.wickets && m.wickets !== '--'
+                        ? `${m.wickets}/${m.runs || '0'}`
+                        : '--';
+                    return (
+                      <View
+                        key={idx}
+                        style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                      >
+                        <Text
+                          style={[styles.tdCellBold, styles.thMatchName]}
+                          numberOfLines={1}
+                        >
+                          {m.opponent}
+                        </Text>
+                        <Text style={styles.tdCell}>{m.runs || '--'}</Text>
+                        <Text style={styles.tdCell}>{bowlStat}</Text>
+                        <Text style={[styles.tdCellFaint, styles.thDate]}>
+                          {formatShortMatchDate(m.match_date)}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
 
-                {displayedRecentMatches.map((m, idx) => {
-                  const bowlStat =
-                    m.wickets && m.wickets !== '--'
-                      ? `${m.wickets}/${m.runs || '0'}`
-                      : '--';
-                  return (
-                    <View
-                      key={idx}
-                      style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                    >
-                      <Text
-                        style={[styles.tdCellBold, styles.thMatchName]}
-                        numberOfLines={1}
-                      >
-                        {m.opponent}
-                      </Text>
-                      <Text style={styles.tdCell}>{m.runs || '--'}</Text>
-                      <Text style={styles.tdCell}>{bowlStat}</Text>
-                      <Text style={[styles.tdCellFaint, styles.thDate]}>
-                        {formatShortMatchDate(m.match_date)}
-                      </Text>
-                    </View>
-                  );
-                })}
+                {!showAllRecent && recentMatches.length > 3 && (
+                  <Pressable
+                    style={styles.viewMoreButton}
+                    onPress={() => setShowAllRecent(true)}
+                  >
+                    <Text style={styles.viewMoreText}>View more</Text>
+                    <Ionicons name="chevron-down" size={14} color={colors.primary} />
+                  </Pressable>
+                )}
               </View>
-
-              {!showAllRecent && recentMatches.length > 3 && (
-                <Pressable
-                  style={styles.viewMoreButton}
-                  onPress={() => setShowAllRecent(true)}
-                >
-                  <Text style={styles.viewMoreText}>View more</Text>
-                  <Ionicons name="chevron-down" size={14} color={colors.primary} />
-                </Pressable>
-              )}
-            </View>
+            )}
 
             {/* Card 4: Debut/Last Matches */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
+            {debutLastData.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
 
-              {debutLastData.map((item, idx) => (
-                <View key={idx} style={styles.debutBlock}>
-                  <View style={styles.debutCategoryHeader}>
-                    <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                  </View>
-
-                  {/* Debut Entry */}
-                  <View style={styles.debutRow}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>DEBUT</Text>
-                      <Text style={styles.debutMatchText}>{item.debut}</Text>
+                {debutLastData.map((item, idx) => (
+                  <View key={idx} style={styles.debutBlock}>
+                    <View style={styles.debutCategoryHeader}>
+                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                  </View>
 
-                  {/* Last Entry */}
-                  <View style={[styles.debutRow, styles.borderTopDivider]}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>LAST</Text>
-                      <Text style={styles.debutMatchText}>{item.last}</Text>
+                    {/* Debut Entry */}
+                    <View style={styles.debutRow}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>DEBUT</Text>
+                        <Text style={styles.debutMatchText}>{item.debut}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+
+                    {/* Last Entry */}
+                    <View style={[styles.debutRow, styles.borderTopDivider]}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>LAST</Text>
+                        <Text style={styles.debutMatchText}>{item.last}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </>
         ) : (
           /* Matches Tab Content */
           <>
             {/* Debut/Last Matches - Player */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Debut/Last Matches - Player</Text>
+            {debutLastData.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Debut/Last Matches - Player</Text>
 
-              {debutLastData.map((item, idx) => (
-                <View key={idx} style={styles.debutBlock}>
-                  <View style={styles.debutCategoryHeader}>
-                    <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                  </View>
-
-                  <View style={styles.debutRow}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>DEBUT</Text>
-                      <Text style={styles.debutMatchText}>{item.debut}</Text>
+                {debutLastData.map((item, idx) => (
+                  <View key={idx} style={styles.debutBlock}>
+                    <View style={styles.debutCategoryHeader}>
+                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                  </View>
 
-                  <View style={[styles.debutRow, styles.borderTopDivider]}>
-                    <View style={styles.debutContent}>
-                      <Text style={styles.fieldLabel}>LAST</Text>
-                      <Text style={styles.debutMatchText}>{item.last}</Text>
+                    <View style={styles.debutRow}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>DEBUT</Text>
+                        <Text style={styles.debutMatchText}>{item.debut}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+
+                    <View style={[styles.debutRow, styles.borderTopDivider]}>
+                      <View style={styles.debutContent}>
+                        <Text style={styles.fieldLabel}>LAST</Text>
+                        <Text style={styles.debutMatchText}>{item.last}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
 
             {/* Recent Matches - Player */}
-            <View style={[styles.card, shadows.sm]}>
-              <Text style={styles.cardHeaderTitle}>Recent Matches - Player</Text>
+            {hasRecentMatches && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>Recent Matches - Player</Text>
 
-              <View style={styles.recentMatchesTable}>
-                <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                  <Text style={styles.thCell}>Bat</Text>
-                  <Text style={styles.thCell}>Bowl</Text>
-                  <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                </View>
+                <View style={styles.recentMatchesTable}>
+                  <View style={styles.tableHeaderRow}>
+                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
+                    <Text style={styles.thCell}>Bat</Text>
+                    <Text style={styles.thCell}>Bowl</Text>
+                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
+                  </View>
 
-                {recentMatches.map((m, idx) => {
-                  const bowlStat =
-                    m.wickets && m.wickets !== '--'
-                      ? `${m.wickets}/${m.runs || '0'}`
-                      : '--';
-                  return (
-                    <View
-                      key={idx}
-                      style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                    >
-                      <Text
-                        style={[styles.tdCellBold, styles.thMatchName]}
-                        numberOfLines={1}
+                  {recentMatches.map((m, idx) => {
+                    const bowlStat =
+                      m.wickets && m.wickets !== '--'
+                        ? `${m.wickets}/${m.runs || '0'}`
+                        : '--';
+                    return (
+                      <View
+                        key={idx}
+                        style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                       >
-                        {m.opponent}
-                      </Text>
-                      <Text style={styles.tdCell}>{m.runs || '--'}</Text>
-                      <Text style={styles.tdCell}>{bowlStat}</Text>
-                      <Text style={[styles.tdCellFaint, styles.thDate]}>
-                        {formatShortMatchDate(m.match_date)}
-                      </Text>
-                    </View>
-                  );
-                })}
+                        <Text
+                          style={[styles.tdCellBold, styles.thMatchName]}
+                          numberOfLines={1}
+                        >
+                          {m.opponent}
+                        </Text>
+                        <Text style={styles.tdCell}>{m.runs || '--'}</Text>
+                        <Text style={styles.tdCell}>{bowlStat}</Text>
+                        <Text style={[styles.tdCellFaint, styles.thDate]}>
+                          {formatShortMatchDate(m.match_date)}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Footer Copyright notice matching Cricbuzz layout */}
             <View style={styles.footerBranding}>

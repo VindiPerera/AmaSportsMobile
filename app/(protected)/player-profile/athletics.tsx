@@ -16,6 +16,7 @@ import { StatTable } from '../../../src/components/player/StatTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { EventPersonalBestInput } from '../../../src/components/player/EventPersonalBestInput';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -184,6 +185,7 @@ export default function AthleticsProfileScreen() {
         fullName={fullName}
         country={country}
         photoUrl={avatarPicked?.uri || existingPhotoUrl}
+        coverUrl={coverPicked?.uri || existingCoverUrl}
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
@@ -207,130 +209,138 @@ export default function AthleticsProfileScreen() {
   const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
   const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
-  // Already ordered by type (running/jumping/throwing/walking) server-side.
   const eventOptions = lookups.athletics_events.map((e) => ({ label: e.name, value: String(e.id) }));
 
   return (
-    <ScreenContainer edges={['bottom']} scroll>
-      <ErrorBanner message={error} />
-
-      <View style={styles.topModeBar}>
-        <Text style={styles.topModeTitle}>Editing Athletics Profile</Text>
-        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
-          <Ionicons name="eye-outline" size={16} color={colors.primary} />
-          <Text style={styles.previewButtonText}>View Player Stats</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.coverBlock}>
+    <SportProfileLayout
+      sportName="Athletics"
+      sportIcon="walk-outline"
+      fullName={fullName}
+      error={error}
+      onBack={() => router.back()}
+    >
+      <View style={sportStyles.coverBlock}>
         <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-        <View style={styles.avatarOverlay}>
+        <View style={sportStyles.avatarOverlay}>
           <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
       </View>
 
-      <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
-      <View style={styles.headerRow}>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="person-outline" size={18} color={colors.primary} />
+          Player Overview
+        </Text>
+        <TextField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Enter full name" />
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Sport" value="athletics" onChange={() => {}} options={[{ label: 'Athletics', value: 'athletics' }]} disabled />
+          </View>
         </View>
-        <View style={styles.headerRowItem}>
-          <Dropdown label="Sport" value="athletics" onChange={() => {}} options={[{ label: 'Athletics', value: 'athletics' }]} disabled />
-        </View>
+        <Controller
+          control={control}
+          name="born"
+          render={({ field: { value, onChange } }) => (
+            <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="age"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+          )}
+        />
+        <Controller
+          control={control}
+          name="height"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Height" value={value} onChangeText={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="weight"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="Weight" value={value} onChangeText={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="personal_bests"
+          render={() => (
+            <EventPersonalBestInput
+              label="Events & Personal Best"
+              control={control}
+              name="personal_bests"
+              eventIdKey="athletics_event_id"
+              events={eventOptions}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="college_university"
+          render={({ field: { value, onChange } }) => (
+            <TextField label="College/University" value={value} onChangeText={onChange} />
+          )}
+        />
+        <Controller
+          control={control}
+          name="teams"
+          render={({ field: { value, onChange } }) => <TeamsInput label="School or Team" value={value} onChange={onChange} />}
+        />
       </View>
 
-      <Text style={styles.sectionLabel}>Overview</Text>
-      <TextField label="Full name" value={fullName} onChangeText={setFullName} />
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="weight"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Weight" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="personal_bests"
-        render={() => (
-          <EventPersonalBestInput
-            label="Events & Personal Best"
-            control={control}
-            name="personal_bests"
-            eventIdKey="athletics_event_id"
-            events={eventOptions}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="college_university"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="College/University" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="teams"
-        render={({ field: { value, onChange } }) => <TeamsInput label="School or Team" value={value} onChange={onChange} />}
-      />
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+          Career Status
+        </Text>
+        <StatTable
+          title="Career Status"
+          control={control}
+          name="career_stats"
+          emptyRow={EMPTY_CAREER_ROW}
+          columns={[
+            { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
+            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+            { key: 'matches', label: 'Matches', type: 'number' },
+            { key: 'athletics_event_id', label: 'Event', type: 'select', options: eventOptions },
+            { key: 'third_place', label: '3rd Place', type: 'number' },
+            { key: 'second_place', label: '2nd Place', type: 'number' },
+            { key: 'champion', label: 'Champion', type: 'number' },
+          ]}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>Career Status</Text>
-      <StatTable
-        title="Career Status"
-        control={control}
-        name="career_stats"
-        emptyRow={EMPTY_CAREER_ROW}
-        columns={[
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'athletics_event_id', label: 'Event', type: 'select', options: eventOptions },
-          { key: 'third_place', label: '3rd Place', type: 'number' },
-          { key: 'second_place', label: '2nd Place', type: 'number' },
-          { key: 'champion', label: 'Champion', type: 'number' },
-        ]}
-      />
-
-      <Text style={styles.sectionLabel}>Recent Events</Text>
-      <StatTable
-        title="Recent Events"
-        control={control}
-        name="recent_events"
-        emptyRow={EMPTY_RECENT_EVENT_ROW}
-        columns={[
-          { key: 'event_date', label: 'Date', type: 'date' },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'athletics_event_id', label: 'Event', type: 'select', options: eventOptions },
-          { key: 'place', label: 'Place', type: 'text' },
-        ]}
-      />
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          Recent Events
+        </Text>
+        <StatTable
+          title="Recent Events"
+          control={control}
+          name="recent_events"
+          emptyRow={EMPTY_RECENT_EVENT_ROW}
+          columns={[
+            { key: 'event_date', label: 'Date', type: 'date' },
+            { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
+            { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+            { key: 'matches', label: 'Matches', type: 'number' },
+            { key: 'athletics_event_id', label: 'Event', type: 'select', options: eventOptions },
+            { key: 'place', label: 'Place', type: 'text' },
+          ]}
+        />
+      </View>
 
       <Button label="Save Athletics Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
-    </ScreenContainer>
+    </SportProfileLayout>
   );
 }
 

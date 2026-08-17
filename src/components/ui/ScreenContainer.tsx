@@ -1,5 +1,6 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, ViewStyle } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../theme';
 
@@ -22,23 +23,22 @@ export function ScreenContainer({
 }: ScreenContainerProps) {
   return (
     <SafeAreaView edges={edges} style={[styles.container, { backgroundColor }, style]}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        {scroll ? (
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {children}
-          </ScrollView>
-        ) : (
-          children
-        )}
-      </KeyboardAvoidingView>
+      {scroll ? (
+        <KeyboardAwareScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+          enableAutomaticScroll={(Platform.OS === 'ios')}
+          extraHeight={Platform.OS === 'ios' ? 100 : 150}
+          extraScrollHeight={Platform.OS === 'ios' ? 20 : 50}
+        >
+          {children}
+        </KeyboardAwareScrollView>
+      ) : (
+        children
+      )}
     </SafeAreaView>
   );
 }

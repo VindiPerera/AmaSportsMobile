@@ -82,6 +82,13 @@ export interface CricketRecentMatchRowForm {
   stumpings: string;
 }
 
+/** Repeatable "Reason for Matches Missed / Dropped" row — client-side only
+ * for now; there is no backend field or endpoint for this yet (no matching
+ * migration/column on cricket_profiles), so this won't persist on save. */
+export interface CricketMissedMatchRowForm {
+  match_date: string;
+}
+
 /**
  * Career-to-date ball-count breakdown, keyed by lookup id (as a string,
  * since form-state and JSON object keys are always strings) — Phase 7 spec
@@ -105,6 +112,7 @@ export interface CricketProfileFormValues {
   bowling: CricketBowlingRowForm[];
   recent_matches: CricketRecentMatchRowForm[];
   drop_catches: CricketDropCatchRowForm[];
+  missed_matches: CricketMissedMatchRowForm[];
 }
 
 /** Shape returned by GET/PUT /player/cricket-profile. */

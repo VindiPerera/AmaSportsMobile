@@ -35,6 +35,7 @@ interface PlayerSportDetailViewProps {
   fullName: string;
   country: string;
   photoUrl?: string | null;
+  coverUrl?: string | null;
   born?: string | null;
   age?: string | number | null;
   teams?: string[];
@@ -53,6 +54,7 @@ export function PlayerSportDetailView({
   fullName,
   country,
   photoUrl,
+  coverUrl,
   born,
   age,
   teams = [],
@@ -88,13 +90,13 @@ export function PlayerSportDetailView({
       {/* Dark Navy Header Banner */}
       <View style={styles.headerBanner}>
         {coverUrl ? (
-          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
         <LinearGradient
           colors={coverUrl ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
         />
         {/* Navigation Bar */}
         <View style={styles.navBar}>

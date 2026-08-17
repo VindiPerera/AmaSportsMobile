@@ -105,6 +105,8 @@ export default function PublicCricketProfileScreen() {
           drop_catches: cricketProfile.drop_catches.map((row) =>
             mapRow(row, DROP_CATCH_KEYS)
           ) as unknown as CricketProfileFormValues['drop_catches'],
+          // No backend field for this yet — always starts empty.
+          missed_matches: [],
         });
       } catch {
         setError('Could not load this player&apos;s profile. Please try again.');

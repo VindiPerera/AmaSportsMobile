@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, Modal, SafeAreaView } from 'react-native';
+import { WebView, WebViewNavigation } from 'react-native-webview';
 import { router, useFocusEffect } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -62,6 +62,7 @@ export default function SubscriptionPaywallScreen() {
   const [pollState, setPollState] = useState<'idle' | 'polling' | 'timed-out'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [sports, setSports] = useState<SportOption[]>([]);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -111,33 +112,36 @@ export default function SubscriptionPaywallScreen() {
     setPollState('idle');
     try {
       const order = await subscriptionService.createOrder();
-      // openAuthSessionAsync opens PayPal as a secure system browser sheet
-      // (ASWebAuthenticationSession on iOS, Chrome Custom Tabs on Android)
-      // and auto-closes it once the backend's return page bounces the
-      // browser to this deep link — see result.blade.php. Deliberately
-      // ignoring the resolved `result` below: a 'success' redirect just
-      // means the sheet closed, not that payment settled (PayPal's return
-      // page may render before our webhook/return-capture has actually
-      // finished), so we still poll subscription-status ourselves rather
-      // than trusting the sheet's result alone.
-      await WebBrowser.openAuthSessionAsync(order.approve_url, 'amasports://payment-return');
-      setPollState('polling');
-      for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-        await sleep(POLL_DELAY_MS);
-        await refresh();
-        if (useSubscriptionStore.getState().status?.is_active) {
-          setPollState('idle');
-          setIsProcessing(false);
-          router.back();
-          return;
-        }
-      }
-      setPollState('timed-out');
+      setCheckoutUrl(order.approve_url);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not start checkout. Please try again.');
       setPollState('idle');
-    } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const startPollingStatus = async () => {
+    setCheckoutUrl(null);
+    setPollState('polling');
+    setIsProcessing(true);
+    for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
+      await sleep(POLL_DELAY_MS);
+      await refresh();
+      if (useSubscriptionStore.getState().status?.is_active) {
+        setPollState('idle');
+        setIsProcessing(false);
+        router.back();
+        return;
+      }
+    }
+    setPollState('timed-out');
+    setIsProcessing(false);
+  };
+
+  const handleWebViewNavigation = (navState: WebViewNavigation) => {
+    // If PayPal redirects back to our return URL or cancellation URL
+    if (navState.url.includes('payment-return') || navState.url.includes('cancel')) {
+      startPollingStatus();
     }
   };
 
@@ -292,6 +296,30 @@ export default function SubscriptionPaywallScreen() {
           </Text>
         </>
       )}
+
+      {/* Embedded PayPal WebView */}
+      <Modal visible={!!checkoutUrl} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={styles.webViewHeader}>
+            <Pressable onPress={() => setCheckoutUrl(null)} style={styles.webViewClose}>
+              <Ionicons name="close" size={24} color={colors.text} />
+              <Text style={styles.webViewCloseText}>Cancel</Text>
+            </Pressable>
+          </View>
+          {checkoutUrl && (
+            <WebView
+              source={{ uri: checkoutUrl }}
+              onNavigationStateChange={handleWebViewNavigation}
+              startInLoadingState
+              renderLoading={() => (
+                <View style={styles.webViewLoading}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              )}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -466,5 +494,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     marginBottom: spacing.xl,
+  },
+  webViewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  webViewClose: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    padding: spacing.xs,
+  },
+  webViewCloseText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
   },
 });

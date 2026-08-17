@@ -5,3 +5,9 @@ export const DOMINANT_LEG_OPTIONS: DropdownOption[] = [
   { label: 'Right', value: 'right' },
   { label: 'Left', value: 'left' },
 ];
+
+/** Basketball's "Dominant Hand" — same right/left shape as Dominant Leg above. */
+export const DOMINANT_HAND_OPTIONS: DropdownOption[] = [
+  { label: 'Right', value: 'right' },
+  { label: 'Left', value: 'left' },
+];

@@ -15,6 +15,7 @@ import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
+import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -51,10 +52,14 @@ const EMPTY_DROP_CATCH_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', field_position_id: '', drop_reason_id: '',
 };
 
+const EMPTY_MISSED_MATCH_ROW = {
+  match_date: '',
+};
+
 const EMPTY_FORM: CricketProfileFormValues = {
   born: '', age: '', batting_style: '', bowling_style: '', playing_role: '', height: '',
   college_university: '', pitching_line_breakdown: {}, ball_type_breakdown: {},
-  teams: [], batting: [], bowling: [], recent_matches: [], drop_catches: [],
+  teams: [], batting: [], bowling: [], recent_matches: [], drop_catches: [], missed_matches: [],
 };
 
 function toFormString(value: unknown): string {
@@ -140,6 +145,8 @@ export default function CricketProfileScreen() {
           drop_catches: cricketProfile.drop_catches.map((row) =>
             mapRow(row, Object.keys(EMPTY_DROP_CATCH_ROW))
           ) as unknown as CricketProfileFormValues['drop_catches'],
+          // No backend field for this yet — always starts empty on load.
+          missed_matches: [],
         });
       } catch {
         setError('Could not load your Cricket profile. Please try again.');
@@ -225,28 +232,25 @@ export default function CricketProfileScreen() {
   const dropReasonOptions = lookups.drop_reasons.map((r) => ({ label: r.name, value: String(r.id) }));
 
   return (
-    <ScreenContainer edges={['bottom']} scroll>
-      <ErrorBanner message={error} />
-
-      <View style={styles.topModeBar}>
-        <View style={styles.topModeTitleRow}>
-          <Ionicons name="create-outline" size={18} color={colors.energy} />
-          <Text style={styles.topModeTitle}>Editing Cricket Profile</Text>
+    <SportProfileLayout
+      sportName="Cricket"
+      sportIcon="baseball-outline"
+      fullName={fullName}
+      error={error}
+      onBack={() => router.back()}
+    >
+      <View style={sportStyles.coverBlock}>
+        <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
+        <View style={sportStyles.avatarOverlay}>
+          <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
-        <Pressable style={styles.previewButton} onPress={() => setIsViewing(true)}>
-          <Ionicons name="eye-outline" size={15} color={colors.white} />
-          <Text style={styles.previewButtonText}>View Stats View</Text>
-        </Pressable>
       </View>
 
-      <View style={styles.cardSection}>
-        <View style={styles.coverBlock}>
-          <CoverPhotoUpload existingUrl={existingCoverUrl} picked={coverPicked} onPick={setCoverPicked} />
-          <View style={styles.avatarOverlay}>
-            <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
-          </View>
-        </View>
-
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="person-outline" size={18} color={colors.primary} />
+          Player Overview
+        </Text>
         <TextField label="Player Name" value={fullName} onChangeText={setFullName} placeholder="Full name" />
         <View style={styles.headerRow}>
           <View style={styles.headerRowItem}>
@@ -256,10 +260,6 @@ export default function CricketProfileScreen() {
             <Dropdown label="Sport" value="cricket" onChange={() => {}} options={[{ label: 'Cricket', value: 'cricket' }]} disabled />
           </View>
         </View>
-      </View>
-
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Overview & Playing Style</Text>
         <Controller
           control={control}
           name="born"
@@ -316,6 +316,11 @@ export default function CricketProfileScreen() {
         />
       </View>
 
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
+          Batting Career Stats
+        </Text>
       <StatTable
         title="Batting Career Stats"
         control={control}
@@ -346,6 +351,13 @@ export default function CricketProfileScreen() {
         ]}
       />
 
+      </View>
+
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
+          Bowling Career Stats
+        </Text>
       <StatTable
         title="Bowling Career Stats"
         control={control}
@@ -370,9 +382,13 @@ export default function CricketProfileScreen() {
           { key: 'five_wickets', label: '5w', type: 'number' },
         ]}
       />
+      </View>
 
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Bowling Breakdown — Pitching Line</Text>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+          Bowling Breakdown — Pitching Line
+        </Text>
         <Text style={styles.sectionHint}>
           Career-to-date count of balls bowled at each pitching line.
         </Text>
@@ -398,8 +414,11 @@ export default function CricketProfileScreen() {
         </View>
       </View>
 
-      <View style={styles.cardSection}>
-        <Text style={styles.sectionLabel}>Bowling Breakdown — Ball Type</Text>
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+          Bowling Breakdown — Ball Type
+        </Text>
         <Text style={styles.sectionHint}>
           Career-to-date count of balls bowled of each type.
         </Text>
@@ -425,6 +444,11 @@ export default function CricketProfileScreen() {
         </View>
       </View>
 
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          Recent Matches
+        </Text>
       <StatTable
         title="Recent Matches"
         control={control}
@@ -446,6 +470,13 @@ export default function CricketProfileScreen() {
         ]}
       />
 
+      </View>
+
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="alert-circle-outline" size={18} color={colors.primary} />
+          Drop Catches
+        </Text>
       <StatTable
         title="Drop Catches"
         control={control}
@@ -459,9 +490,26 @@ export default function CricketProfileScreen() {
           { key: 'drop_reason_id', label: 'How to Drop', type: 'select', options: dropReasonOptions, width: 200 },
         ]}
       />
+      </View>
+
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="alert-circle-outline" size={18} color={colors.primary} />
+          Reason for Matches Missed / Dropped
+        </Text>
+      <StatTable
+        title="Missed/Dropped Matches"
+        control={control}
+        name="missed_matches"
+        emptyRow={EMPTY_MISSED_MATCH_ROW}
+        columns={[
+          { key: 'match_date', label: 'Match Date', type: 'date' },
+        ]}
+      />
+      </View>
 
       <Button label="Save Cricket Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
-    </ScreenContainer>
+    </SportProfileLayout>
   );
 }
 
