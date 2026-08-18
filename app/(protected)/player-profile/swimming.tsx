@@ -241,34 +241,46 @@ export default function SwimmingProfileScreen() {
             <Dropdown label="Sport" value="swimming" onChange={() => {}} options={[{ label: 'Swimming', value: 'swimming' }]} disabled />
           </View>
         </View>
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="weight"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Weight" value={value} onChangeText={onChange} />
-        )}
-      />
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="born"
+            render={({ field: { value, onChange } }) => (
+              <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="age"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+            )}
+          />
+        </View>
+      </View>
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="height"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Height" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="weight"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Weight" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+      </View>
       <Controller
         control={control}
         name="personal_bests"
@@ -296,11 +308,6 @@ export default function SwimmingProfileScreen() {
         />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Status
-        </Text>
       <StatTable
         title="Career Status"
         control={control}
@@ -318,13 +325,7 @@ export default function SwimmingProfileScreen() {
           { key: 'champion', label: 'Champion', type: 'number' },
         ]}
       />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Events
-        </Text>
       <StatTable
         title="Recent Events"
         control={control}
@@ -340,7 +341,6 @@ export default function SwimmingProfileScreen() {
           { key: 'place', label: 'Place', type: 'text' },
         ]}
       />
-      </View>
 
       <Button label="Save Swimming Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>

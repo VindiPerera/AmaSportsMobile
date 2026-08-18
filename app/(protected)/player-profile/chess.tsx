@@ -237,34 +237,46 @@ export default function ChessProfileScreen() {
             <Dropdown label="Sport" value="chess" onChange={() => {}} options={[{ label: 'Chess', value: 'chess' }]} disabled />
           </View>
         </View>
-        <Controller
-          control={control}
-          name="born"
-          render={({ field: { value, onChange } }) => (
-            <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="age"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-          )}
-        />
-        <Controller
-          control={control}
-          name="height"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Height" value={value} onChangeText={onChange} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="current_ranking"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Current Ranking" value={value} onChangeText={onChange} />
-          )}
-        />
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="born"
+              render={({ field: { value, onChange } }) => (
+                <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="age"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+              )}
+            />
+          </View>
+        </View>
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="height"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Height" value={value} onChangeText={onChange} />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="current_ranking"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Current Ranking" value={value} onChangeText={onChange} />
+              )}
+            />
+          </View>
+        </View>
         <Controller
           control={control}
           name="college_university"
@@ -279,12 +291,7 @@ export default function ChessProfileScreen() {
         />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Stats
-        </Text>
-        <StatTable
+      <StatTable
           title="Career Stats"
           control={control}
           name="career_stats"
@@ -301,14 +308,8 @@ export default function ChessProfileScreen() {
             { key: 'champion', label: 'Champion', type: 'number' },
           ]}
         />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Matches
-        </Text>
-        <StatTable
+      <StatTable
           title="Recent Matches"
           control={control}
           name="recent_matches"
@@ -322,7 +323,6 @@ export default function ChessProfileScreen() {
             { key: 'place', label: 'Place', type: 'text' },
           ]}
         />
-      </View>
 
       <Button label="Save Chess Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>

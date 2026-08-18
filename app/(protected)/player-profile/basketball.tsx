@@ -231,35 +231,54 @@ export default function BasketballProfileScreen() {
           Player Overview
         </Text>
         <TextField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Enter full name" />
-        <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
-        <Controller
-          control={control}
-          name="born"
-          render={({ field: { value, onChange } }) => (
-            <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="age"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-          )}
-        />
-        <Controller
-          control={control}
-          name="height"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Height" value={value} onChangeText={onChange} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="dominant_hand"
-          render={({ field: { value, onChange } }) => (
-            <Dropdown label="Dominant Hand" value={value} onChange={onChange} options={DOMINANT_HAND_OPTIONS} />
-          )}
-        />
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Dropdown label="Sport" value="basketball" onChange={() => {}} options={[{ label: 'Basketball', value: 'basketball' }]} disabled />
+          </View>
+        </View>
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="born"
+              render={({ field: { value, onChange } }) => (
+                <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="age"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+              )}
+            />
+          </View>
+        </View>
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="height"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Height" value={value} onChangeText={onChange} />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="dominant_hand"
+              render={({ field: { value, onChange } }) => (
+                <Dropdown label="Dominant Hand" value={value} onChange={onChange} options={DOMINANT_HAND_OPTIONS} />
+              )}
+            />
+          </View>
+        </View>
         <Controller
           control={control}
           name="player_position"
@@ -281,13 +300,8 @@ export default function BasketballProfileScreen() {
         />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Status
-        </Text>
-        <StatTable
-          title="Career Status"
+      <StatTable
+        title="Career Status"
           control={control}
           name="career_stats"
           emptyRow={EMPTY_CAREER_ROW}
@@ -303,17 +317,10 @@ export default function BasketballProfileScreen() {
             { key: 'assists', label: 'Assists', type: 'number' },
             { key: 'blocks', label: 'Blocks', type: 'number' },
             { key: 'steals', label: 'Steals', type: 'number' },
-            { key: 'blocks', label: 'BLK', type: 'number', width: 50 },
           ]}
         />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Matches
-        </Text>
-        <StatTable
+      <StatTable
           title="Recent Matches"
           control={control}
           name="recent_matches"
@@ -327,10 +334,8 @@ export default function BasketballProfileScreen() {
             { key: 'assists', label: 'Assists', type: 'number' },
             { key: 'blocks', label: 'Blocks', type: 'number' },
             { key: 'steals', label: 'Steals', type: 'number' },
-            { key: 'blocks', label: 'BLK', type: 'number', width: 50 },
           ]}
         />
-      </View>
 
       <Button
         label="Save Basketball Profile"

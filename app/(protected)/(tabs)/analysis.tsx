@@ -4,30 +4,27 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { Button } from '../../../src/components/ui/Button';
-import { CricketAnalysisScreen } from '../../../src/components/analysis/CricketAnalysisScreen';
 import { ComingSoonAnalysis } from '../../../src/components/analysis/ComingSoonAnalysis';
 import { AnalysisSkeleton } from '../../../src/components/analysis/AnalysisSkeleton';
 import { colors, radius, spacing, typography } from '../../../src/theme';
-import { playerService } from '../../../src/services/playerService';
 import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
-import { sportIconFor } from '../../../src/constants/sportIcons';
-import { PlayerProfile, PlayerSportEntry } from '../../../src/types';
 
 /**
- * Generic sport-switching shell for the Analysis tab (spec Phase 5 §1).
- * Register a real analysis component here as each sport gets one later —
- * everything else (picker, empty/loading states) stays untouched.
+ * Analysis tab — intentionally decoupled from the player profile (no more
+ * reading the player's registered sports or cricket stats to decide what to
+ * show). A dedicated player analytics page is planned for the web app; this
+ * tab will point at that data source once it exists, so it always renders
+ * the generic "Coming Soon" placeholder below for now.
+ *
+ * The real per-sport analytics implementation isn't gone — it's just not
+ * wired up here. See `src/components/analysis/CricketAnalysisScreen.tsx`
+ * plus `playerService.fetchCricketAnalysis()` and the backend
+ * CricketAnalysisController/Service, all left untouched for reconnecting
+ * later (e.g. once this tab fetches from the new player analytics page).
  */
-const SPORT_ANALYSIS_COMPONENTS: Partial<Record<string, React.ComponentType<{ player: PlayerProfile | null }>>> = {
-  cricket: CricketAnalysisScreen,
-};
-
 export default function AnalysisScreen() {
-  const [player, setPlayer] = useState<PlayerProfile | null>(null);
-  const [sports, setSports] = useState<PlayerSportEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
   const subscriptionStatus = useSubscriptionStore((s) => s.status);
   const refreshSubscription = useSubscriptionStore((s) => s.refresh);
@@ -35,16 +32,9 @@ export default function AnalysisScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [playerData, sportsData] = await Promise.all([
-        playerService.fetchProfile(),
-        playerService.fetchSports(),
-        refreshSubscription(),
-      ]);
-      setPlayer(playerData);
-      setSports(sportsData);
-      setSelectedSlug((current) => current ?? sportsData[0]?.sport.slug ?? null);
+      await refreshSubscription();
     } catch {
-      setError('Could not load your sports. Pull to retry.');
+      setError('Could not load your subscription status. Pull to retry.');
     } finally {
       setIsLoading(false);
     }
@@ -107,32 +97,6 @@ export default function AnalysisScreen() {
     );
   }
 
-  if (sports.length === 0) {
-    return (
-      <ScreenContainer edges={['top', 'bottom']}>
-        <View style={styles.centerState}>
-          <View style={styles.iconWrapper}>
-            <Ionicons name="stats-chart-outline" size={36} color={colors.primary} />
-          </View>
-          <Text style={styles.centerTitle}>No sports registered yet</Text>
-          <Text style={styles.centerText}>
-            Add a sport on your Profile to start building the stats this screen charts.
-          </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => router.push('/(protected)/player-profile/sport-picker')}
-          >
-            <Text style={styles.retryButtonText}>Add a Sport</Text>
-          </Pressable>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
-  const activeSlug = selectedSlug ?? sports[0].sport.slug;
-  const activeSport = sports.find((s) => s.sport.slug === activeSlug)?.sport ?? sports[0].sport;
-  const AnalysisComponent = SPORT_ANALYSIS_COMPONENTS[activeSlug];
-
   return (
     <ScreenContainer edges={['top', 'bottom']}>
       <View style={styles.headerBar}>
@@ -140,47 +104,8 @@ export default function AnalysisScreen() {
         <Text style={styles.headerSubtitle}>Performance breakdown</Text>
       </View>
 
-      {sports.length > 1 ? (
-        <View style={styles.pickerContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.pickerScrollView}
-            contentContainerStyle={styles.pickerRow}
-          >
-            {sports.map((entry) => {
-              const active = entry.sport.slug === activeSlug;
-              return (
-                <Pressable
-                  key={entry.id}
-                  onPress={() => setSelectedSlug(entry.sport.slug)}
-                  style={({ pressed }) => [
-                    styles.sportChip,
-                    active && styles.sportChipActive,
-                    pressed && styles.sportChipPressed,
-                  ]}
-                >
-                  <Ionicons
-                    name={sportIconFor(entry.sport.slug)}
-                    size={16}
-                    color={active ? colors.white : colors.primary}
-                  />
-                  <Text style={[styles.sportChipText, active && styles.sportChipTextActive]}>
-                    {entry.sport.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      ) : null}
-
       <View style={styles.body}>
-        {AnalysisComponent ? (
-          <AnalysisComponent player={player} />
-        ) : (
-          <ComingSoonAnalysis sportName={activeSport.name} sportSlug={activeSport.slug} />
-        )}
+        <ComingSoonAnalysis />
       </View>
     </ScreenContainer>
   );
@@ -245,46 +170,6 @@ const styles = StyleSheet.create({
   subscribeCta: {
     marginTop: spacing.sm,
     paddingHorizontal: spacing.xl,
-  },
-  pickerContainer: {
-    marginBottom: spacing.sm,
-  },
-  pickerScrollView: {
-    flexGrow: 0,
-  },
-  pickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: 4,
-  },
-  sportChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.card,
-    borderRadius: radius.full,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sportChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  sportChipPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
-  sportChipText: {
-    ...typography.caption,
-    fontWeight: '700',
-    fontSize: 13,
-    color: colors.text,
-  },
-  sportChipTextActive: {
-    color: colors.white,
   },
   body: {
     flex: 1,

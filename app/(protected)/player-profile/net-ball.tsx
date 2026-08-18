@@ -241,34 +241,46 @@ export default function NetBallProfileScreen() {
             <Dropdown label="Sport" value="net-ball" onChange={() => {}} options={[{ label: 'Netball', value: 'net-ball' }]} disabled />
           </View>
         </View>
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="dominant_hand"
-        render={({ field: { value, onChange } }) => (
-          <Dropdown label="Dominant Hand" value={value} onChange={onChange} options={DOMINANT_HAND_OPTIONS} />
-        )}
-      />
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="born"
+            render={({ field: { value, onChange } }) => (
+              <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="age"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+            )}
+          />
+        </View>
+      </View>
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="height"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Height" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="dominant_hand"
+            render={({ field: { value, onChange } }) => (
+              <Dropdown label="Dominant Hand" value={value} onChange={onChange} options={DOMINANT_HAND_OPTIONS} />
+            )}
+          />
+        </View>
+      </View>
       <Controller
         control={control}
         name="player_position"
@@ -290,11 +302,6 @@ export default function NetBallProfileScreen() {
       />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Status
-        </Text>
       <StatTable
         title="Career Status"
         control={control}
@@ -314,13 +321,7 @@ export default function NetBallProfileScreen() {
           { key: 'result_lost', label: 'Lost', type: 'number' },
         ]}
       />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Match
-        </Text>
       <StatTable
         title="Recent Match"
         control={control}
@@ -337,7 +338,6 @@ export default function NetBallProfileScreen() {
           { key: 'lost', label: 'Lost', type: 'boolean' },
         ]}
       />
-      </View>
 
       <Button label="Save Netball Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>

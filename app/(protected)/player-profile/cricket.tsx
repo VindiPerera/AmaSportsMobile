@@ -48,12 +48,11 @@ const EMPTY_RECENT_MATCH_ROW = {
   overs: '', maidens: '', wickets: '', catches: '', stumpings: '',
 };
 
+// Kept only for its keys (used by `mapRow` when loading an existing profile) —
+// the Drop Catches table itself is no longer part of this form; see the
+// removed "Drop Catches" section below for why.
 const EMPTY_DROP_CATCH_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', field_position_id: '', drop_reason_id: '',
-};
-
-const EMPTY_MISSED_MATCH_ROW = {
-  match_date: '',
 };
 
 const EMPTY_FORM: CricketProfileFormValues = {
@@ -228,8 +227,6 @@ export default function CricketProfileScreen() {
   const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
   const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
   const matchTypeOptions = lookups.cricket_match_types.map((m) => ({ label: m.name, value: String(m.id) }));
-  const fieldPositionOptions = lookups.field_positions.map((p) => ({ label: p.name, value: String(p.id) }));
-  const dropReasonOptions = lookups.drop_reasons.map((r) => ({ label: r.name, value: String(r.id) }));
 
   return (
     <SportProfileLayout
@@ -260,48 +257,66 @@ export default function CricketProfileScreen() {
             <Dropdown label="Sport" value="cricket" onChange={() => {}} options={[{ label: 'Cricket', value: 'cricket' }]} disabled />
           </View>
         </View>
-        <Controller
-          control={control}
-          name="born"
-          render={({ field: { value, onChange } }) => (
-            <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-          )}
-        />
-        <Controller
-          control={control}
-          name="age"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-          )}
-        />
-        <Controller
-          control={control}
-          name="batting_style"
-          render={({ field: { value, onChange } }) => (
-            <Dropdown label="Batting Style" value={value} onChange={onChange} options={BATTING_STYLE_OPTIONS} placeholder="Select batting style" />
-          )}
-        />
-        <Controller
-          control={control}
-          name="bowling_style"
-          render={({ field: { value, onChange } }) => (
-            <Dropdown label="Bowling Style" value={value} onChange={onChange} options={BOWLING_STYLE_OPTIONS} placeholder="Select bowling style" />
-          )}
-        />
-        <Controller
-          control={control}
-          name="playing_role"
-          render={({ field: { value, onChange } }) => (
-            <Dropdown label="Playing Role" value={value} onChange={onChange} options={PLAYING_ROLE_OPTIONS} placeholder="Select playing role" />
-          )}
-        />
-        <Controller
-          control={control}
-          name="height"
-          render={({ field: { value, onChange } }) => (
-            <TextField label="Height" value={value} onChangeText={onChange} placeholder="e.g. 5 ft 10 in" />
-          )}
-        />
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="born"
+              render={({ field: { value, onChange } }) => (
+                <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="age"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+              )}
+            />
+          </View>
+        </View>
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="batting_style"
+              render={({ field: { value, onChange } }) => (
+                <Dropdown label="Batting Style" value={value} onChange={onChange} options={BATTING_STYLE_OPTIONS} placeholder="Select batting style" />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="bowling_style"
+              render={({ field: { value, onChange } }) => (
+                <Dropdown label="Bowling Style" value={value} onChange={onChange} options={BOWLING_STYLE_OPTIONS} placeholder="Select bowling style" />
+              )}
+            />
+          </View>
+        </View>
+        <View style={styles.headerRow}>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="playing_role"
+              render={({ field: { value, onChange } }) => (
+                <Dropdown label="Playing Role" value={value} onChange={onChange} options={PLAYING_ROLE_OPTIONS} placeholder="Select playing role" />
+              )}
+            />
+          </View>
+          <View style={styles.headerRowItem}>
+            <Controller
+              control={control}
+              name="height"
+              render={({ field: { value, onChange } }) => (
+                <TextField label="Height" value={value} onChangeText={onChange} placeholder="e.g. 5 ft 10 in" />
+              )}
+            />
+          </View>
+        </View>
         <Controller
           control={control}
           name="college_university"
@@ -316,139 +331,69 @@ export default function CricketProfileScreen() {
         />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
-          Batting Career Stats
-        </Text>
       <StatTable
         title="Batting Career Stats"
         control={control}
         name="batting"
         emptyRow={EMPTY_BATTING_ROW}
         columns={[
-          { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
+          { key: 'cricket_match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
           { key: 'matches', label: 'Matches', type: 'number' },
+          { key: 'won', label: 'Won', type: 'number' },
+          { key: 'lost', label: 'Lost', type: 'number' },
           { key: 'innings', label: 'Innings', type: 'number' },
+          { key: 'not_out', label: 'Not Out', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'highest_score', label: 'High Score', type: 'number' },
+          { key: 'hs', label: 'High Score', type: 'text' },
           { key: 'average', label: 'Average', type: 'text' },
-          { key: 'strike_rate', label: 'Strike Rate', type: 'text' },
+          { key: 'best', label: 'Best', type: 'number' },
+          { key: 'sr', label: 'Strike Rate', type: 'text' },
           { key: 'hundreds', label: '100s', type: 'number' },
           { key: 'fifties', label: '50s', type: 'number' },
           { key: 'fours', label: '4s', type: 'number' },
           { key: 'sixes', label: '6s', type: 'number' },
           { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings (Successful)', type: 'number' },
-          { key: 'stumps_missing', label: 'Stumpings (Missed)', type: 'number' },
-          { key: 'run_outs', label: 'Run Outs', type: 'number' },
-          { key: 'direct_hits', label: 'Direct Hits', type: 'number' },
-          { key: 'runs_saved', label: 'Runs Saved', type: 'number' },
-          { key: 'runs_giving', label: 'Runs Giving', type: 'number' },
+          { key: 'stumpings', label: 'Stumpings', type: 'number' },
         ]}
       />
 
-      </View>
-
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
-          Bowling Career Stats
-        </Text>
       <StatTable
         title="Bowling Career Stats"
         control={control}
         name="bowling"
         emptyRow={EMPTY_BOWLING_ROW}
         columns={[
-          { key: 'match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
+          { key: 'cricket_match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'innings', label: 'Innings', type: 'number' },
-          { key: 'overs', label: 'Overs', type: 'text' },
-          { key: 'dot_balls', label: 'Dot Balls', type: 'number' },
-          { key: 'wide_balls', label: 'Wide Balls', type: 'number' },
-          { key: 'no_balls', label: 'No Balls', type: 'number' },
+          { key: 'balls', label: 'Balls', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
           { key: 'wickets', label: 'Wickets', type: 'number' },
-          { key: 'best_bowling', label: 'Best Bowling', type: 'text' },
+          { key: 'bbi', label: 'BBI', type: 'text' },
+          { key: 'bbm', label: 'BBM', type: 'text' },
           { key: 'average', label: 'Average', type: 'text' },
           { key: 'economy', label: 'Economy', type: 'text' },
-          { key: 'five_wickets', label: '5w', type: 'number' },
+          { key: 'sr', label: 'Strike Rate', type: 'text' },
+          { key: 'four_w', label: '4w', type: 'number' },
+          { key: 'five_w', label: '5w', type: 'number' },
+          { key: 'ten_w', label: '10w', type: 'number' },
         ]}
       />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Bowling Breakdown — Pitching Line
-        </Text>
-        <Text style={styles.sectionHint}>
-          Career-to-date count of balls bowled at each pitching line.
-        </Text>
-        <View style={styles.breakdownGrid}>
-          {lookups.pitching_lines.map((line) => (
-            <Controller
-              key={line.id}
-              control={control}
-              name={`pitching_line_breakdown.${line.id}`}
-              render={({ field: { value, onChange } }) => (
-                <View style={styles.breakdownItem}>
-                  <TextField
-                    label={line.name}
-                    value={value ?? ''}
-                    onChangeText={onChange}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                  />
-                </View>
-              )}
-            />
-          ))}
-        </View>
-      </View>
+      {/*
+        Bowling Breakdown (Pitching Line / Ball Type) removed from this form —
+        it's not part of the Cricket profile update fields the client wants
+        shown here. The form still loads and resubmits whatever breakdown
+        values already exist for this player (see reset()/cricketFormToPayload)
+        so no data is lost; it's just no longer editable from this screen.
+      */}
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Bowling Breakdown — Ball Type
-        </Text>
-        <Text style={styles.sectionHint}>
-          Career-to-date count of balls bowled of each type.
-        </Text>
-        <View style={styles.breakdownGrid}>
-          {lookups.ball_types.map((type) => (
-            <Controller
-              key={type.id}
-              control={control}
-              name={`ball_type_breakdown.${type.id}`}
-              render={({ field: { value, onChange } }) => (
-                <View style={styles.breakdownItem}>
-                  <TextField
-                    label={type.name}
-                    value={value ?? ''}
-                    onChangeText={onChange}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                  />
-                </View>
-              )}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Matches
-        </Text>
       <StatTable
         title="Recent Matches"
         control={control}
@@ -470,43 +415,14 @@ export default function CricketProfileScreen() {
         ]}
       />
 
-      </View>
-
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="alert-circle-outline" size={18} color={colors.primary} />
-          Drop Catches
-        </Text>
-      <StatTable
-        title="Drop Catches"
-        control={control}
-        name="drop_catches"
-        emptyRow={EMPTY_DROP_CATCH_ROW}
-        columns={[
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'field_position_id', label: 'Field Position', type: 'select', options: fieldPositionOptions, width: 160 },
-          { key: 'drop_reason_id', label: 'How to Drop', type: 'select', options: dropReasonOptions, width: 200 },
-        ]}
-      />
-      </View>
-
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="alert-circle-outline" size={18} color={colors.primary} />
-          Reason for Matches Missed / Dropped
-        </Text>
-      <StatTable
-        title="Missed/Dropped Matches"
-        control={control}
-        name="missed_matches"
-        emptyRow={EMPTY_MISSED_MATCH_ROW}
-        columns={[
-          { key: 'match_date', label: 'Match Date', type: 'date' },
-        ]}
-      />
-      </View>
+      {/*
+        Drop Catches and "Reason for Matches Missed/Dropped" removed from this
+        form — not part of the Cricket profile update fields the client wants
+        shown here. Drop catch rows already saved for this player are still
+        loaded and resubmitted unchanged (see reset()/cricketFormToPayload)
+        so existing data isn't lost; missed_matches never had a backend field
+        to begin with. Reconnect a table here if these come back later.
+      */}
 
       <Button label="Save Cricket Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>
@@ -591,20 +507,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12,
     letterSpacing: 0.8,
-  },
-  sectionHint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
-  },
-  breakdownGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  breakdownItem: {
-    width: 140,
   },
   submitButton: {
     marginTop: spacing.sm,
