@@ -81,7 +81,7 @@ export default function SportPickerScreen() {
             {subscriptionStatus.has_subscribed 
               ? 'Subscription expired' 
               : subscriptionStatus.trial_eligible
-                ? 'Start your free month'
+                ? 'Start your free 10-day trial'
                 : 'Subscribe to add a sport'}
           </Text>
           <Text style={styles.emptyText}>

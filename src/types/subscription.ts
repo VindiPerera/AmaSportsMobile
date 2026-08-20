@@ -5,7 +5,7 @@ export interface SubscriptionStatus {
   has_subscribed: boolean;
   status: SubscriptionStatusValue;
   is_active: boolean;
-  /** Whether the *current* active subscription is the free trial month (Phase 8). False whenever `is_active` is false. */
+  /** Whether the *current* active subscription is the free trial (Phase 8). False whenever `is_active` is false. */
   is_trial: boolean;
   /** Whether this player can still start the free trial — i.e. `trial_used_at IS NULL` on the backend. */
   trial_eligible: boolean;

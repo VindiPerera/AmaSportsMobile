@@ -38,6 +38,7 @@ export default function PlayerProfileStackLayout() {
       <Stack.Screen name="volleyball" options={{ title: 'Volleyball Profile' }} />
       <Stack.Screen name="beach-volleyball" options={{ title: 'Beach Volleyball Profile' }} />
       <Stack.Screen name="elle" options={{ title: 'Elle Profile' }} />
+      <Stack.Screen name="soft-ball-cricket" options={{ title: 'Soft Ball Cricket Profile' }} />
     </Stack>
   );
 }

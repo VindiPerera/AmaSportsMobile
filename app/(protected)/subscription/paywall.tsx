@@ -83,7 +83,7 @@ export default function SubscriptionPaywallScreen() {
   }, []);
 
   const isRenewal = status?.has_subscribed && !status?.is_active;
-  // First-time player who hasn't started (or used up) their one free month
+  // First-time player who hasn't started (or used up) their one free 10-day trial
   // (Phase 8) — show the trial CTA instead of the $10/year flow. Once
   // trial_eligible flips to false (trial started, or a lapsed trial was
   // used up), this always falls through to the normal subscribe/renew flow
@@ -166,7 +166,7 @@ export default function SubscriptionPaywallScreen() {
           <Ionicons name="ribbon" size={28} color={colors.energy} />
         </View>
         <Text style={styles.heroTitle}>
-          {isTrialOffer ? 'Your first month is free' : isRenewal ? 'Renew your subscription' : 'Unlock AmaX'}
+          {isTrialOffer ? 'Your first 10 days are free' : isRenewal ? 'Renew your subscription' : 'Unlock AmaX'}
         </Text>
         <Text style={styles.heroSubtitle}>
           {isTrialOffer
@@ -180,7 +180,7 @@ export default function SubscriptionPaywallScreen() {
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
                 <Text style={styles.priceValue}>Free</Text>
-                <Text style={styles.priceUnit}>for your 1st month</Text>
+                <Text style={styles.priceUnit}>for your first 10 days</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                 <Text style={{ ...typography.body, color: 'rgba(255,255,255,0.85)' }}>
@@ -255,7 +255,7 @@ export default function SubscriptionPaywallScreen() {
                 style={styles.subscribeButton}
               />
               <Text style={styles.disclaimer}>
-                Your trial lasts one month from the moment you start it — no PayPal, no charge. After that, keeping
+                Your trial lasts 10 days from the moment you start it — no PayPal, no charge. After that, keeping
                 your sports and Analysis unlocked requires the ${(status?.amount || 10).toFixed(0)}/year subscription;
                 we&rsquo;ll remind you before it ends.
               </Text>

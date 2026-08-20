@@ -21,6 +21,7 @@ const DIRECT_ROUTES: Record<string, string> = {
   volleyball: '/(protected)/player-profile/volleyball',
   'beach-volleyball': '/(protected)/player-profile/beach-volleyball',
   elle: '/(protected)/player-profile/elle',
+  'soft-ball-cricket': '/(protected)/player-profile/soft-ball-cricket',
 };
 
 /** Tennis/Badminton/Table Tennis share one form screen, disambiguated by a `sport` param. */
