@@ -98,7 +98,7 @@ export function StatTable<TFieldValues extends FieldValues>({
                     control={control}
                     name={`${name}.${rowIndex}.${column.key}` as Path<TFieldValues>}
                     render={({ field: { value, onChange } }) => (
-                      <Cell column={column} value={value} onChange={onChange} />
+                      <StatCell column={column} value={value} onChange={onChange} />
                     )}
                   />
                 </View>
@@ -111,7 +111,10 @@ export function StatTable<TFieldValues extends FieldValues>({
   );
 }
 
-function Cell({
+/** The field widget for one StatColumn — exported so other add-one-at-a-time
+ * flows (see RecentMatchTable/SimpleStatAddModal) get the same date-picker/
+ * boolean-switch/select behavior without re-implementing it. */
+export function StatCell({
   column,
   value,
   onChange,

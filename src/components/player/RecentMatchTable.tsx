@@ -3,69 +3,50 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrayPath, Control, FieldValues, useFieldArray } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '../../theme';
-import { DropdownOption } from './Dropdown';
 import { StatColumn } from './StatTable';
-import { CareerStatAddModal } from './CareerStatAddModal';
-import { entryKey } from '../../utils/statMerge';
+import { SimpleStatAddModal } from './SimpleStatAddModal';
 
-interface CareerStatTableProps<TFieldValues extends FieldValues> {
+interface RecentMatchTableProps<TFieldValues extends FieldValues> {
   title: string;
   addLabel: string;
   control: Control<TFieldValues>;
   name: ArrayPath<TFieldValues>;
-  emptyRow: Record<string, string>;
-  categories: DropdownOption[];
-  divisions: DropdownOption[];
-  detailColumns: StatColumn[];
-  mergeRows: (existing: Record<string, string>, incoming: Record<string, string>) => Record<string, string>;
-  /** True once an entry has been added/updated this editing session — the
-   * "Add New Stat" button locks until "Save Cricket Profile" succeeds (see
-   * cricket.tsx), so only one Batting and one Bowling change go in per save. */
+  emptyRow: Record<string, unknown>;
+  columns: StatColumn[];
+  /** True once a match has been added this editing session — the "Add New
+   * Match" button locks until "Save Cricket Profile" succeeds (see
+   * cricket.tsx), so only one new match goes in per save. */
   locked: boolean;
-  /** Fired right after an entry is added or merged — the parent uses this to
-   * set `locked`. */
+  /** Fired right after a match is added. */
   onEntryAdded: () => void;
 }
 
 /**
- * Batting/Bowling Career Stats table — unlike the plain StatTable (still
- * used for Recent Matches), entries here are created one match at a time
- * through a "Category + Division" picker (CareerStatAddModal): reusing a
- * Category+Division already on file merges the new numbers into that entry
- * instead of adding a duplicate row (spec: see cricket.tsx).
+ * Recent Matches — one blank match at a time via a modal (SimpleStatAddModal),
+ * appended to the list, same "one add per save" flow as the Batting/Bowling
+ * Career Stats tables (CareerStatTable). Unlike those, there's no Category+
+ * Division to pick and no merge step: every match is its own row, so "Add"
+ * always appends rather than ever combining into an existing entry.
+ *
+ * The Edit screen deliberately doesn't list already-saved matches as cards
+ * here — this screen is for adding, not reviewing/deleting past entries;
+ * saved matches are visible in the read-only profile view after saving.
  */
-export function CareerStatTable<TFieldValues extends FieldValues>({
+export function RecentMatchTable<TFieldValues extends FieldValues>({
   title,
   addLabel,
   control,
   name,
   emptyRow,
-  categories,
-  divisions,
-  detailColumns,
-  mergeRows,
+  columns,
   locked,
   onEntryAdded,
-}: CareerStatTableProps<TFieldValues>) {
-  const { fields, append, update } = useFieldArray({ control, name });
+}: RecentMatchTableProps<TFieldValues>) {
+  const { fields, append } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
 
-  const rows = fields as unknown as Record<string, string>[];
-
-  const findIndex = (categoryId: string, divisionId: string, year: string) =>
-    rows.findIndex(
-      (row) =>
-        entryKey(row as { age_category_id: string; format_id: string; year: string }) ===
-        `${categoryId}|${divisionId}|${year}`
-    );
-
-  const handleSave = (row: Record<string, string>) => {
-    const index = findIndex(row.age_category_id, row.format_id, row.year);
-    if (index >= 0) {
-      update(index, mergeRows(rows[index], row) as never);
-    } else {
-      append(row as never);
-    }
+  const handleSave = (row: Record<string, unknown>) => {
+    append(row as never);
     setModalVisible(false);
     onEntryAdded();
   };
@@ -96,9 +77,7 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
       </View>
 
       {locked ? (
-        <Text style={styles.lockedHint}>
-          Save your Cricket Profile to add another entry here.
-        </Text>
+        <Text style={styles.lockedHint}>Save your Cricket Profile to add another match.</Text>
       ) : null}
 
       {fields.length === 0 ? (
@@ -108,17 +87,13 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
         </View>
       ) : null}
 
-      <CareerStatAddModal
+      <SimpleStatAddModal
         visible={isModalVisible}
         title={addLabel}
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
         emptyRow={emptyRow}
-        rows={rows}
-        categories={categories}
-        divisions={divisions}
-        detailColumns={detailColumns}
-        hasExistingEntry={(categoryId, divisionId, year) => findIndex(categoryId, divisionId, year) >= 0}
+        columns={columns}
       />
     </View>
   );

@@ -12,8 +12,8 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { StatTable } from '../../../src/components/player/StatTable';
 import { CareerStatTable } from '../../../src/components/player/CareerStatTable';
+import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { mergeBattingRows, mergeBowlingRows } from '../../../src/utils/statMerge';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
@@ -95,11 +95,13 @@ export default function CricketProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // One Batting add/update and one Bowling add/update per save — each
-  // CareerStatTable locks its own "Add New Stat" button the moment an entry
-  // goes in, and both unlock together once "Save Cricket Profile" succeeds.
+  // One Batting add/update, one Bowling add/update, and one new Recent
+  // Match per save — each table locks its own "Add" button the moment an
+  // entry goes in, and all three unlock together once "Save Cricket
+  // Profile" succeeds.
   const [battingLocked, setBattingLocked] = useState(false);
   const [bowlingLocked, setBowlingLocked] = useState(false);
+  const [recentMatchLocked, setRecentMatchLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -196,6 +198,7 @@ export default function CricketProfileScreen() {
       await useAuthStore.getState().refreshProfile();
       setBattingLocked(false);
       setBowlingLocked(false);
+      setRecentMatchLocked(false);
       setIsViewing(true);
     } catch (err) {
       setError(
@@ -354,13 +357,6 @@ export default function CricketProfileScreen() {
         mergeRows={mergeBattingRows as never}
         locked={battingLocked}
         onEntryAdded={() => setBattingLocked(true)}
-        summaryFields={[
-          { key: 'matches', label: 'Mat' },
-          { key: 'innings', label: 'Inns' },
-          { key: 'runs', label: 'Runs' },
-          { key: 'hs', label: 'HS' },
-          { key: 'average', label: 'Avg' },
-        ]}
         detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'won', label: 'Won', type: 'number' },
@@ -392,13 +388,6 @@ export default function CricketProfileScreen() {
         mergeRows={mergeBowlingRows as never}
         locked={bowlingLocked}
         onEntryAdded={() => setBowlingLocked(true)}
-        summaryFields={[
-          { key: 'matches', label: 'Mat' },
-          { key: 'wickets', label: 'Wkts' },
-          { key: 'bbi', label: 'BBI' },
-          { key: 'average', label: 'Avg' },
-          { key: 'economy', label: 'Econ' },
-        ]}
         detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'innings', label: 'Innings', type: 'number' },
@@ -424,11 +413,14 @@ export default function CricketProfileScreen() {
         so no data is lost; it's just no longer editable from this screen.
       */}
 
-      <StatTable
+      <RecentMatchTable
         title="Recent Matches"
+        addLabel="Add New Match"
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
+        locked={recentMatchLocked}
+        onEntryAdded={() => setRecentMatchLocked(true)}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },
