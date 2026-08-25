@@ -1,8 +1,10 @@
-import React from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { ArrayPath, Control, Controller, FieldValues, Path, useFieldArray } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
+import { toIsoDateString } from '../../utils/date';
 import { Dropdown, DropdownOption } from './Dropdown';
 
 export type ColumnType = 'text' | 'number' | 'decimal' | 'date' | 'boolean' | 'select';
@@ -141,15 +143,7 @@ function Cell({
         />
       );
     case 'date':
-      return (
-        <TextInput
-          style={styles.cellInput}
-          value={value ?? ''}
-          onChangeText={onChange}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={colors.textFaint}
-        />
-      );
+      return <DateCell value={value ?? ''} onChange={onChange} />;
     case 'number':
       return (
         <TextInput
@@ -182,6 +176,49 @@ function Cell({
         />
       );
   }
+}
+
+/**
+ * A native date picker for the 'date' column type, in place of a raw
+ * TextInput — free-typed text ("25/08/2026", a half-finished "2026-08")
+ * passed Laravel's `date` validation rule right through to a 422 on save.
+ * Matches the picker already used for the Born field (see DateField).
+ */
+function DateCell({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [showPicker, setShowPicker] = useState(false);
+
+  const handleChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowPicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) onChange(toIsoDateString(selectedDate));
+  };
+
+  return (
+    <>
+      <Pressable style={styles.dateCellButton} onPress={() => setShowPicker(true)} accessibilityRole="button">
+        <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+        <Text style={value ? styles.dateCellValue : styles.dateCellPlaceholder} numberOfLines={1}>
+          {value || 'YYYY-MM-DD'}
+        </Text>
+      </Pressable>
+      {showPicker ? (
+        <>
+          <DateTimePicker
+            value={value ? new Date(value) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            maximumDate={new Date()}
+            onChange={handleChange}
+          />
+          {Platform.OS === 'ios' ? (
+            <Pressable onPress={() => setShowPicker(false)} style={styles.dateCellDoneButton}>
+              <Text style={styles.dateCellDoneText}>Done</Text>
+            </Pressable>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -319,6 +356,37 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     height: 50,
     paddingHorizontal: spacing.sm,
+  },
+  dateCellButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    backgroundColor: colors.white,
+    height: 50,
+    paddingHorizontal: spacing.sm,
+  },
+  dateCellValue: {
+    ...typography.caption,
+    color: colors.text,
+    flexShrink: 1,
+  },
+  dateCellPlaceholder: {
+    ...typography.caption,
+    color: colors.textFaint,
+    flexShrink: 1,
+  },
+  dateCellDoneButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  dateCellDoneText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
   },
   switchWrapper: {
     height: 50,

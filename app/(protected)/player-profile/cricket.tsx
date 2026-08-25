@@ -13,6 +13,8 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { StatTable } from '../../../src/components/player/StatTable';
+import { CareerStatTable } from '../../../src/components/player/CareerStatTable';
+import { mergeBattingRows, mergeBowlingRows } from '../../../src/utils/statMerge';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
@@ -30,14 +32,14 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '',
+  format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
   matches: '', won: '', lost: '', innings: '', not_out: '', runs: '', hs: '', average: '',
   best: '', sr: '', hundreds: '', fifties: '', fours: '', sixes: '', catches: '', stumpings: '',
   run_outs: '', direct_hits: '', runs_saved: '', runs_giving: '', stumps_missing: '',
 };
 
 const EMPTY_BOWLING_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '',
+  format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
   matches: '', innings: '', balls: '', dot_balls: '', wide_balls: '', no_balls: '',
   runs: '', wickets: '', bbi: '', bbm: '', average: '', economy: '', sr: '',
   four_w: '', five_w: '', ten_w: '',
@@ -92,6 +94,12 @@ export default function CricketProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // One Batting add/update and one Bowling add/update per save — each
+  // CareerStatTable locks its own "Add New Stat" button the moment an entry
+  // goes in, and both unlock together once "Save Cricket Profile" succeeds.
+  const [battingLocked, setBattingLocked] = useState(false);
+  const [bowlingLocked, setBowlingLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -186,6 +194,8 @@ export default function CricketProfileScreen() {
       }
       await playerService.saveCricketProfile(values);
       await useAuthStore.getState().refreshProfile();
+      setBattingLocked(false);
+      setBowlingLocked(false);
       setIsViewing(true);
     } catch (err) {
       setError(
@@ -223,10 +233,12 @@ export default function CricketProfileScreen() {
   }
 
 
-  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
-  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
-  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
-  const matchTypeOptions = lookups.cricket_match_types.map((m) => ({ label: m.name, value: String(m.id) }));
+  // Cricket's own Category/Division lists for the Batting/Bowling "Add New
+  // Stat" flow — a fixed, curated set (see backend cricket_categories/
+  // cricket_divisions), separate from the shared age_categories/formats
+  // other sports use.
+  const careerCategoryOptions = lookups.cricket_categories.map((c) => ({ label: c.name, value: String(c.id) }));
+  const careerDivisionOptions = lookups.cricket_divisions.map((d) => ({ label: d.name, value: String(d.id) }));
 
   return (
     <SportProfileLayout
@@ -331,16 +343,25 @@ export default function CricketProfileScreen() {
         />
       </View>
 
-      <StatTable
+      <CareerStatTable
         title="Batting Career Stats"
+        addLabel="Add New Batting Stat"
         control={control}
         name="batting"
         emptyRow={EMPTY_BATTING_ROW}
-        columns={[
-          { key: 'cricket_match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+        categories={careerCategoryOptions}
+        divisions={careerDivisionOptions}
+        mergeRows={mergeBattingRows as never}
+        locked={battingLocked}
+        onEntryAdded={() => setBattingLocked(true)}
+        summaryFields={[
+          { key: 'matches', label: 'Mat' },
+          { key: 'innings', label: 'Inns' },
+          { key: 'runs', label: 'Runs' },
+          { key: 'hs', label: 'HS' },
+          { key: 'average', label: 'Avg' },
+        ]}
+        detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'won', label: 'Won', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
@@ -360,16 +381,25 @@ export default function CricketProfileScreen() {
         ]}
       />
 
-      <StatTable
+      <CareerStatTable
         title="Bowling Career Stats"
+        addLabel="Add New Bowling Stat"
         control={control}
         name="bowling"
         emptyRow={EMPTY_BOWLING_ROW}
-        columns={[
-          { key: 'cricket_match_type_id', label: 'Match Type', type: 'select', options: matchTypeOptions },
-          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
-          { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
-          { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+        categories={careerCategoryOptions}
+        divisions={careerDivisionOptions}
+        mergeRows={mergeBowlingRows as never}
+        locked={bowlingLocked}
+        onEntryAdded={() => setBowlingLocked(true)}
+        summaryFields={[
+          { key: 'matches', label: 'Mat' },
+          { key: 'wickets', label: 'Wkts' },
+          { key: 'bbi', label: 'BBI' },
+          { key: 'average', label: 'Avg' },
+          { key: 'economy', label: 'Econ' },
+        ]}
+        detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'innings', label: 'Innings', type: 'number' },
           { key: 'balls', label: 'Balls', type: 'number' },
