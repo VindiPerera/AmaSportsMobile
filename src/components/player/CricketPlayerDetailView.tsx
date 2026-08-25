@@ -42,12 +42,22 @@ export function CricketPlayerDetailView({
   const displayName = fullName || 'Player Name';
   const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : displayName;
 
-  // Format lookup helper
+  // Division lookup helper — `cricket_divisions` (not the shared `formats`
+  // table other sports use), shown under the "Div" header below. Only a
+  // handful of Categories have one, so a blank formatId is normal, not an
+  // error — shown as "-" rather than a fabricated placeholder.
   const getFormatName = (formatId: string): string => {
-    const found = lookups.formats.find((f) => String(f.id) === String(formatId));
-    if (found) return found.name;
-    if (!formatId) return 'List A';
-    return formatId;
+    if (!formatId) return '-';
+    const found = lookups.cricket_divisions.find((f) => String(f.id) === String(formatId));
+    return found ? found.name : '-';
+  };
+
+  // Category lookup helper — `cricket_categories` (not the shared
+  // `age_categories` table other sports use), shown under the "Cat" header
+  // below.
+  const getAgeCategoryName = (ageCategoryId: string): string => {
+    const found = lookups.cricket_categories.find((a) => String(a.id) === String(ageCategoryId));
+    return found ? found.name : '-';
   };
 
   // Process Batting Rows
@@ -247,7 +257,9 @@ export function CricketPlayerDetailView({
                       <View style={styles.tableContainer}>
                         {/* Table Header */}
                         <View style={styles.tableHeaderRow}>
-                          <Text style={[styles.thCell, styles.thFormat]}>Format</Text>
+                          <Text style={styles.thCell}>Year</Text>
+                          <Text style={styles.thCell}>Cat</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
                           <Text style={styles.thCell}>Mat</Text>
                           <Text style={styles.thCell}>Inns</Text>
                           <Text style={styles.thCell}>NO</Text>
@@ -266,6 +278,8 @@ export function CricketPlayerDetailView({
                             key={idx}
                             style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                           >
+                            <Text style={styles.tdCell}>{row.year || '-'}</Text>
+                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
                             <Text style={[styles.tdCellBold, styles.thFormat]}>
                               {getFormatName(row.format_id)}
                             </Text>
@@ -294,7 +308,9 @@ export function CricketPlayerDetailView({
                       <View style={styles.tableContainer}>
                         {/* Table Header */}
                         <View style={styles.tableHeaderRow}>
-                          <Text style={[styles.thCell, styles.thFormat]}>Format</Text>
+                          <Text style={styles.thCell}>Year</Text>
+                          <Text style={styles.thCell}>Cat</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
                           <Text style={styles.thCell}>Mat</Text>
                           <Text style={styles.thCell}>Inns</Text>
                           <Text style={styles.thCell}>Balls</Text>
@@ -313,6 +329,8 @@ export function CricketPlayerDetailView({
                             key={idx}
                             style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                           >
+                            <Text style={styles.tdCell}>{row.year || '-'}</Text>
+                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
                             <Text style={[styles.tdCellBold, styles.thFormat]}>
                               {getFormatName(row.format_id)}
                             </Text>
@@ -340,39 +358,7 @@ export function CricketPlayerDetailView({
               <View style={[styles.card, shadows.sm]}>
                 <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
 
-                <View style={styles.recentMatchesTable}>
-                  <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                    <Text style={styles.thCell}>Bat</Text>
-                    <Text style={styles.thCell}>Bowl</Text>
-                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                  </View>
-
-                  {displayedRecentMatches.map((m, idx) => {
-                    const bowlStat =
-                      m.wickets && m.wickets !== '--'
-                        ? `${m.wickets}/${m.runs || '0'}`
-                        : '--';
-                    return (
-                      <View
-                        key={idx}
-                        style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                      >
-                        <Text
-                          style={[styles.tdCellBold, styles.thMatchName]}
-                          numberOfLines={1}
-                        >
-                          {m.opponent}
-                        </Text>
-                        <Text style={styles.tdCell}>{m.runs || '--'}</Text>
-                        <Text style={styles.tdCell}>{bowlStat}</Text>
-                        <Text style={[styles.tdCellFaint, styles.thDate]}>
-                          {formatShortMatchDate(m.match_date)}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
+                <RecentMatchesTable matches={displayedRecentMatches} />
 
                 {!showAllRecent && recentMatches.length > 3 && (
                   <Pressable
@@ -458,39 +444,7 @@ export function CricketPlayerDetailView({
               <View style={[styles.card, shadows.sm]}>
                 <Text style={styles.cardHeaderTitle}>Recent Matches - Player</Text>
 
-                <View style={styles.recentMatchesTable}>
-                  <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                    <Text style={styles.thCell}>Bat</Text>
-                    <Text style={styles.thCell}>Bowl</Text>
-                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                  </View>
-
-                  {recentMatches.map((m, idx) => {
-                    const bowlStat =
-                      m.wickets && m.wickets !== '--'
-                        ? `${m.wickets}/${m.runs || '0'}`
-                        : '--';
-                    return (
-                      <View
-                        key={idx}
-                        style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                      >
-                        <Text
-                          style={[styles.tdCellBold, styles.thMatchName]}
-                          numberOfLines={1}
-                        >
-                          {m.opponent}
-                        </Text>
-                        <Text style={styles.tdCell}>{m.runs || '--'}</Text>
-                        <Text style={styles.tdCell}>{bowlStat}</Text>
-                        <Text style={[styles.tdCellFaint, styles.thDate]}>
-                          {formatShortMatchDate(m.match_date)}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
+                <RecentMatchesTable matches={recentMatches} />
               </View>
             )}
 
@@ -503,6 +457,55 @@ export function CricketPlayerDetailView({
         )}
       </ScrollView>
     </View>
+  );
+}
+
+/**
+ * Every field entered on the Recent Matches form — Date, Match, Played XI,
+ * Runs, Balls, 4s, 6s, Overs, Maidens, Wkts, Catches, Stumpings — not just a
+ * Bat/Bowl summary, so nothing entered on the form goes missing in the
+ * read-only view. Wide by design (12 columns), so it scrolls horizontally
+ * like the Batting/Bowling tables above it.
+ */
+function RecentMatchesTable({ matches }: { matches: CricketProfileFormValues['recent_matches'] }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={[styles.recentMatchesTable, styles.recentMatchesTableScrollable]}>
+        <View style={styles.tableHeaderRow}>
+          <Text style={[styles.thCell, styles.thDate]}>Date</Text>
+          <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
+          <Text style={styles.thCell}>XI</Text>
+          <Text style={styles.thCell}>Runs</Text>
+          <Text style={styles.thCell}>Balls</Text>
+          <Text style={styles.thCell}>4s</Text>
+          <Text style={styles.thCell}>6s</Text>
+          <Text style={styles.thCell}>Overs</Text>
+          <Text style={styles.thCell}>Mdns</Text>
+          <Text style={styles.thCell}>Wkts</Text>
+          <Text style={styles.thCell}>Ct</Text>
+          <Text style={styles.thCell}>St</Text>
+        </View>
+
+        {matches.map((m, idx) => (
+          <View key={idx} style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}>
+            <Text style={[styles.tdCellFaint, styles.thDate]}>{formatShortMatchDate(m.match_date)}</Text>
+            <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
+              {m.opponent || '-'}
+            </Text>
+            <Text style={styles.tdCell}>{m.played_xi ? 'Y' : 'N'}</Text>
+            <Text style={styles.tdCell}>{m.runs || '-'}</Text>
+            <Text style={styles.tdCell}>{m.balls || '-'}</Text>
+            <Text style={styles.tdCell}>{m.fours || '0'}</Text>
+            <Text style={styles.tdCell}>{m.sixes || '0'}</Text>
+            <Text style={styles.tdCell}>{m.overs || '-'}</Text>
+            <Text style={styles.tdCell}>{m.maidens || '0'}</Text>
+            <Text style={styles.tdCell}>{m.wickets || '-'}</Text>
+            <Text style={styles.tdCell}>{m.catches || '0'}</Text>
+            <Text style={styles.tdCell}>{m.stumpings || '0'}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -764,7 +767,12 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   thMatchName: {
-    flex: 1,
+    // Fixed (not flex: 1) — this column now sits inside a horizontal
+    // ScrollView (see recentMatchesTableScrollable) alongside Batting/
+    // Bowling, so it needs a real width to size against rather than one
+    // that only resolves against a bounding container the ScrollView
+    // doesn't provide.
+    width: 130,
     textAlign: 'left',
   },
   thDate: {
@@ -793,6 +801,10 @@ const styles = StyleSheet.create({
   },
   recentMatchesTable: {
     marginTop: spacing.xs,
+  },
+  recentMatchesTableScrollable: {
+    // A little trailing breathing room once scrolled all the way right.
+    paddingRight: spacing.sm,
   },
   viewMoreButton: {
     flexDirection: 'row',

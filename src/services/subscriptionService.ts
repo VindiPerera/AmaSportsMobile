@@ -19,7 +19,7 @@ export const subscriptionService = {
   },
 
   /**
-   * Starts the one-time free trial month (Phase 8) — no PayPal step, unlocks
+   * Starts the one-time free trial (Phase 8) — no PayPal step, unlocks
    * immediately. Only reachable when `status.trial_eligible` is true; the
    * backend re-enforces eligibility regardless.
    */

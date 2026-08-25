@@ -22,6 +22,7 @@ export * from './swimming';
 export * from './volleyball';
 export * from './beachVolleyball';
 export * from './elle';
+export * from './softBallCricket';
 export * from './match';
 export * from './contact';
 export * from './subscription';

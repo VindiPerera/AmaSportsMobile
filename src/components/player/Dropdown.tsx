@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   compactContainer: {
-    minWidth: 140,
+    minWidth: 160,
     width: '100%',
   },
   label: {
@@ -90,7 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     justifyContent: 'center',
     overflow: 'hidden',
-    minHeight: 44,
+    minHeight: 50,
+    paddingHorizontal: 2,
   },
   wrapperError: {
     borderColor: colors.live,
@@ -104,7 +105,8 @@ const styles = StyleSheet.create({
   },
   compactPicker: {
     color: colors.text,
-    height: 44,
+    height: 50,
+    fontSize: 13,
   },
   pickerItem: {
     fontSize: 16,

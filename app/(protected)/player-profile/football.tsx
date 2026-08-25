@@ -248,35 +248,46 @@ export default function FootballProfileScreen() {
             <Dropdown label="Sport" value="football" onChange={() => {}} options={[{ label: 'Football', value: 'football' }]} disabled />
           </View>
         </View>
-      <TextField label="Full name" value={fullName} onChangeText={setFullName} />
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="dominant_leg"
-        render={({ field: { value, onChange } }) => (
-          <Dropdown label="Dominant Leg" value={value} onChange={onChange} options={DOMINANT_LEG_OPTIONS} />
-        )}
-      />
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="born"
+            render={({ field: { value, onChange } }) => (
+              <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="age"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+            )}
+          />
+        </View>
+      </View>
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="height"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Height" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="dominant_leg"
+            render={({ field: { value, onChange } }) => (
+              <Dropdown label="Dominant Leg" value={value} onChange={onChange} options={DOMINANT_LEG_OPTIONS} />
+            )}
+          />
+        </View>
+      </View>
       <Controller
         control={control}
         name="player_position"
@@ -298,11 +309,6 @@ export default function FootballProfileScreen() {
         />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Status
-        </Text>
       <StatTable
         title="Career Status"
         control={control}
@@ -324,13 +330,7 @@ export default function FootballProfileScreen() {
           { key: 'red_card', label: 'Red Card', type: 'number' },
         ]}
       />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Matches
-        </Text>
       <StatTable
         title="Recent Matches"
         control={control}
@@ -351,7 +351,6 @@ export default function FootballProfileScreen() {
           { key: 'red_card', label: 'Red Card', type: 'number' },
         ]}
       />
-      </View>
 
       <Button label="Save Football Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>

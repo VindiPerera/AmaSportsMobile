@@ -43,6 +43,10 @@ interface PlayerSportDetailViewProps {
   careerStatsHeader?: string;
   careerStatsColumns?: StatTableColumn[];
   careerStatsRows?: Record<string, unknown>[];
+  /** Optional second stats table (e.g. Bowling, alongside a Batting `careerStats*` table) — its own card, shown only when it has rows. */
+  secondaryStatsHeader?: string;
+  secondaryStatsColumns?: StatTableColumn[];
+  secondaryStatsRows?: Record<string, unknown>[];
   recentMatches?: GenericMatchRow[];
   debutMatches?: { category: string; debut: string; last: string }[];
   onEditPress?: () => void;
@@ -68,6 +72,9 @@ export function PlayerSportDetailView({
     { key: 'rating', label: 'Rating', width: 55 },
   ],
   careerStatsRows = [],
+  secondaryStatsHeader = 'Career Stats',
+  secondaryStatsColumns = [],
+  secondaryStatsRows = [],
   recentMatches = [],
   debutMatches = [],
   onEditPress,
@@ -82,6 +89,7 @@ export function PlayerSportDetailView({
   // Real data only — no placeholder/sample rows. Each table renders its own
   // empty state below when the player hasn't entered anything yet.
   const displayCareerRows = careerStatsRows;
+  const displaySecondaryRows = secondaryStatsRows;
   const displayRecentMatches = recentMatches;
   const displayDebutMatches = debutMatches;
 
@@ -258,6 +266,57 @@ export function PlayerSportDetailView({
                         style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}
                       >
                         {careerStatsColumns.map((col, cIdx) => {
+                          const val = String(row[col.key] ?? '-');
+                          return (
+                            <Text
+                              key={cIdx}
+                              style={[
+                                cIdx === 0 ? styles.tdCellBold : styles.tdCell,
+                                col.width ? { width: col.width } : { flex: 1 },
+                                cIdx === 0 && { textAlign: 'left' },
+                              ]}
+                            >
+                              {val}
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Card 2b: Secondary Stats (e.g. Bowling) — only shown when player has added rows */}
+            {displaySecondaryRows.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <Text style={styles.cardHeaderTitle}>{shortName} {secondaryStatsHeader}</Text>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.tableContainer}>
+                    {/* Header Row */}
+                    <View style={styles.tableHeaderRow}>
+                      {secondaryStatsColumns.map((col, idx) => (
+                        <Text
+                          key={idx}
+                          style={[
+                            styles.thCell,
+                            col.width ? { width: col.width } : { flex: 1 },
+                            idx === 0 && { textAlign: 'left' },
+                          ]}
+                        >
+                          {col.label}
+                        </Text>
+                      ))}
+                    </View>
+
+                    {/* Data Rows */}
+                    {displaySecondaryRows.map((row, rIdx) => (
+                      <View
+                        key={rIdx}
+                        style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}
+                      >
+                        {secondaryStatsColumns.map((col, cIdx) => {
                           const val = String(row[col.key] ?? '-');
                           return (
                             <Text

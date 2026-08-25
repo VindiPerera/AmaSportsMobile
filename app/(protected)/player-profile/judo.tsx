@@ -242,35 +242,46 @@ export default function JudoProfileScreen() {
             <Dropdown label="Sport" value="judo" onChange={() => {}} options={[{ label: 'Judo', value: 'judo' }]} disabled />
           </View>
         </View>
-      <TextField label="Full name" value={fullName} onChangeText={setFullName} />
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="weight"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Weight" value={value} onChangeText={onChange} />
-        )}
-      />
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="born"
+            render={({ field: { value, onChange } }) => (
+              <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="age"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+            )}
+          />
+        </View>
+      </View>
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="height"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Height" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="weight"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Weight" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+      </View>
       <Controller
         control={control}
         name="college_university"
@@ -292,11 +303,6 @@ export default function JudoProfileScreen() {
       />
       </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Status
-        </Text>
       <StatTable
         title="Career Status"
         control={control}
@@ -316,13 +322,7 @@ export default function JudoProfileScreen() {
           { key: 'champion', label: 'Champion', type: 'number' },
         ]}
       />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Fight
-        </Text>
       <StatTable
         title="Recent Fight"
         control={control}
@@ -339,7 +339,6 @@ export default function JudoProfileScreen() {
           { key: 'place', label: 'Place', type: 'text' },
         ]}
       />
-      </View>
 
       <Button label="Save Judo Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>

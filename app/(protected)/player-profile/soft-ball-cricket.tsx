@@ -1,27 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { TextField } from '../../../src/components/ui/TextField';
 import { Button } from '../../../src/components/ui/Button';
-import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { CoverPhotoUpload } from '../../../src/components/player/CoverPhotoUpload';
 import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpload';
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { CareerStatTable } from '../../../src/components/player/CareerStatTable';
-import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
-import { mergeBattingRows, mergeBowlingRows } from '../../../src/utils/statMerge';
-import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
-import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
+import { StatTable } from '../../../src/components/player/StatTable';
+import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
-import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
+import { colors, shadows, spacing } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
 import { playerService } from '../../../src/services/playerService';
+import { softBallCricketService } from '../../../src/services/softBallCricketService';
 import { COUNTRY_OPTIONS } from '../../../src/constants/countries';
 import {
   BATTING_STYLE_OPTIONS,
@@ -29,38 +26,26 @@ import {
   PLAYING_ROLE_OPTIONS,
 } from '../../../src/constants/cricketOptions';
 import { calculateAge } from '../../../src/utils/date';
-import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, PickedImage, SoftBallCricketProfileFormValues } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
-  matches: '', won: '', lost: '', innings: '', not_out: '', runs: '', hs: '', average: '',
-  best: '', sr: '', hundreds: '', fifties: '', fours: '', sixes: '', catches: '', stumpings: '',
-  run_outs: '', direct_hits: '', runs_saved: '', runs_giving: '', stumps_missing: '',
+  matches: '', runs: '', innings: '', highest: '', not_out: '', hundreds: '', fifties: '',
+  sixes: '', fours: '', catches: '', stumpings: '', won: '', lost: '', tied: '',
 };
 
 const EMPTY_BOWLING_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
-  matches: '', innings: '', balls: '', dot_balls: '', wide_balls: '', no_balls: '',
-  runs: '', wickets: '', bbi: '', bbm: '', average: '', economy: '', sr: '',
-  four_w: '', five_w: '', ten_w: '',
+  matches: '', balls: '', runs: '', wickets: '', average: '', economy: '',
+  three_w: '', four_w: '', five_w: '', career_best: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', played_xi: false, runs: '', balls: '', fours: '', sixes: '',
-  overs: '', maidens: '', wickets: '', catches: '', stumpings: '',
+  match_date: '', opponent: '', won: false, lost: false, runs: '', balls: '', average: '',
+  bowling_balls: '', bowling_runs: '', wickets: '', catches: '', stumpings: '',
 };
 
-// Kept only for its keys (used by `mapRow` when loading an existing profile) —
-// the Drop Catches table itself is no longer part of this form; see the
-// removed "Drop Catches" section below for why.
-const EMPTY_DROP_CATCH_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', field_position_id: '', drop_reason_id: '',
-};
-
-const EMPTY_FORM: CricketProfileFormValues = {
+const EMPTY_FORM: SoftBallCricketProfileFormValues = {
   born: '', age: '', batting_style: '', bowling_style: '', playing_role: '', height: '',
-  college_university: '', pitching_line_breakdown: {}, ball_type_breakdown: {},
-  teams: [], batting: [], bowling: [], recent_matches: [], drop_catches: [], missed_matches: [],
+  college_university: '', teams: [], batting: [], bowling: [], recent_matches: [],
 };
 
 function toFormString(value: unknown): string {
@@ -75,16 +60,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
   return mapped;
 }
 
-/** Converts the API's `{ [lookupId]: count }` breakdown map to form-state strings. */
-function breakdownToFormValues(breakdown: Record<string, number>): Record<string, string> {
-  const mapped: Record<string, string> = {};
-  Object.entries(breakdown ?? {}).forEach(([key, value]) => {
-    mapped[key] = toFormString(value);
-  });
-  return mapped;
-}
-
-export default function CricketProfileScreen() {
+export default function SoftBallCricketProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const [isViewing, setIsViewing] = useState(mode === 'view');
 
@@ -95,14 +71,6 @@ export default function CricketProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // One Batting add/update, one Bowling add/update, and one new Recent
-  // Match per save — each table locks its own "Add" button the moment an
-  // entry goes in, and all three unlock together once "Save Cricket
-  // Profile" succeeds.
-  const [battingLocked, setBattingLocked] = useState(false);
-  const [bowlingLocked, setBowlingLocked] = useState(false);
-  const [recentMatchLocked, setRecentMatchLocked] = useState(false);
-
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
@@ -110,7 +78,7 @@ export default function CricketProfileScreen() {
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
-  const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<CricketProfileFormValues>({
+  const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<SoftBallCricketProfileFormValues>({
     defaultValues: EMPTY_FORM,
   });
 
@@ -120,9 +88,9 @@ export default function CricketProfileScreen() {
     (async () => {
       try {
         await ensureLoaded();
-        const [profile, cricketProfile] = await Promise.all([
+        const [profile, sbcProfile] = await Promise.all([
           playerService.fetchProfile(),
-          playerService.fetchCricketProfile(),
+          softBallCricketService.fetchProfile(),
         ]);
 
         setFullName(profile.full_name ?? '');
@@ -131,34 +99,28 @@ export default function CricketProfileScreen() {
         setExistingPhotoUrl(profile.photo_url);
 
         reset({
-          born: cricketProfile.born ?? '',
-          age: toFormString(cricketProfile.age),
-          batting_style: cricketProfile.batting_style ?? '',
-          bowling_style: cricketProfile.bowling_style ?? '',
-          playing_role: cricketProfile.playing_role ?? '',
-          height: cricketProfile.height ?? '',
-          college_university: cricketProfile.college_university ?? '',
-          pitching_line_breakdown: breakdownToFormValues(cricketProfile.pitching_line_breakdown),
-          ball_type_breakdown: breakdownToFormValues(cricketProfile.ball_type_breakdown),
-          teams: cricketProfile.teams ?? [],
-          batting: cricketProfile.batting.map((row) =>
+          born: sbcProfile.born ?? '',
+          age: toFormString(sbcProfile.age),
+          batting_style: sbcProfile.batting_style ?? '',
+          bowling_style: sbcProfile.bowling_style ?? '',
+          playing_role: sbcProfile.playing_role ?? '',
+          height: sbcProfile.height ?? '',
+          college_university: sbcProfile.college_university ?? '',
+          teams: sbcProfile.teams ?? [],
+          batting: sbcProfile.batting.map((row) =>
             mapRow(row, Object.keys(EMPTY_BATTING_ROW))
-          ) as unknown as CricketProfileFormValues['batting'],
-          bowling: cricketProfile.bowling.map((row) =>
+          ) as unknown as SoftBallCricketProfileFormValues['batting'],
+          bowling: sbcProfile.bowling.map((row) =>
             mapRow(row, Object.keys(EMPTY_BOWLING_ROW))
-          ) as unknown as CricketProfileFormValues['bowling'],
-          recent_matches: cricketProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'runs', 'balls', 'fours', 'sixes', 'overs', 'maidens', 'wickets', 'catches', 'stumpings']),
-            played_xi: Boolean(row.played_xi),
-          })) as unknown as CricketProfileFormValues['recent_matches'],
-          drop_catches: cricketProfile.drop_catches.map((row) =>
-            mapRow(row, Object.keys(EMPTY_DROP_CATCH_ROW))
-          ) as unknown as CricketProfileFormValues['drop_catches'],
-          // No backend field for this yet — always starts empty on load.
-          missed_matches: [],
+          ) as unknown as SoftBallCricketProfileFormValues['bowling'],
+          recent_matches: sbcProfile.recent_matches.map((row) => ({
+            ...mapRow(row, ['match_date', 'opponent', 'runs', 'balls', 'average', 'bowling_balls', 'bowling_runs', 'wickets', 'catches', 'stumpings']),
+            won: Boolean(row.won),
+            lost: Boolean(row.lost),
+          })) as unknown as SoftBallCricketProfileFormValues['recent_matches'],
         });
       } catch {
-        setError('Could not load your Cricket profile. Please try again.');
+        setError('Could not load your Soft Ball Cricket profile. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -174,7 +136,7 @@ export default function CricketProfileScreen() {
     }
   };
 
-  const onSubmit = async (values: CricketProfileFormValues) => {
+  const onSubmit = async (values: SoftBallCricketProfileFormValues) => {
     if (!fullName.trim()) {
       setError('Full name is required.');
       return;
@@ -194,17 +156,14 @@ export default function CricketProfileScreen() {
         setAvatarPicked(null);
         setCoverPicked(null);
       }
-      await playerService.saveCricketProfile(values);
+      await softBallCricketService.saveProfile(values);
       await useAuthStore.getState().refreshProfile();
-      setBattingLocked(false);
-      setBowlingLocked(false);
-      setRecentMatchLocked(false);
       setIsViewing(true);
     } catch (err) {
       setError(
         err instanceof ApiError
           ? err.message
-          : 'Could not save your Cricket profile. Please check your entries and try again.'
+          : 'Could not save your Soft Ball Cricket profile. Please check your entries and try again.'
       );
     } finally {
       setIsSaving(false);
@@ -219,33 +178,68 @@ export default function CricketProfileScreen() {
     );
   }
 
-  // If in View Mode, render the Cricbuzz-style Player Detail View
   if (isViewing) {
+    const fields = [
+      { label: 'BATTING STYLE', value: formValues.batting_style },
+      { label: 'BOWLING STYLE', value: formValues.bowling_style },
+      { label: 'PLAYING ROLE', value: formValues.playing_role },
+      { label: 'HEIGHT', value: formValues.height },
+      { label: 'EDUCATION', value: formValues.college_university },
+    ];
+
+    const mappedRecent = (formValues.recent_matches || []).map((m) => {
+      const parts: string[] = [];
+      if (m.runs) parts.push(`${m.runs} runs`);
+      if (m.wickets) parts.push(`${m.wickets} wkts`);
+      return {
+        match_date: m.match_date,
+        opponent: m.opponent,
+        scoreOrStat: parts.length > 0 ? parts.join(', ') : '--',
+        result: m.won ? 'WIN' : m.lost ? 'LOSS' : '--',
+      };
+    });
+
     return (
-      <CricketPlayerDetailView
+      <PlayerSportDetailView
+        sportName="Soft Ball Cricket"
         fullName={fullName}
         country={country}
         photoUrl={avatarPicked?.uri || existingPhotoUrl}
         coverUrl={coverPicked?.uri || existingCoverUrl}
-        values={formValues}
-        lookups={lookups}
+        born={formValues.born}
+        age={formValues.age}
+        teams={formValues.teams}
+        fields={fields}
+        careerStatsHeader="Batting Stats"
+        careerStatsColumns={[
+          { key: 'matches', label: 'Mat', width: 45 },
+          { key: 'runs', label: 'Runs', width: 55 },
+          { key: 'innings', label: 'Inn', width: 45 },
+          { key: 'highest', label: 'HS', width: 55 },
+          { key: 'hundreds', label: '100s', width: 50 },
+          { key: 'fifties', label: '50s', width: 50 },
+        ]}
+        careerStatsRows={formValues.batting}
+        secondaryStatsHeader="Bowling Stats"
+        secondaryStatsColumns={[
+          { key: 'matches', label: 'Mat', width: 45 },
+          { key: 'balls', label: 'Balls', width: 55 },
+          { key: 'runs', label: 'Runs', width: 55 },
+          { key: 'wickets', label: 'Wkts', width: 50 },
+          { key: 'average', label: 'Avg', width: 55 },
+          { key: 'economy', label: 'Econ', width: 55 },
+        ]}
+        secondaryStatsRows={formValues.bowling}
+        recentMatches={mappedRecent}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
     );
   }
 
-
-  // Cricket's own Category/Division lists for the Batting/Bowling "Add New
-  // Stat" flow — a fixed, curated set (see backend cricket_categories/
-  // cricket_divisions), separate from the shared age_categories/formats
-  // other sports use.
-  const careerCategoryOptions = lookups.cricket_categories.map((c) => ({ label: c.name, value: String(c.id) }));
-  const careerDivisionOptions = lookups.cricket_divisions.map((d) => ({ label: d.name, value: String(d.id) }));
-
   return (
     <SportProfileLayout
-      sportName="Cricket"
+      sportName="Soft Ball Cricket"
       sportIcon="baseball-outline"
       fullName={fullName}
       error={error}
@@ -269,7 +263,13 @@ export default function CricketProfileScreen() {
             <Dropdown label="Country" value={country} onChange={setCountry} options={COUNTRY_OPTIONS} />
           </View>
           <View style={styles.headerRowItem}>
-            <Dropdown label="Sport" value="cricket" onChange={() => {}} options={[{ label: 'Cricket', value: 'cricket' }]} disabled />
+            <Dropdown
+              label="Sport"
+              value="soft-ball-cricket"
+              onChange={() => {}}
+              options={[{ label: 'Soft Ball Cricket', value: 'soft-ball-cricket' }]}
+              disabled
+            />
           </View>
         </View>
         <View style={styles.headerRow}>
@@ -346,107 +346,70 @@ export default function CricketProfileScreen() {
         />
       </View>
 
-      <CareerStatTable
+      <StatTable
         title="Batting Career Stats"
-        addLabel="Add New Batting Stat"
         control={control}
         name="batting"
         emptyRow={EMPTY_BATTING_ROW}
-        categories={careerCategoryOptions}
-        divisions={careerDivisionOptions}
-        mergeRows={mergeBattingRows as never}
-        locked={battingLocked}
-        onEntryAdded={() => setBattingLocked(true)}
-        detailColumns={[
+        columns={[
           { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'won', label: 'Won', type: 'number' },
-          { key: 'lost', label: 'Lost', type: 'number' },
-          { key: 'innings', label: 'Innings', type: 'number' },
-          { key: 'not_out', label: 'Not Out', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'hs', label: 'High Score', type: 'text' },
-          { key: 'average', label: 'Average', type: 'text' },
-          { key: 'best', label: 'Best', type: 'number' },
-          { key: 'sr', label: 'Strike Rate', type: 'text' },
+          { key: 'innings', label: 'Innings', type: 'number' },
+          { key: 'highest', label: 'Highest', type: 'text' },
+          { key: 'not_out', label: 'Not Out', type: 'number' },
           { key: 'hundreds', label: '100s', type: 'number' },
           { key: 'fifties', label: '50s', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
           { key: 'sixes', label: '6s', type: 'number' },
+          { key: 'fours', label: '4s', type: 'number' },
           { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
+          { key: 'stumpings', label: 'Stumping', type: 'number' },
+          { key: 'won', label: 'Win', type: 'number' },
+          { key: 'lost', label: 'Lost', type: 'number' },
+          { key: 'tied', label: 'Tie', type: 'number' },
         ]}
       />
 
-      <CareerStatTable
+      <StatTable
         title="Bowling Career Stats"
-        addLabel="Add New Bowling Stat"
         control={control}
         name="bowling"
         emptyRow={EMPTY_BOWLING_ROW}
-        categories={careerCategoryOptions}
-        divisions={careerDivisionOptions}
-        mergeRows={mergeBowlingRows as never}
-        locked={bowlingLocked}
-        onEntryAdded={() => setBowlingLocked(true)}
-        detailColumns={[
+        columns={[
           { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'innings', label: 'Innings', type: 'number' },
           { key: 'balls', label: 'Balls', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'wickets', label: 'Wickets', type: 'number' },
-          { key: 'bbi', label: 'BBI', type: 'text' },
-          { key: 'bbm', label: 'BBM', type: 'text' },
+          { key: 'wickets', label: 'Wicket', type: 'number' },
           { key: 'average', label: 'Average', type: 'text' },
           { key: 'economy', label: 'Economy', type: 'text' },
-          { key: 'sr', label: 'Strike Rate', type: 'text' },
+          { key: 'three_w', label: '3w', type: 'number' },
           { key: 'four_w', label: '4w', type: 'number' },
           { key: 'five_w', label: '5w', type: 'number' },
-          { key: 'ten_w', label: '10w', type: 'number' },
+          { key: 'career_best', label: 'Career Best', type: 'text' },
         ]}
       />
 
-      {/*
-        Bowling Breakdown (Pitching Line / Ball Type) removed from this form —
-        it's not part of the Cricket profile update fields the client wants
-        shown here. The form still loads and resubmits whatever breakdown
-        values already exist for this player (see reset()/cricketFormToPayload)
-        so no data is lost; it's just no longer editable from this screen.
-      */}
-
-      <RecentMatchTable
+      <StatTable
         title="Recent Matches"
-        addLabel="Add New Match"
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
-        locked={recentMatchLocked}
-        onEntryAdded={() => setRecentMatchLocked(true)}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
-          { key: 'opponent', label: 'Match vs', type: 'text' },
-          { key: 'played_xi', label: 'Played XI', type: 'boolean' },
+          { key: 'opponent', label: 'Play Against', type: 'text' },
+          { key: 'won', label: 'Won', type: 'boolean' },
+          { key: 'lost', label: 'Lost', type: 'boolean' },
           { key: 'runs', label: 'Runs', type: 'number' },
           { key: 'balls', label: 'Balls', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
-          { key: 'sixes', label: '6s', type: 'number' },
-          { key: 'overs', label: 'Overs', type: 'text' },
-          { key: 'maidens', label: 'Maidens', type: 'number' },
-          { key: 'wickets', label: 'Wkts', type: 'number' },
+          { key: 'average', label: 'Average', type: 'text' },
+          { key: 'bowling_balls', label: 'Balls', type: 'number' },
+          { key: 'bowling_runs', label: 'Runs', type: 'number' },
+          { key: 'wickets', label: 'Wicket', type: 'number' },
           { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
+          { key: 'stumpings', label: 'Stumping', type: 'number' },
         ]}
       />
 
-      {/*
-        Drop Catches and "Reason for Matches Missed/Dropped" removed from this
-        form — not part of the Cricket profile update fields the client wants
-        shown here. Drop catch rows already saved for this player are still
-        loaded and resubmitted unchanged (see reset()/cricketFormToPayload)
-        so existing data isn't lost; missed_matches never had a backend field
-        to begin with. Reconnect a table here if these come back later.
-      */}
-
-      <Button label="Save Cricket Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
+      <Button label="Save Soft Ball Cricket Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>
   );
 }
@@ -455,80 +418,12 @@ const styles = StyleSheet.create({
   loadingIndicator: {
     marginTop: spacing.xl,
   },
-  topModeBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.navyDark,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.card,
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    ...shadows.sm,
-  },
-  topModeTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  topModeTitle: {
-    ...typography.subtitle,
-    color: colors.white,
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  previewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    ...shadows.sm,
-  },
-  previewButtonText: {
-    ...typography.caption,
-    color: colors.white,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  cardSection: {
-    backgroundColor: colors.card,
-    borderRadius: radius.card,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.sm,
-  },
-  coverBlock: {
-    marginTop: spacing.xs,
-    marginBottom: spacing['2xl'],
-  },
-  avatarOverlay: {
-    position: 'absolute',
-    bottom: -32,
-    right: spacing.md,
-  },
   headerRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
   headerRowItem: {
     flex: 1,
-  },
-  sectionLabel: {
-    ...typography.overline,
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    color: colors.primary,
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0.8,
   },
   submitButton: {
     marginTop: spacing.sm,

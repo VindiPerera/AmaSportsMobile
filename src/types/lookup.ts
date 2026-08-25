@@ -41,4 +41,9 @@ export interface Lookups {
   drop_reasons: LookupOption[];
   pitching_lines: LookupOption[];
   ball_types: LookupOption[];
+  // Cricket's own Category/Division lists for the Batting/Bowling Career
+  // Stats "Add New Stat" flow — a fixed, curated set, deliberately separate
+  // from age_categories/formats above (which every other sport still uses).
+  cricket_categories: LookupOption[];
+  cricket_divisions: LookupOption[];
 }

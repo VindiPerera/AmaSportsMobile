@@ -5,8 +5,11 @@ import { colors, radius, spacing, typography } from '../../theme';
 import { sportIconFor } from '../../constants/sportIcons';
 
 interface ComingSoonAnalysisProps {
-  sportName: string;
-  sportSlug: string;
+  /** Omit both to render a generic, sport-agnostic placeholder — used by the
+   * top-level Analysis tab, which no longer reads the player's registered
+   * sports to decide what to show (see analysis.tsx). */
+  sportName?: string;
+  sportSlug?: string;
 }
 
 /**
@@ -20,15 +23,16 @@ export function ComingSoonAnalysis({ sportName, sportSlug }: ComingSoonAnalysisP
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.iconWrapper}>
-          <Ionicons name={sportIconFor(sportSlug)} size={32} color={colors.primary} />
+          <Ionicons name={sportSlug ? sportIconFor(sportSlug) : 'analytics-outline'} size={32} color={colors.primary} />
         </View>
-        <Text style={styles.title}>{sportName} Analytics</Text>
+        <Text style={styles.title}>{sportName ? `${sportName} Analytics` : 'Analytics'}</Text>
         <View style={styles.badge}>
           <Ionicons name="time-outline" size={12} color={colors.primary} />
           <Text style={styles.badgeText}>Coming Soon</Text>
         </View>
         <Text style={styles.text}>
-          Interactive charts and detailed performance insights for your {sportName} career stats will arrive in an upcoming update.
+          Interactive charts and detailed performance insights for your
+          {sportName ? ` ${sportName} career stats` : ' career stats'} will arrive in an upcoming update.
         </Text>
       </View>
     </View>

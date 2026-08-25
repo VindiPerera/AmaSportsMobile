@@ -264,34 +264,46 @@ export default function KabadiProfileScreen() {
             <Dropdown label="Sport" value="kabadi" onChange={() => {}} options={[{ label: 'Kabaddi', value: 'kabadi' }]} disabled />
           </View>
         </View>
-      <Controller
-        control={control}
-        name="born"
-        render={({ field: { value, onChange } }) => (
-          <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
-        )}
-      />
-      <Controller
-        control={control}
-        name="height"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Height" value={value} onChangeText={onChange} />
-        )}
-      />
-      <Controller
-        control={control}
-        name="weight"
-        render={({ field: { value, onChange } }) => (
-          <TextField label="Weight" value={value} onChangeText={onChange} />
-        )}
-      />
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="born"
+            render={({ field: { value, onChange } }) => (
+              <DateField label="Born" value={value} onChange={(isoDate) => handleBornChange(isoDate, onChange)} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="age"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Age" value={value} onChangeText={onChange} keyboardType="number-pad" />
+            )}
+          />
+        </View>
+      </View>
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="height"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Height" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="weight"
+            render={({ field: { value, onChange } }) => (
+              <TextField label="Weight" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+      </View>
       <Controller
         control={control}
         name="player_position"
@@ -315,11 +327,6 @@ export default function KabadiProfileScreen() {
 
       <GlossaryDisclosure items={KABADI_GLOSSARY} />
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          Career Status
-        </Text>
       <StatTable
         title="Career Status"
         control={control}
@@ -335,13 +342,7 @@ export default function KabadiProfileScreen() {
           ...STAT_COLUMNS,
         ]}
       />
-      </View>
 
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          Recent Matches
-        </Text>
       <StatTable
         title="Recent Matches"
         control={control}
@@ -356,7 +357,6 @@ export default function KabadiProfileScreen() {
           ...STAT_COLUMNS,
         ]}
       />
-      </View>
 
       <Button label="Save Kabaddi Profile" onPress={handleSubmit(onSubmit)} loading={isSaving} style={styles.submitButton} />
     </SportProfileLayout>

@@ -8,6 +8,11 @@ export interface CricketBattingRowForm {
   age_category_id: string;
   match_category_id: string;
   cricket_match_type_id: string;
+  // Which playing year this entry's totals belong to — added alongside the
+  // Category+Division "Add New Stat" flow (see CareerStatTable). Not part
+  // of the merge key: adding another match in the same Category+Division
+  // sums into this row regardless of year, and the newest year entered wins.
+  year: string;
   matches: string;
   won: string;
   lost: string;
@@ -38,6 +43,8 @@ export interface CricketBowlingRowForm {
   age_category_id: string;
   match_category_id: string;
   cricket_match_type_id: string;
+  // See CricketBattingRowForm.year — same field, same merge rule.
+  year: string;
   matches: string;
   innings: string;
   balls: string;
