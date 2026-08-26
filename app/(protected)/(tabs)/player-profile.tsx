@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Image, Platform, StyleSheet, Text, View, Pres
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { SubscriptionStatusCard } from '../../../src/components/subscription/SubscriptionStatusCard';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
@@ -28,6 +29,7 @@ export default function PlayerProfileHubScreen() {
   const [sports, setSports] = useState<PlayerSportEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -73,6 +75,42 @@ export default function PlayerProfileHubScreen() {
     router.push(resolveSportRoute(entry.sport, 'view'));
   };
 
+  /** Tapping the camera badge on the hero avatar picks a photo and uploads it immediately. */
+  const handleChangeAvatar = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to change your profile photo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setIsUploadingPhoto(true);
+    try {
+      const updatedProfile = await playerService.updateProfile({
+        photo: {
+          uri: asset.uri,
+          name: asset.fileName ?? `photo-${Date.now()}.jpg`,
+          type: asset.mimeType ?? 'image/jpeg',
+          file: asset.file,
+        },
+      });
+      if (updatedProfile) setPlayer(updatedProfile);
+      await useAuthStore.getState().refreshProfile();
+    } catch {
+      Alert.alert('Upload failed', 'Could not update your profile photo. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   return (
     <ScreenContainer edges={['top', 'bottom']} scroll>
       {/* Dark Navy Hero Section */}
@@ -107,9 +145,20 @@ export default function PlayerProfileHubScreen() {
                 <Text style={styles.avatarInitial}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
               </LinearGradient>
             )}
-            <View style={styles.cameraBadge}>
-              <Ionicons name="camera" size={12} color={colors.white} />
-            </View>
+            <Pressable
+              onPress={handleChangeAvatar}
+              disabled={isUploadingPhoto}
+              style={styles.cameraBadge}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
+            >
+              {isUploadingPhoto ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Ionicons name="camera" size={12} color={colors.white} />
+              )}
+            </Pressable>
           </View>
 
           <Text style={styles.name}>{player?.full_name || user?.name || 'Athlete'}</Text>
@@ -257,6 +306,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.white,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
   },
   name: {
     ...typography.h2,
