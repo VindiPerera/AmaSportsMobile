@@ -4,6 +4,7 @@ import { ArrayPath, Control, FieldValues, useFieldArray } from 'react-hook-form'
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '../../theme';
 import { StatColumn } from './StatTable';
+import { StatDataTable } from './StatDataTable';
 import { SimpleStatAddModal } from './SimpleStatAddModal';
 import { sortRecentMatchesNewestFirst } from '../../utils/date';
 
@@ -32,9 +33,12 @@ interface RecentMatchTableProps<TFieldValues extends FieldValues> {
  * sortRecentMatchesNewestFirst) — adding an 11th drops the oldest, not the
  * one just added.
  *
- * The Edit screen deliberately doesn't list already-saved matches as cards
- * here — this screen is for adding, not reviewing/deleting past entries;
- * saved matches are visible in the read-only profile view after saving.
+ * The Edit screen deliberately doesn't list already-saved matches here —
+ * this screen is for adding, not reviewing/deleting past entries (those are
+ * visible in the read-only profile view). It does show, as a small table,
+ * the one match added this session — with an edit (pencil) action to
+ * correct it before hitting "Save Cricket Profile" — since only one new
+ * match can be added per save anyway (see `locked`).
  */
 export function RecentMatchTable<TFieldValues extends FieldValues>({
   title,
@@ -48,14 +52,38 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
 }: RecentMatchTableProps<TFieldValues>) {
   const { fields, replace } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
+  // Index (in `rows`) of the one match added this session, or null before
+  // that happens — the Add button disables the moment this is set (see
+  // `locked`), so the modal is only ever reachable afterwards through the
+  // table's edit pencil, which is always correcting this same match.
+  const [sessionIndex, setSessionIndex] = useState<number | null>(null);
+
+  const rows = fields as unknown as Record<string, unknown>[];
+  const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
 
   const handleSave = (row: Record<string, unknown>) => {
+    if (sessionIndex !== null) {
+      // Correcting the match added earlier this session — still re-sort in
+      // case the date changed, and re-locate it afterwards. A date old
+      // enough to fall past the 10-match cap drops it from `sorted`
+      // entirely (indexOf -1) — treat that the same as never having added
+      // one, rather than pointing sessionIndex at the wrong row.
+      const next = rows.map((existing, index) => (index === sessionIndex ? row : existing));
+      const sorted = sortRecentMatchesNewestFirst(next);
+      const newIndex = sorted.indexOf(row);
+      replace(sorted as never);
+      setSessionIndex(newIndex === -1 ? null : newIndex);
+      setModalVisible(false);
+      return;
+    }
     // Newest first, capped at 10 — adding an 11th drops the oldest one
     // rather than the one just added. Re-sorting the whole array (not just
     // appending) also keeps things correct if the player enters matches
     // out of date order.
-    const rows = fields as unknown as Record<string, unknown>[];
-    replace(sortRecentMatchesNewestFirst([...rows, row]) as never);
+    const sorted = sortRecentMatchesNewestFirst([...rows, row]);
+    const newIndex = sorted.indexOf(row);
+    replace(sorted as never);
+    setSessionIndex(newIndex === -1 ? null : newIndex);
     setModalVisible(false);
     onEntryAdded();
   };
@@ -89,19 +117,23 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
         <Text style={styles.lockedHint}>Save your Cricket Profile to add another match.</Text>
       ) : null}
 
-      {fields.length === 0 ? (
+      {sessionRow ? (
+        <StatDataTable columns={columns} rows={[sessionRow]} onEditRow={() => setModalVisible(true)} />
+      ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={22} color={colors.textFaint} />
-          <Text style={styles.emptyText}>No entries added yet — tap &quot;{addLabel}&quot; to begin.</Text>
+          <Text style={styles.emptyText}>No match added yet this session — tap &quot;{addLabel}&quot; to add one.</Text>
         </View>
-      ) : null}
+      )}
 
       <SimpleStatAddModal
         visible={isModalVisible}
-        title={addLabel}
+        title={sessionRow ? 'Edit Match' : addLabel}
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
         emptyRow={emptyRow}
+        initialRow={sessionRow ?? undefined}
+        saveLabel={sessionRow ? 'Save Changes' : 'Save Entry'}
         columns={columns}
       />
     </View>

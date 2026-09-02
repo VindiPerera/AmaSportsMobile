@@ -13,6 +13,13 @@ interface SimpleStatAddModalProps {
   onSave: (row: Record<string, unknown>) => void;
   emptyRow: Record<string, unknown>;
   columns: StatColumn[];
+  /** When set, the form opens pre-filled with this row's values instead of
+   * `emptyRow` — used to edit an existing entry (see RecentMatchTable) in
+   * place of adding a new one. */
+  initialRow?: Record<string, unknown>;
+  /** Label for the save button — defaults to "Save Entry"; RecentMatchTable
+   * passes "Save Changes" while editing. */
+  saveLabel?: string;
 }
 
 /**
@@ -20,11 +27,14 @@ interface SimpleStatAddModalProps {
  * merge-into-existing step, just the fields themselves. Used for Recent
  * Matches: each match is its own standalone row (unlike Batting/Bowling
  * Career Stats, there's no combining key to merge duplicates into), so
- * every "Add" always appends a fresh entry.
+ * every "Add" always appends a fresh entry. Doubles as the "edit" form for
+ * an existing match via `initialRow` — same fields, just pre-filled and
+ * saved back in place instead of appended.
  *
- * Only mounted while `visible`, so every re-open starts the form blank via
- * useState's initializer — no reset-on-open effect, and no risk of a
- * previous match's values leaking into the next one.
+ * Only mounted while `visible`, so every re-open starts the form blank (or
+ * pre-filled from `initialRow`) via useState's initializer — no
+ * reset-on-open effect, and no risk of a previous match's values leaking
+ * into the next one.
  */
 export function SimpleStatAddModal(props: SimpleStatAddModalProps) {
   const { visible, onClose } = props;
@@ -35,8 +45,16 @@ export function SimpleStatAddModal(props: SimpleStatAddModalProps) {
   );
 }
 
-function SimpleStatAddModalBody({ title, onClose, onSave, emptyRow, columns }: SimpleStatAddModalProps) {
-  const [row, setRow] = useState<Record<string, unknown>>(() => ({ ...emptyRow }));
+function SimpleStatAddModalBody({
+  title,
+  onClose,
+  onSave,
+  emptyRow,
+  columns,
+  initialRow,
+  saveLabel = 'Save Entry',
+}: SimpleStatAddModalProps) {
+  const [row, setRow] = useState<Record<string, unknown>>(() => ({ ...(initialRow ?? emptyRow) }));
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
@@ -71,7 +89,7 @@ function SimpleStatAddModalBody({ title, onClose, onSave, emptyRow, columns }: S
 
         <Pressable onPress={() => onSave(row)} style={styles.nextButton} accessibilityRole="button">
           <Ionicons name="checkmark-circle-outline" size={16} color={colors.white} />
-          <Text style={styles.nextButtonText}>Save Entry</Text>
+          <Text style={styles.nextButtonText}>{saveLabel}</Text>
         </Pressable>
       </KeyboardAwareScrollView>
     </SafeAreaView>

@@ -4,7 +4,7 @@ import { ArrayPath, Control, Controller, FieldValues, Path, useFieldArray } from
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
-import { toIsoDateString } from '../../utils/date';
+import { formatShortMatchDate, toIsoDateString } from '../../utils/date';
 import { Dropdown, DropdownOption } from './Dropdown';
 
 export type ColumnType = 'text' | 'number' | 'decimal' | 'date' | 'boolean' | 'select';
@@ -179,6 +179,27 @@ export function StatCell({
         />
       );
   }
+}
+
+/** Renders a StatColumn's raw form value as the compact, read-only string
+ * shown in StatDataTable — 'boolean' becomes "Yes"/"No", 'select' resolves
+ * to its option label (falling back to the raw id if the option list
+ * doesn't contain it), 'date' renders the same short format used elsewhere
+ * for match dates, and everything else prints as typed or an em dash when
+ * blank. */
+export function formatStatCellValue(column: StatColumn, value: unknown): string {
+  if (column.type === 'boolean') return value ? 'Yes' : 'No';
+
+  const raw = value == null ? '' : String(value);
+
+  if (column.type === 'select') {
+    if (!raw) return '—';
+    return column.options?.find((option) => option.value === raw)?.label ?? raw;
+  }
+  if (column.type === 'date') {
+    return raw ? formatShortMatchDate(raw) : '—';
+  }
+  return raw.trim() === '' ? '—' : raw;
 }
 
 /**
