@@ -11,7 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { CricketProfileFormValues, Lookups } from '../../types';
-import { formatBornDate, formatDetailedAge, formatShortMatchDate } from '../../utils/date';
+import { formatBornDate, formatDetailedAge, formatShortMatchDate, sortRecentMatchesNewestFirst } from '../../utils/date';
+import { ImageLightbox } from '../ui/ImageLightbox';
 
 interface CricketPlayerDetailViewProps {
   fullName: string;
@@ -20,6 +21,11 @@ interface CricketPlayerDetailViewProps {
   coverUrl?: string | null;
   values: CricketProfileFormValues;
   lookups: Lookups;
+  /** Logo per team name (see TeamsInput) — a team with no entry here just
+   * shows the default shield icon. */
+  teamLogos?: Record<string, string>;
+  /** College/University logo (see CollegeLogoUpload). */
+  collegeLogoUrl?: string | null;
   onEditPress?: () => void;
   onBackPress?: () => void;
 }
@@ -31,11 +37,15 @@ export function CricketPlayerDetailView({
   coverUrl,
   values,
   lookups,
+  teamLogos,
+  collegeLogoUrl,
   onEditPress,
   onBackPress,
 }: CricketPlayerDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'matches'>('overview');
   const [showAllRecent, setShowAllRecent] = useState(false);
+  // Tapping the cover photo or the avatar opens it full-screen in this.
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
   // Name helpers
   const nameParts = fullName.trim().split(' ');
@@ -68,9 +78,10 @@ export function CricketPlayerDetailView({
   const hasBowlingStats = values.bowling && values.bowling.length > 0;
   const bowlingRows = hasBowlingStats ? values.bowling : [];
 
-  // Process Recent Matches
+  // Process Recent Matches — newest first regardless of the order they
+  // arrived in (e.g. older data saved before this rule existed).
   const hasRecentMatches = values.recent_matches && values.recent_matches.length > 0;
-  const recentMatches = hasRecentMatches ? values.recent_matches : [];
+  const recentMatches = hasRecentMatches ? sortRecentMatchesNewestFirst(values.recent_matches) : [];
   const displayedRecentMatches = showAllRecent ? recentMatches : recentMatches.slice(0, 5);
 
   // Debut & Last Matches (not supported yet)
@@ -81,13 +92,19 @@ export function CricketPlayerDetailView({
       {/* Dark Navy Header Banner */}
       <View style={styles.headerBanner}>
         {coverUrl ? (
-          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Pressable onPress={() => setLightboxUri(coverUrl)} style={StyleSheet.absoluteFill}>
+            <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          </Pressable>
         ) : null}
+        {/* Light scrim, not a heavy one — the cover photo itself should read
+            clearly; this only needs to keep the white name/icon text
+            legible where it sits near the bottom. */}
         <LinearGradient
-          colors={coverUrl ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
+          colors={coverUrl ? ['rgba(11, 25, 44, 0.15)', 'rgba(11, 25, 44, 0.55)'] : colors.gradientHero}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
 
         {/* Navigation Bar */}
@@ -123,7 +140,9 @@ export function CricketPlayerDetailView({
 
           <View style={styles.avatarContainer}>
             {photoUrl ? (
-              <Image source={{ uri: photoUrl }} style={styles.avatarImg} />
+              <Pressable onPress={() => setLightboxUri(photoUrl)} style={styles.avatarPressable}>
+                <Image source={{ uri: photoUrl }} style={styles.avatarImg} />
+              </Pressable>
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarInitials}>
@@ -221,7 +240,12 @@ export function CricketPlayerDetailView({
                 {values.college_university ? (
                   <View style={styles.gridItemFull}>
                     <Text style={styles.fieldLabel}>EDUCATION</Text>
-                    <Text style={styles.fieldValueBold}>{values.college_university}</Text>
+                    <View style={styles.educationRow}>
+                      {collegeLogoUrl ? (
+                        <Image source={{ uri: collegeLogoUrl }} style={styles.educationLogo} />
+                      ) : null}
+                      <Text style={styles.fieldValueBold}>{values.college_university}</Text>
+                    </View>
                   </View>
                 ) : null}
 
@@ -233,7 +257,11 @@ export function CricketPlayerDetailView({
                       {values.teams.map((team, idx) => (
                         <View key={idx} style={styles.teamBadge}>
                           <View style={styles.teamBadgeIcon}>
-                            <Ionicons name="shield" size={14} color={colors.primary} />
+                            {teamLogos?.[team] ? (
+                              <Image source={{ uri: teamLogos[team] }} style={styles.teamBadgeLogo} />
+                            ) : (
+                              <Ionicons name="shield" size={14} color={colors.primary} />
+                            )}
                           </View>
                           <Text style={styles.teamBadgeText}>{team}</Text>
                         </View>
@@ -456,6 +484,9 @@ export function CricketPlayerDetailView({
           </>
         )}
       </ScrollView>
+
+      {/* Full-screen view of whichever photo (cover or avatar) was tapped. */}
+      <ImageLightbox uri={lightboxUri} onClose={() => setLightboxUri(null)} />
     </View>
   );
 }
@@ -596,6 +627,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarPressable: {
+    width: '100%',
+    height: '100%',
+  },
   avatarImg: {
     width: '100%',
     height: '100%',
@@ -689,6 +724,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  educationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  educationLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   teamsChipList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -713,6 +760,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  teamBadgeLogo: {
+    width: '100%',
+    height: '100%',
   },
   teamBadgeText: {
     ...typography.body,

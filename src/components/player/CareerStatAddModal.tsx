@@ -67,6 +67,13 @@ interface CareerStatAddModalProps {
    * Year is part of the identity: U13 · Div IV · 2026 and U13 · Div IV ·
    * 2027 are separate entries. */
   hasExistingEntry: (categoryId: string, divisionId: string, year: string) => boolean;
+  /** When set, the modal skips straight to the match-details step for this
+   * exact entry (Category/Division/Year shown read-only, not re-pickable)
+   * instead of the Add/Update wizard — used to correct an entry already on
+   * file (see CareerStatTable). Saving replaces that entry outright; it
+   * never merges, since re-picking the same Category+Division+Year would
+   * otherwise double-count against itself. */
+  editRow?: Record<string, string> | null;
 }
 
 type Step = 'choice' | 'existing' | 'select' | 'detail';
@@ -102,11 +109,13 @@ function CareerStatAddModalBody({
   divisions,
   detailColumns,
   hasExistingEntry,
+  editRow,
 }: CareerStatAddModalProps) {
+  const isEditing = !!editRow;
   const hasEntries = rows.length > 0;
-  const [step, setStep] = useState<Step>(hasEntries ? 'choice' : 'select');
-  const [categoryId, setCategoryId] = useState('');
-  const [divisionId, setDivisionId] = useState('');
+  const [step, setStep] = useState<Step>(isEditing ? 'detail' : hasEntries ? 'choice' : 'select');
+  const [categoryId, setCategoryId] = useState(editRow?.age_category_id ?? '');
+  const [divisionId, setDivisionId] = useState(editRow?.format_id ?? '');
   // Year is part of an entry's identity (see hasExistingEntry), but it's
   // never typed in — a brand new entry is always tagged with the current
   // year automatically, so once the calendar rolls over the same
@@ -114,12 +123,13 @@ function CareerStatAddModalBody({
   // existing entry to update takes on *that* entry's year instead, so the
   // update lands on the right one even if it's from a past year.
   const currentYear = String(new Date().getFullYear());
-  const [year, setYear] = useState(currentYear);
+  const [year, setYear] = useState(editRow?.year || currentYear);
   // Which path got us to the match-details step — decides whether "Back"
   // returns to the existing-entries list or the new-entry picker, and
-  // whether Save merges (always true for 'existing') or creates fresh.
+  // whether Save merges (always true for 'existing') or creates fresh. Not
+  // used while editing — that path replaces the entry outright.
   const [origin, setOrigin] = useState<'select' | 'existing'>('select');
-  const [detail, setDetail] = useState<Record<string, string>>(() => ({ ...emptyRow }));
+  const [detail, setDetail] = useState<Record<string, string>>(() => ({ ...(editRow ?? emptyRow) }));
 
   const labelFor = (options: DropdownOption[], id: string) => options.find((o) => o.value === id)?.label ?? '—';
   const categoryName = labelFor(categories, categoryId);
@@ -178,14 +188,16 @@ function CareerStatAddModalBody({
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={styles.stepIndicatorRow}>
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <React.Fragment key={i}>
-              {i > 0 ? <View style={styles.stepLine} /> : null}
-              <View style={[styles.stepDot, i + 1 === stepIndex && styles.stepDotActive]} />
-            </React.Fragment>
-          ))}
-        </View>
+        {isEditing ? null : (
+          <View style={styles.stepIndicatorRow}>
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <React.Fragment key={i}>
+                {i > 0 ? <View style={styles.stepLine} /> : null}
+                <View style={[styles.stepDot, i + 1 === stepIndex && styles.stepDotActive]} />
+              </React.Fragment>
+            ))}
+          </View>
+        )}
 
         <KeyboardAwareScrollView
           contentContainerStyle={styles.scrollContent}
@@ -316,12 +328,16 @@ function CareerStatAddModalBody({
             </>
           ) : (
             <>
-              <Pressable onPress={() => setStep(origin)} style={styles.backRow} accessibilityRole="button">
-                <Ionicons name="chevron-back" size={16} color={colors.primary} />
-                <Text style={styles.backRowText}>
-                  {entryLabel} · {year}
-                </Text>
-              </Pressable>
+              {isEditing ? (
+                <Text style={styles.stepSubtitle}>{entryLabel} · {year}</Text>
+              ) : (
+                <Pressable onPress={() => setStep(origin)} style={styles.backRow} accessibilityRole="button">
+                  <Ionicons name="chevron-back" size={16} color={colors.primary} />
+                  <Text style={styles.backRowText}>
+                    {entryLabel} · {year}
+                  </Text>
+                </Pressable>
+              )}
 
               <Text style={styles.stepTitle}>Match Details</Text>
 
@@ -338,7 +354,9 @@ function CareerStatAddModalBody({
 
               <Pressable onPress={handleSave} style={styles.nextButton} accessibilityRole="button">
                 <Ionicons name="checkmark-circle-outline" size={16} color={colors.white} />
-                <Text style={styles.nextButtonText}>{willMerge ? 'Save & Merge' : 'Save Entry'}</Text>
+                <Text style={styles.nextButtonText}>
+                  {isEditing ? 'Save Changes' : willMerge ? 'Save & Merge' : 'Save Entry'}
+                </Text>
               </Pressable>
             </>
           )}

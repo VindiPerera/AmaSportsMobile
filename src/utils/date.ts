@@ -59,6 +59,24 @@ export function formatDetailedAge(bornIsoDate: string | null | undefined, fallba
   return `${years}y ${days}d`;
 }
 
+/** Recent Matches only ever keeps this many — adding an 11th drops the
+ * oldest one. */
+export const MAX_RECENT_MATCHES = 10;
+
+/**
+ * Newest match first (today's match before yesterday's), capped to the 10
+ * most recent — adding an 11th silently drops the oldest, not the newest.
+ * Used both when a match is added (see RecentMatchTable) and when it's
+ * displayed (see CricketPlayerDetailView), so both stay in sync regardless
+ * of the order rows happen to arrive in (e.g. older data saved before this
+ * rule existed).
+ */
+export function sortRecentMatchesNewestFirst<T extends { match_date?: unknown }>(rows: T[]): T[] {
+  return [...rows]
+    .sort((a, b) => String(b.match_date ?? '').localeCompare(String(a.match_date ?? '')))
+    .slice(0, MAX_RECENT_MATCHES);
+}
+
 export function formatShortMatchDate(isoDate: string | null | undefined): string {
   if (!isoDate) return '--';
   const date = new Date(isoDate);

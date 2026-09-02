@@ -21,7 +21,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -51,7 +54,11 @@
       "expo-web-browser"
     ],
     "extra": {
-      "apiUrl": "http://127.0.0.1:8000/api"
+      "apiUrl": "https://amasports.jaan.lk/api",
+      "router": {},
+      "eas": {
+        "projectId": "fe907456-8db7-4fef-b91c-64896217452e"
+      }
     }
   }
 }

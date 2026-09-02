@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '../../theme';
 import { DropdownOption } from './Dropdown';
 import { StatColumn } from './StatTable';
+import { StatDataTable } from './StatDataTable';
 import { CareerStatAddModal } from './CareerStatAddModal';
 import { entryKey } from '../../utils/statMerge';
 
@@ -49,8 +50,16 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
 }: CareerStatTableProps<TFieldValues>) {
   const { fields, append, update } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
+  // Index (in `rows`) of the one entry this session's "Add" touched — either
+  // a brand new row or one it merged into — or null before that happens.
+  // The Add button disables the moment this is set (see `locked`), so the
+  // modal is only ever reachable afterwards through the table's edit
+  // pencil, which corrects this same entry (replacing it outright, never
+  // merging again).
+  const [sessionIndex, setSessionIndex] = useState<number | null>(null);
 
   const rows = fields as unknown as Record<string, string>[];
+  const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
 
   const findIndex = (categoryId: string, divisionId: string, year: string) =>
     rows.findIndex(
@@ -60,15 +69,32 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
     );
 
   const handleSave = (row: Record<string, string>) => {
+    if (sessionIndex !== null) {
+      update(sessionIndex, row as never);
+      setModalVisible(false);
+      return;
+    }
     const index = findIndex(row.age_category_id, row.format_id, row.year);
     if (index >= 0) {
       update(index, mergeRows(rows[index], row) as never);
+      setSessionIndex(index);
     } else {
       append(row as never);
+      setSessionIndex(rows.length);
     }
     setModalVisible(false);
     onEntryAdded();
   };
+
+  // Category/Division/Year identify each entry (see entryKey) but aren't
+  // part of detailColumns — shown as their own leading columns so the table
+  // reads the same as the "Which Entry?" picker in CareerStatAddModal.
+  const tableColumns: StatColumn[] = [
+    { key: 'age_category_id', label: 'Category', type: 'select', options: categories, width: 100 },
+    { key: 'format_id', label: 'Division', type: 'select', options: divisions, width: 90 },
+    { key: 'year', label: 'Year', type: 'text', width: 64 },
+    ...detailColumns,
+  ];
 
   return (
     <View style={styles.container}>
@@ -101,16 +127,18 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
         </Text>
       ) : null}
 
-      {fields.length === 0 ? (
+      {sessionRow ? (
+        <StatDataTable columns={tableColumns} rows={[sessionRow]} onEditRow={() => setModalVisible(true)} />
+      ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={22} color={colors.textFaint} />
-          <Text style={styles.emptyText}>No entries added yet — tap &quot;{addLabel}&quot; to begin.</Text>
+          <Text style={styles.emptyText}>No entry added yet this session — tap &quot;{addLabel}&quot; to add one.</Text>
         </View>
-      ) : null}
+      )}
 
       <CareerStatAddModal
         visible={isModalVisible}
-        title={addLabel}
+        title={sessionRow ? 'Edit Entry' : addLabel}
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
         emptyRow={emptyRow}
@@ -119,6 +147,7 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
         divisions={divisions}
         detailColumns={detailColumns}
         hasExistingEntry={(categoryId, divisionId, year) => findIndex(categoryId, divisionId, year) >= 0}
+        editRow={sessionRow ?? undefined}
       />
     </View>
   );
