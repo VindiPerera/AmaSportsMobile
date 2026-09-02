@@ -7,6 +7,7 @@ import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { Logo } from '../../../src/components/ui/Logo';
 import { Chip } from '../../../src/components/ui/Chip';
+import { ImageLightbox } from '../../../src/components/ui/ImageLightbox';
 import { SubscriptionStatusChip } from '../../../src/components/subscription/SubscriptionStatusChip';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -55,6 +56,7 @@ export default function HomeScreen() {
   const [liveScoreState, setLiveScoreState] = useState<Record<number, MultiSportLiveScore>>({});
   const [cricketAnalysis, setCricketAnalysis] = useState<CricketAnalysisResponse | null>(null);
   const [selectedAnalyticsSlug, setSelectedAnalyticsSlug] = useState<string | null>(null);
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useFocusEffect(
@@ -162,15 +164,20 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Welcome back,</Text>
             <Text style={styles.name}>{player?.full_name || user?.name || 'Athlete'}</Text>
           </View>
-          {player?.photo_url || user?.photo_url ? (
-            <Image source={{ uri: player?.photo_url || user?.photo_url }} style={styles.heroAvatar} />
-          ) : (
-            <View style={styles.heroAvatarFallback}>
-              <Text style={styles.heroAvatarText}>
-                {(player?.full_name || user?.name || 'A')[0]?.toUpperCase()}
-              </Text>
-            </View>
-          )}
+          {(() => {
+            const avatarUri = player?.photo_url || user?.photo_url;
+            return avatarUri ? (
+              <Pressable onPress={() => setLightboxUri(avatarUri)}>
+                <Image source={{ uri: avatarUri }} style={styles.heroAvatar} />
+              </Pressable>
+            ) : (
+              <View style={styles.heroAvatarFallback}>
+                <Text style={styles.heroAvatarText}>
+                  {(player?.full_name || user?.name || 'A')[0]?.toUpperCase()}
+                </Text>
+              </View>
+            );
+          })()}
         </View>
 
         {/* Real Data Stat Chips */}
@@ -550,6 +557,8 @@ export default function HomeScreen() {
           )}
         </>
       )}
+
+      <ImageLightbox uri={lightboxUri} onClose={() => setLightboxUri(null)} />
     </ScreenContainer>
   );
 }

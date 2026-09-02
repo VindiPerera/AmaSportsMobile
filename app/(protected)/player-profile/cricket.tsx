@@ -12,6 +12,7 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
+import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
 import { CareerStatTable } from '../../../src/components/player/CareerStatTable';
 import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { mergeBattingRows, mergeBowlingRows } from '../../../src/utils/statMerge';
@@ -28,7 +29,7 @@ import {
   BOWLING_STYLE_OPTIONS,
   PLAYING_ROLE_OPTIONS,
 } from '../../../src/constants/cricketOptions';
-import { calculateAge } from '../../../src/utils/date';
+import { calculateAge, sortRecentMatchesNewestFirst } from '../../../src/utils/date';
 import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
@@ -107,6 +108,11 @@ export default function CricketProfileScreen() {
   const [country, setCountry] = useState('');
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+  // Team logos (see TeamsInput) — keyed by team name, managed via their own
+  // upload endpoint rather than as part of the form's Save button.
+  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
+  // College/University logo — same "own endpoint, not part of Save" idea.
+  const [collegeLogoUrl, setCollegeLogoUrl] = useState<string | null>(null);
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
@@ -129,6 +135,10 @@ export default function CricketProfileScreen() {
         setCountry(profile.country ?? '');
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
+        setTeamLogos(
+          Object.fromEntries((cricketProfile.team_logos ?? []).map((l) => [l.team_name, l.logo_url]))
+        );
+        setCollegeLogoUrl(cricketProfile.college_logo_url ?? null);
 
         reset({
           born: cricketProfile.born ?? '',
@@ -147,10 +157,12 @@ export default function CricketProfileScreen() {
           bowling: cricketProfile.bowling.map((row) =>
             mapRow(row, Object.keys(EMPTY_BOWLING_ROW))
           ) as unknown as CricketProfileFormValues['bowling'],
-          recent_matches: cricketProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'runs', 'balls', 'fours', 'sixes', 'overs', 'maidens', 'wickets', 'catches', 'stumpings']),
-            played_xi: Boolean(row.played_xi),
-          })) as unknown as CricketProfileFormValues['recent_matches'],
+          recent_matches: sortRecentMatchesNewestFirst(
+            cricketProfile.recent_matches.map((row) => ({
+              ...mapRow(row, ['match_date', 'opponent', 'runs', 'balls', 'fours', 'sixes', 'overs', 'maidens', 'wickets', 'catches', 'stumpings']),
+              played_xi: Boolean(row.played_xi),
+            })) as unknown as Record<string, unknown>[]
+          ) as unknown as CricketProfileFormValues['recent_matches'],
           drop_catches: cricketProfile.drop_catches.map((row) =>
             mapRow(row, Object.keys(EMPTY_DROP_CATCH_ROW))
           ) as unknown as CricketProfileFormValues['drop_catches'],
@@ -171,6 +183,38 @@ export default function CricketProfileScreen() {
     if (!getValues('age')) {
       const computed = calculateAge(isoDate);
       if (computed !== null) setValue('age', String(computed));
+    }
+  };
+
+  const handleUploadCollegeLogo = async (image: PickedImage) => {
+    const uploaded = await playerService.uploadCollegeLogo(image);
+    setCollegeLogoUrl(uploaded.college_logo_url);
+  };
+
+  const handleRemoveCollegeLogo = async () => {
+    setCollegeLogoUrl(null);
+    try {
+      await playerService.removeCollegeLogo();
+    } catch {
+      // Swallow — worst case the logo silently comes back on next load.
+    }
+  };
+
+  const handleUploadTeamLogo = async (teamName: string, image: PickedImage) => {
+    const uploaded = await playerService.uploadTeamLogo(teamName, image);
+    setTeamLogos((prev) => ({ ...prev, [uploaded.team_name]: uploaded.logo_url }));
+  };
+
+  const handleRemoveTeamLogo = async (teamName: string) => {
+    setTeamLogos((prev) => {
+      const next = { ...prev };
+      delete next[teamName];
+      return next;
+    });
+    try {
+      await playerService.removeTeamLogo(teamName);
+    } catch {
+      // Swallow — worst case the logo silently comes back on next load.
     }
   };
 
@@ -229,6 +273,8 @@ export default function CricketProfileScreen() {
         coverUrl={coverPicked?.uri || existingCoverUrl}
         values={formValues}
         lookups={lookups}
+        teamLogos={teamLogos}
+        collegeLogoUrl={collegeLogoUrl}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
@@ -336,15 +382,56 @@ export default function CricketProfileScreen() {
           control={control}
           name="college_university"
           render={({ field: { value, onChange } }) => (
-            <TextField label="College / University" value={value} onChangeText={onChange} placeholder="School or University" />
+            <View style={[styles.headerRow, styles.collegeRow]}>
+              <View style={styles.headerRowItem}>
+                <TextField label="College / University" value={value} onChangeText={onChange} placeholder="School or University" />
+              </View>
+              <CollegeLogoUpload
+                logoUrl={collegeLogoUrl}
+                onUpload={handleUploadCollegeLogo}
+                onRemove={handleRemoveCollegeLogo}
+              />
+            </View>
           )}
         />
         <Controller
           control={control}
           name="teams"
-          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+          render={({ field: { value, onChange } }) => (
+            <TeamsInput
+              value={value}
+              onChange={onChange}
+              logos={teamLogos}
+              onUploadLogo={handleUploadTeamLogo}
+              onRemoveLogo={handleRemoveTeamLogo}
+            />
+          )}
         />
       </View>
+
+      <RecentMatchTable
+        title="Recent Matches"
+        addLabel="Add New Match"
+        control={control}
+        name="recent_matches"
+        emptyRow={EMPTY_RECENT_MATCH_ROW}
+        locked={recentMatchLocked}
+        onEntryAdded={() => setRecentMatchLocked(true)}
+        columns={[
+          { key: 'match_date', label: 'Date', type: 'date' },
+          { key: 'opponent', label: 'Match vs', type: 'text' },
+          { key: 'played_xi', label: 'Played XI', type: 'boolean' },
+          { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'balls', label: 'Balls', type: 'number' },
+          { key: 'fours', label: '4s', type: 'number' },
+          { key: 'sixes', label: '6s', type: 'number' },
+          { key: 'overs', label: 'Overs', type: 'text' },
+          { key: 'maidens', label: 'Maidens', type: 'number' },
+          { key: 'wickets', label: 'Wkts', type: 'number' },
+          { key: 'catches', label: 'Catches', type: 'number' },
+          { key: 'stumpings', label: 'Stumpings', type: 'number' },
+        ]}
+      />
 
       <CareerStatTable
         title="Batting Career Stats"
@@ -412,30 +499,6 @@ export default function CricketProfileScreen() {
         values already exist for this player (see reset()/cricketFormToPayload)
         so no data is lost; it's just no longer editable from this screen.
       */}
-
-      <RecentMatchTable
-        title="Recent Matches"
-        addLabel="Add New Match"
-        control={control}
-        name="recent_matches"
-        emptyRow={EMPTY_RECENT_MATCH_ROW}
-        locked={recentMatchLocked}
-        onEntryAdded={() => setRecentMatchLocked(true)}
-        columns={[
-          { key: 'match_date', label: 'Date', type: 'date' },
-          { key: 'opponent', label: 'Match vs', type: 'text' },
-          { key: 'played_xi', label: 'Played XI', type: 'boolean' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'balls', label: 'Balls', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
-          { key: 'sixes', label: '6s', type: 'number' },
-          { key: 'overs', label: 'Overs', type: 'text' },
-          { key: 'maidens', label: 'Maidens', type: 'number' },
-          { key: 'wickets', label: 'Wkts', type: 'number' },
-          { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
-        ]}
-      />
 
       {/*
         Drop Catches and "Reason for Matches Missed/Dropped" removed from this
@@ -517,6 +580,9 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+  },
+  collegeRow: {
+    alignItems: 'flex-end',
   },
   headerRowItem: {
     flex: 1,

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { Button } from '../../../src/components/ui/Button';
+import { AddSportGuideModal } from '../../../src/components/player/AddSportGuideModal';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
@@ -25,6 +26,9 @@ export default function SportPickerScreen() {
   const [addedSportIds, setAddedSportIds] = useState<Set<number> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // Shown every time a sport is picked (see AddSportGuideModal) — the
+  // player confirms "Got it" before actually landing on that sport's form.
+  const [pendingSport, setPendingSport] = useState<SportOption | null>(null);
 
   useEffect(() => {
     ensureLoaded();
@@ -46,7 +50,13 @@ export default function SportPickerScreen() {
 
   const handlePick = (sport: SportOption) => {
     setError(null);
-    router.push(resolveSportRoute(sport));
+    setPendingSport(sport);
+  };
+
+  const handleGuideContinue = () => {
+    if (!pendingSport) return;
+    router.push(resolveSportRoute(pendingSport));
+    setPendingSport(null);
   };
 
   const isLoading = !lookups || !addedSportIds;
@@ -156,6 +166,13 @@ export default function SportPickerScreen() {
           )}
         </>
       )}
+
+      <AddSportGuideModal
+        visible={!!pendingSport}
+        sportName={pendingSport?.name ?? ''}
+        onCancel={() => setPendingSport(null)}
+        onContinue={handleGuideContinue}
+      />
     </ScreenContainer>
   );
 }

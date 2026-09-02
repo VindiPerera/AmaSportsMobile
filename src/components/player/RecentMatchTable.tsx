@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '../../theme';
 import { StatColumn } from './StatTable';
 import { SimpleStatAddModal } from './SimpleStatAddModal';
+import { sortRecentMatchesNewestFirst } from '../../utils/date';
 
 interface RecentMatchTableProps<TFieldValues extends FieldValues> {
   title: string;
@@ -23,10 +24,13 @@ interface RecentMatchTableProps<TFieldValues extends FieldValues> {
 
 /**
  * Recent Matches — one blank match at a time via a modal (SimpleStatAddModal),
- * appended to the list, same "one add per save" flow as the Batting/Bowling
- * Career Stats tables (CareerStatTable). Unlike those, there's no Category+
- * Division to pick and no merge step: every match is its own row, so "Add"
- * always appends rather than ever combining into an existing entry.
+ * same "one add per save" flow as the Batting/Bowling Career Stats tables
+ * (CareerStatTable). Unlike those, there's no Category+Division to pick and
+ * no merge step: every match is its own row, so "Add" never combines into
+ * an existing entry — it's inserted, then the whole list is re-sorted
+ * newest-first and capped to the 10 most recent (see
+ * sortRecentMatchesNewestFirst) — adding an 11th drops the oldest, not the
+ * one just added.
  *
  * The Edit screen deliberately doesn't list already-saved matches as cards
  * here — this screen is for adding, not reviewing/deleting past entries;
@@ -42,11 +46,16 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
   locked,
   onEntryAdded,
 }: RecentMatchTableProps<TFieldValues>) {
-  const { fields, append } = useFieldArray({ control, name });
+  const { fields, replace } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
 
   const handleSave = (row: Record<string, unknown>) => {
-    append(row as never);
+    // Newest first, capped at 10 — adding an 11th drops the oldest one
+    // rather than the one just added. Re-sorting the whole array (not just
+    // appending) also keeps things correct if the player enters matches
+    // out of date order.
+    const rows = fields as unknown as Record<string, unknown>[];
+    replace(sortRecentMatchesNewestFirst([...rows, row]) as never);
     setModalVisible(false);
     onEntryAdded();
   };

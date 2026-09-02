@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { ImageLightbox } from '../../../src/components/ui/ImageLightbox';
 import { SubscriptionStatusCard } from '../../../src/components/subscription/SubscriptionStatusCard';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -28,6 +29,7 @@ export default function PlayerProfileHubScreen() {
   const [sports, setSports] = useState<PlayerSportEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -78,13 +80,18 @@ export default function PlayerProfileHubScreen() {
       {/* Dark Navy Hero Section */}
       <View style={[styles.heroCard, shadows.md]}>
         {player?.cover_photo_url ? (
-          <Image source={{ uri: player.cover_photo_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Pressable onPress={() => setLightboxUri(player.cover_photo_url ?? null)} style={StyleSheet.absoluteFill}>
+            <Image source={{ uri: player.cover_photo_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          </Pressable>
         ) : null}
+        {/* Light scrim — let the cover photo read clearly, only darken
+            enough to keep the white name/chip text legible near the bottom. */}
         <LinearGradient
-          colors={player?.cover_photo_url ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
+          colors={player?.cover_photo_url ? ['rgba(11, 25, 44, 0.15)', 'rgba(11, 25, 44, 0.55)'] : colors.gradientHero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
 
         <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={8}>
@@ -95,18 +102,23 @@ export default function PlayerProfileHubScreen() {
 
         <View style={styles.heroContent}>
           <View style={styles.avatarWrapper}>
-            {player?.photo_url || user?.photo_url ? (
-              <Image source={{ uri: player?.photo_url || user?.photo_url }} style={styles.avatar} />
-            ) : (
-              <LinearGradient
-                colors={colors.gradientAccent}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.avatar}
-              >
-                <Text style={styles.avatarInitial}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
-              </LinearGradient>
-            )}
+            {(() => {
+              const avatarUri = player?.photo_url || user?.photo_url;
+              return avatarUri ? (
+                <Pressable onPress={() => setLightboxUri(avatarUri)}>
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                </Pressable>
+              ) : (
+                <LinearGradient
+                  colors={colors.gradientAccent}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatar}
+                >
+                  <Text style={styles.avatarInitial}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
+                </LinearGradient>
+              );
+            })()}
             <View style={styles.cameraBadge}>
               <Ionicons name="camera" size={12} color={colors.white} />
             </View>
@@ -198,6 +210,8 @@ export default function PlayerProfileHubScreen() {
       </View>
 
       {isLoggingOut ? <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} /> : null}
+
+      <ImageLightbox uri={lightboxUri} onClose={() => setLightboxUri(null)} />
     </ScreenContainer>
   );
 }
