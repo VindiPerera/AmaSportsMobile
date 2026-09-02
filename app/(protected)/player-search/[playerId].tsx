@@ -67,6 +67,8 @@ export default function PublicCricketProfileScreen() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [values, setValues] = useState<CricketProfileFormValues | null>(null);
+  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
+  const [collegeLogoUrl, setCollegeLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!playerId) return;
@@ -81,6 +83,10 @@ export default function PublicCricketProfileScreen() {
         setCoverUrl(data.player.cover_photo_url);
 
         const cricketProfile = data.cricket_profile;
+        setTeamLogos(
+          Object.fromEntries((cricketProfile.team_logos ?? []).map((l) => [l.team_name, l.logo_url]))
+        );
+        setCollegeLogoUrl(cricketProfile.college_logo_url ?? null);
         setValues({
           born: cricketProfile.born ?? '',
           age: toFormString(cricketProfile.age),
@@ -140,6 +146,8 @@ export default function PublicCricketProfileScreen() {
       coverUrl={coverUrl}
       values={values}
       lookups={lookups}
+      teamLogos={teamLogos}
+      collegeLogoUrl={collegeLogoUrl}
       onBackPress={() => router.back()}
     />
   );

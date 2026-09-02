@@ -132,9 +132,14 @@ export interface CricketProfileResponse {
   playing_role: string | null;
   height: string | null;
   college_university: string | null;
+  college_logo_url: string | null;
   pitching_line_breakdown: Record<string, number>;
   ball_type_breakdown: Record<string, number>;
   teams: string[];
+  // Logo per team name (see TeamsInput) — managed via its own upload
+  // endpoint, not part of this save payload, so it's keyed by name rather
+  // than lining up positionally with `teams`.
+  team_logos: { team_name: string; logo_url: string }[];
   batting: Record<string, unknown>[];
   bowling: Record<string, unknown>[];
   recent_matches: Record<string, unknown>[];

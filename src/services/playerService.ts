@@ -7,12 +7,19 @@ import {
   CricketProfileResponse,
   HockeyProfileFormValues,
   HockeyProfileResponse,
+  PickedImage,
   PlayerProfile,
   PlayerSearchResult,
   PlayerSportEntry,
   PublicPlayerProfile,
   UpdatePlayerProfilePayload,
 } from '../types';
+
+/** Same web-vs-native File handling `buildProfileFormData` uses below,
+ * pulled out so the team-logo upload doesn't duplicate it a third time. */
+function appendPickedImage(formData: FormData, key: string, image: PickedImage) {
+  formData.append(key, (image.file ?? (image as unknown)) as Blob, image.file ? image.name : undefined);
+}
 
 function idOrNull(value: string): number | null {
   return parseIntOrNull(value);
@@ -22,25 +29,13 @@ function buildProfileFormData(payload: UpdatePlayerProfilePayload): FormData {
   const formData = new FormData();
   if (payload.full_name !== undefined) formData.append('full_name', payload.full_name);
   if (payload.country !== undefined) formData.append('country', payload.country);
-  if (payload.cover_photo) {
-    // On web, expo-image-picker's {uri,name,type} shape isn't a real file —
-    // browser FormData would just stringify it to "[object Object]" and fail
-    // Laravel's `image` rule. Use the picker's web-only `file` (a real
-    // browser File) there; native RN's FormData polyfill accepts the plain
-    // {uri,name,type} object directly.
-    formData.append(
-      'cover_photo',
-      (payload.cover_photo.file ?? (payload.cover_photo as unknown)) as Blob,
-      payload.cover_photo.file ? payload.cover_photo.name : undefined
-    );
-  }
-  if (payload.photo) {
-    formData.append(
-      'photo',
-      (payload.photo.file ?? (payload.photo as unknown)) as Blob,
-      payload.photo.file ? payload.photo.name : undefined
-    );
-  }
+  // On web, expo-image-picker's {uri,name,type} shape isn't a real file —
+  // browser FormData would just stringify it to "[object Object]" and fail
+  // Laravel's `image` rule. appendPickedImage uses the picker's web-only
+  // `file` (a real browser File) there; native RN's FormData polyfill
+  // accepts the plain {uri,name,type} object directly.
+  if (payload.cover_photo) appendPickedImage(formData, 'cover_photo', payload.cover_photo);
+  if (payload.photo) appendPickedImage(formData, 'photo', payload.photo);
   return formData;
 }
 
@@ -249,6 +244,42 @@ export const playerService = {
       cricketFormToPayload(values)
     );
     return data.data;
+  },
+
+  /** Uploads (or replaces) the logo for one of the free-text team names on
+   * the Cricket form's Teams field — immediate, not part of
+   * saveCricketProfile's bulk save (see TeamsInput). */
+  async uploadTeamLogo(teamName: string, logo: PickedImage) {
+    const formData = new FormData();
+    formData.append('team_name', teamName);
+    appendPickedImage(formData, 'logo', logo);
+    const { data } = await apiClient.post<ApiSuccessResponse<{ team_name: string; logo_url: string }>>(
+      '/player/team-logo',
+      formData
+    );
+    return data.data;
+  },
+
+  /** Removes a previously uploaded team logo — the team name itself is untouched. */
+  async removeTeamLogo(teamName: string) {
+    await apiClient.delete('/player/team-logo', { data: { team_name: teamName } });
+  },
+
+  /** Uploads (or replaces) the College/University logo — immediate, not
+   * part of saveCricketProfile's bulk save. */
+  async uploadCollegeLogo(logo: PickedImage) {
+    const formData = new FormData();
+    appendPickedImage(formData, 'logo', logo);
+    const { data } = await apiClient.post<ApiSuccessResponse<{ college_logo_url: string }>>(
+      '/player/cricket-profile/college-logo',
+      formData
+    );
+    return data.data;
+  },
+
+  /** Removes the College/University logo — the name itself is untouched. */
+  async removeCollegeLogo() {
+    await apiClient.delete('/player/cricket-profile/college-logo');
   },
 
   /**
