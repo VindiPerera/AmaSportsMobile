@@ -12,7 +12,9 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { StatTable, StatColumn } from '../../../src/components/player/StatTable';
+import { StatColumn } from '../../../src/components/player/StatTable';
+import { StatSectionWizard } from '../../../src/components/player/StatSectionWizard';
+import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
@@ -28,7 +30,7 @@ import { ApiError, PickedImage, RacketSportProfileFormValues } from '../../../sr
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
-  set_win: '', set_lost: '', quarter_final: '', semi_final: '', third_place: '', second_place: '', champion: '',
+  set_win: '', set_lost: '', quarter_final: '', semi_final: '', third_place: '', second_place: '', champion: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
@@ -71,6 +73,10 @@ export default function RacketSportProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [singleLocked, setSingleLocked] = useState(false);
+  const [doubleLocked, setDoubleLocked] = useState(false);
+  const [mixDoubleLocked, setMixDoubleLocked] = useState(false);
+  const [recentLocked, setRecentLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -181,6 +187,10 @@ export default function RacketSportProfileScreen() {
       await racketSportService.saveProfile(sport.id, values);
       await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
+      setSingleLocked(false);
+      setDoubleLocked(false);
+      setMixDoubleLocked(false);
+      setRecentLocked(false);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -200,6 +210,12 @@ export default function RacketSportProfileScreen() {
     );
   }
 
+  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
+  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
+  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
+  const labelFor = (options: { label: string; value: string }[], id: unknown) =>
+    options.find((o) => o.value === String(id ?? ''))?.label ?? String(id ?? '-');
+
   if (isViewing) {
     const fields = [
       { label: 'RANKING', value: formValues.current_ranking },
@@ -208,18 +224,34 @@ export default function RacketSportProfileScreen() {
       { label: 'WEIGHT', value: formValues.weight },
     ];
 
-    const mappedRecent = (formValues.recent_matches || []).map((m) => ({
-      match_date: m.match_date,
-      opponent: m.opponent,
-      scoreOrStat: m.set_1 ? `Sets: ${m.set_1}-${m.set_2}` : '--',
-      result: m.win ? 'WIN' : (m.lost ? 'LOSS' : 'DRAW'),
-    }));
-
-    const combinedCareerStats = [
-      ...(formValues.single_stats || []),
-      ...(formValues.double_stats || []),
-      ...(formValues.mix_double_stats || []),
+    const careerColumns = [
+      { key: 'year', label: 'Year', width: 55 },
+      { key: 'format_id', label: 'Format', width: 90 },
+      { key: 'age_category_id', label: 'Age', width: 70 },
+      { key: 'match_category_id', label: 'Category', width: 90 },
+      { key: 'matches', label: 'Mat', width: 45 },
+      { key: 'win', label: 'Win', width: 45 },
+      { key: 'lost', label: 'Lost', width: 45 },
+      { key: 'set_win', label: 'Set Win', width: 60 },
+      { key: 'set_lost', label: 'Set Lost', width: 60 },
+      { key: 'quarter_final', label: 'QF', width: 45 },
+      { key: 'semi_final', label: 'SF', width: 45 },
+      { key: 'third_place', label: '3rd', width: 40 },
+      { key: 'second_place', label: '2nd', width: 40 },
+      { key: 'champion', label: 'Titles', width: 55 },
     ];
+    const mapCareerRows = (rows: unknown[]) =>
+      (rows as Record<string, unknown>[]).map((r) => ({
+        ...r,
+        format_id: labelFor(formatOptions, r.format_id),
+        age_category_id: labelFor(ageOptions, r.age_category_id),
+        match_category_id: labelFor(categoryOptions, r.match_category_id),
+      }));
+
+    const recentRows = (formValues.recent_matches || []).map((m) => ({
+      ...m,
+      result: m.win ? 'WIN' : m.lost ? 'LOSS' : '-',
+    }));
 
     return (
       <PlayerSportDetailView
@@ -232,25 +264,32 @@ export default function RacketSportProfileScreen() {
         age={formValues.age}
         teams={formValues.teams}
         fields={fields}
-        careerStatsHeader={`${sportLabel} Stats`}
-        careerStatsColumns={[
-          { key: 'format_id', label: 'Format', width: 90 },
-          { key: 'matches', label: 'Mat', width: 50 },
-          { key: 'win', label: 'Win', width: 50 },
-          { key: 'lost', label: 'Lost', width: 50 },
-          { key: 'champion', label: 'Titles', width: 55 },
+        statCards={[
+          { header: `${sportLabel} Stats — Single`, columns: careerColumns, rows: mapCareerRows(formValues.single_stats || []) },
+          { header: `${sportLabel} Stats — Double`, columns: careerColumns, rows: mapCareerRows(formValues.double_stats || []) },
+          { header: `${sportLabel} Stats — Mix Double`, columns: careerColumns, rows: mapCareerRows(formValues.mix_double_stats || []) },
         ]}
-        careerStatsRows={combinedCareerStats}
-        recentMatches={mappedRecent}
+        recentCards={[
+          {
+            header: 'Recent Matches',
+            columns: [
+              { key: 'match_date', label: 'Date', width: 85 },
+              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'set_1', label: 'Set 1', width: 50 },
+              { key: 'set_2', label: 'Set 2', width: 50 },
+              { key: 'set_3', label: 'Set 3', width: 50 },
+              { key: 'set_4', label: 'Set 4', width: 50 },
+              { key: 'set_5', label: 'Set 5', width: 50 },
+              { key: 'result', label: 'Result', width: 60 },
+            ],
+            rows: recentRows,
+          },
+        ]}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
     );
   }
-
-  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
-  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
-  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
 
   const careerColumns: StatColumn[] = [
     { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
@@ -371,33 +410,48 @@ export default function RacketSportProfileScreen() {
       />
       </View>
 
-      <StatTable
+      <StatSectionWizard
         title="Career Status — Single"
+        addLabel="Add New Stat"
         control={control}
         name="single_stats"
         emptyRow={EMPTY_CAREER_ROW}
-        columns={careerColumns}
+        identityKey={['format_id', 'age_category_id', 'match_category_id', 'year']}
+        locked={singleLocked}
+        onEntryAdded={() => setSingleLocked(true)}
+        detailColumns={careerColumns}
       />
-      <StatTable
+      <StatSectionWizard
         title="Career Status — Double"
+        addLabel="Add New Stat"
         control={control}
         name="double_stats"
         emptyRow={EMPTY_CAREER_ROW}
-        columns={careerColumns}
+        identityKey={['format_id', 'age_category_id', 'match_category_id', 'year']}
+        locked={doubleLocked}
+        onEntryAdded={() => setDoubleLocked(true)}
+        detailColumns={careerColumns}
       />
-      <StatTable
+      <StatSectionWizard
         title="Career Status — Mix Double"
+        addLabel="Add New Stat"
         control={control}
         name="mix_double_stats"
         emptyRow={EMPTY_CAREER_ROW}
-        columns={careerColumns}
+        identityKey={['format_id', 'age_category_id', 'match_category_id', 'year']}
+        locked={mixDoubleLocked}
+        onEntryAdded={() => setMixDoubleLocked(true)}
+        detailColumns={careerColumns}
       />
 
-      <StatTable
+      <RecentMatchTable
         title="Recent Matches"
+        addLabel="Add New Match"
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
+        locked={recentLocked}
+        onEntryAdded={() => setRecentLocked(true)}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },

@@ -11,7 +11,7 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { StatTable } from '../../../src/components/player/StatTable';
+import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
 import { colors, shadows, spacing } from '../../../src/theme';
@@ -70,6 +70,9 @@ export default function SoftBallCricketProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [battingLocked, setBattingLocked] = useState(false);
+  const [bowlingLocked, setBowlingLocked] = useState(false);
+  const [recentLocked, setRecentLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -159,6 +162,9 @@ export default function SoftBallCricketProfileScreen() {
       await softBallCricketService.saveProfile(values);
       await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
+      setBattingLocked(false);
+      setBowlingLocked(false);
+      setRecentLocked(false);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -187,17 +193,10 @@ export default function SoftBallCricketProfileScreen() {
       { label: 'EDUCATION', value: formValues.college_university },
     ];
 
-    const mappedRecent = (formValues.recent_matches || []).map((m) => {
-      const parts: string[] = [];
-      if (m.runs) parts.push(`${m.runs} runs`);
-      if (m.wickets) parts.push(`${m.wickets} wkts`);
-      return {
-        match_date: m.match_date,
-        opponent: m.opponent,
-        scoreOrStat: parts.length > 0 ? parts.join(', ') : '--',
-        result: m.won ? 'WIN' : m.lost ? 'LOSS' : '--',
-      };
-    });
+    const recentRows = (formValues.recent_matches || []).map((m) => ({
+      ...m,
+      result: m.won ? 'WIN' : m.lost ? 'LOSS' : '-',
+    }));
 
     return (
       <PlayerSportDetailView
@@ -210,27 +209,59 @@ export default function SoftBallCricketProfileScreen() {
         age={formValues.age}
         teams={formValues.teams}
         fields={fields}
-        careerStatsHeader="Batting Stats"
-        careerStatsColumns={[
-          { key: 'matches', label: 'Mat', width: 45 },
-          { key: 'runs', label: 'Runs', width: 55 },
-          { key: 'innings', label: 'Inn', width: 45 },
-          { key: 'highest', label: 'HS', width: 55 },
-          { key: 'hundreds', label: '100s', width: 50 },
-          { key: 'fifties', label: '50s', width: 50 },
+        statCards={[
+          {
+            header: 'Batting Stats',
+            columns: [
+              { key: 'matches', label: 'Mat', width: 45 },
+              { key: 'runs', label: 'Runs', width: 55 },
+              { key: 'innings', label: 'Inn', width: 45 },
+              { key: 'highest', label: 'HS', width: 55 },
+              { key: 'not_out', label: 'NO', width: 45 },
+              { key: 'hundreds', label: '100s', width: 50 },
+              { key: 'fifties', label: '50s', width: 50 },
+              { key: 'sixes', label: '6s', width: 40 },
+              { key: 'fours', label: '4s', width: 40 },
+              { key: 'catches', label: 'Catches', width: 60 },
+              { key: 'stumpings', label: 'St', width: 40 },
+              { key: 'won', label: 'Won', width: 45 },
+              { key: 'lost', label: 'Lost', width: 45 },
+              { key: 'tied', label: 'Tied', width: 45 },
+            ],
+            rows: (formValues.batting || []) as unknown as Record<string, unknown>[],
+          },
+          {
+            header: 'Bowling Stats',
+            columns: [
+              { key: 'matches', label: 'Mat', width: 45 },
+              { key: 'balls', label: 'Balls', width: 55 },
+              { key: 'runs', label: 'Runs', width: 55 },
+              { key: 'wickets', label: 'Wkts', width: 50 },
+              { key: 'average', label: 'Avg', width: 55 },
+              { key: 'economy', label: 'Econ', width: 55 },
+              { key: 'three_w', label: '3w', width: 40 },
+              { key: 'four_w', label: '4w', width: 40 },
+              { key: 'five_w', label: '5w', width: 40 },
+              { key: 'career_best', label: 'Best', width: 60 },
+            ],
+            rows: (formValues.bowling || []) as unknown as Record<string, unknown>[],
+          },
         ]}
-        careerStatsRows={formValues.batting}
-        secondaryStatsHeader="Bowling Stats"
-        secondaryStatsColumns={[
-          { key: 'matches', label: 'Mat', width: 45 },
-          { key: 'balls', label: 'Balls', width: 55 },
-          { key: 'runs', label: 'Runs', width: 55 },
-          { key: 'wickets', label: 'Wkts', width: 50 },
-          { key: 'average', label: 'Avg', width: 55 },
-          { key: 'economy', label: 'Econ', width: 55 },
+        recentCards={[
+          {
+            header: 'Recent Matches',
+            columns: [
+              { key: 'match_date', label: 'Date', width: 85 },
+              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'runs', label: 'Runs', width: 50 },
+              { key: 'balls', label: 'Balls', width: 50 },
+              { key: 'wickets', label: 'Wkts', width: 50 },
+              { key: 'catches', label: 'Catches', width: 60 },
+              { key: 'result', label: 'Result', width: 60 },
+            ],
+            rows: recentRows,
+          },
         ]}
-        secondaryStatsRows={formValues.bowling}
-        recentMatches={mappedRecent}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
@@ -346,11 +377,14 @@ export default function SoftBallCricketProfileScreen() {
         />
       </View>
 
-      <StatTable
+      <RecentMatchTable
         title="Batting Career Stats"
+        addLabel="Add New Stat"
         control={control}
         name="batting"
         emptyRow={EMPTY_BATTING_ROW}
+        locked={battingLocked}
+        onEntryAdded={() => setBattingLocked(true)}
         columns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
@@ -369,11 +403,14 @@ export default function SoftBallCricketProfileScreen() {
         ]}
       />
 
-      <StatTable
+      <RecentMatchTable
         title="Bowling Career Stats"
+        addLabel="Add New Stat"
         control={control}
         name="bowling"
         emptyRow={EMPTY_BOWLING_ROW}
+        locked={bowlingLocked}
+        onEntryAdded={() => setBowlingLocked(true)}
         columns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'balls', label: 'Balls', type: 'number' },
@@ -388,11 +425,14 @@ export default function SoftBallCricketProfileScreen() {
         ]}
       />
 
-      <StatTable
+      <RecentMatchTable
         title="Recent Matches"
+        addLabel="Add New Match"
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
+        locked={recentLocked}
+        onEntryAdded={() => setRecentLocked(true)}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Play Against', type: 'text' },

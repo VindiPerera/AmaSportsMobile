@@ -12,7 +12,8 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { StatTable } from '../../../src/components/player/StatTable';
+import { StatSectionWizard } from '../../../src/components/player/StatSectionWizard';
+import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
@@ -28,7 +29,7 @@ import { ApiError, NetBallProfileFormValues, PickedImage } from '../../../src/ty
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', matches_won: '',
-  matches_lost: '', goals: '', attempts: '', goal_accuracy: '', result_won: '', result_lost: '',
+  matches_lost: '', goals: '', attempts: '', goal_accuracy: '', result_won: '', result_lost: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
@@ -63,6 +64,8 @@ export default function NetBallProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [careerLocked, setCareerLocked] = useState(false);
+  const [recentLocked, setRecentLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -147,6 +150,8 @@ export default function NetBallProfileScreen() {
       await netBallService.saveProfile(values);
       await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
+      setCareerLocked(false);
+      setRecentLocked(false);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -166,6 +171,12 @@ export default function NetBallProfileScreen() {
     );
   }
 
+  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
+  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
+  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
+  const labelFor = (options: { label: string; value: string }[], id: unknown) =>
+    options.find((o) => o.value === String(id ?? ''))?.label ?? String(id ?? '-');
+
   if (isViewing) {
     const fields = [
       { label: 'POSITION', value: formValues.player_position },
@@ -174,11 +185,16 @@ export default function NetBallProfileScreen() {
       { label: 'EDUCATION', value: formValues.college_university },
     ];
 
-    const mappedRecent = (formValues.recent_matches || []).map((m) => ({
-      match_date: m.match_date,
-      opponent: m.opponent,
-      scoreOrStat: m.goals ? `${m.goals} Goals (${m.goal_accuracy || ''}%)` : '--',
-      result: m.win ? 'WIN' : (m.lost ? 'LOSS' : 'DRAW'),
+    const careerRows = (formValues.career_stats || []).map((r) => ({
+      ...r,
+      format_id: labelFor(formatOptions, r.format_id),
+      age_category_id: labelFor(ageOptions, r.age_category_id),
+      match_category_id: labelFor(categoryOptions, r.match_category_id),
+    }));
+
+    const recentRows = (formValues.recent_matches || []).map((m) => ({
+      ...m,
+      result: m.win ? 'WIN' : m.lost ? 'LOSS' : '-',
     }));
 
     return (
@@ -192,25 +208,46 @@ export default function NetBallProfileScreen() {
         age={formValues.age}
         teams={formValues.teams}
         fields={fields}
-        careerStatsHeader="Netball Stats"
-        careerStatsColumns={[
-          { key: 'format_id', label: 'Format', width: 90 },
-          { key: 'matches', label: 'Mat', width: 50 },
-          { key: 'goals', label: 'Goals', width: 55 },
-          { key: 'attempts', label: 'Att', width: 50 },
-          { key: 'goal_accuracy', label: 'Acc %', width: 60 },
+        statCards={[
+          {
+            header: 'Netball Stats',
+            columns: [
+              { key: 'year', label: 'Year', width: 55 },
+              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'age_category_id', label: 'Age', width: 70 },
+              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'matches', label: 'Mat', width: 45 },
+              { key: 'matches_won', label: 'Won', width: 50 },
+              { key: 'matches_lost', label: 'Lost', width: 50 },
+              { key: 'goals', label: 'Goals', width: 55 },
+              { key: 'attempts', label: 'Attempts', width: 65 },
+              { key: 'goal_accuracy', label: 'Acc %', width: 60 },
+              { key: 'result_won', label: 'Res Won', width: 60 },
+              { key: 'result_lost', label: 'Res Lost', width: 60 },
+            ],
+            rows: careerRows,
+          },
         ]}
-        careerStatsRows={formValues.career_stats}
-        recentMatches={mappedRecent}
+        recentCards={[
+          {
+            header: 'Recent Matches',
+            columns: [
+              { key: 'match_date', label: 'Date', width: 85 },
+              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'goals', label: 'Goals', width: 55 },
+              { key: 'attempts', label: 'Attempts', width: 65 },
+              { key: 'goal_accuracy', label: 'Acc %', width: 60 },
+              { key: 'result', label: 'Result', width: 60 },
+            ],
+            rows: recentRows,
+          },
+        ]}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
     );
   }
-
-  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
-  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
-  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
 
   return (
     <SportProfileLayout
@@ -302,12 +339,16 @@ export default function NetBallProfileScreen() {
       />
       </View>
 
-      <StatTable
+      <StatSectionWizard
         title="Career Status"
+        addLabel="Add New Stat"
         control={control}
         name="career_stats"
         emptyRow={EMPTY_CAREER_ROW}
-        columns={[
+        identityKey={['format_id', 'age_category_id', 'match_category_id', 'year']}
+        locked={careerLocked}
+        onEntryAdded={() => setCareerLocked(true)}
+        detailColumns={[
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
@@ -322,11 +363,14 @@ export default function NetBallProfileScreen() {
         ]}
       />
 
-      <StatTable
+      <RecentMatchTable
         title="Recent Match"
+        addLabel="Add New Match"
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
+        locked={recentLocked}
+        onEntryAdded={() => setRecentLocked(true)}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },

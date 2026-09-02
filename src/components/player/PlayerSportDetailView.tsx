@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
-import { formatBornDate, formatDetailedAge, formatShortMatchDate } from '../../utils/date';
+import { formatBornDate, formatDetailedAge } from '../../utils/date';
 
 export interface DetailFieldItem {
   label: string;
@@ -23,12 +23,21 @@ export interface StatTableColumn {
   width?: number;
 }
 
-export interface GenericMatchRow {
-  match_date?: string | null;
-  opponent?: string | null;
-  scoreOrStat?: string | null;
-  result?: string | null;
+/** One stats table (Career Stats, Bowling, Recent Matches, ...) — its own
+ * card, shown only when it has rows. A sport can pass several `statCards`
+ * (e.g. Batting + Bowling, like Cricket) and several `recentCards`. */
+export interface StatCardConfig {
+  header: string;
+  columns: StatTableColumn[];
+  rows: Record<string, unknown>[];
 }
+
+export interface PersonalBestItem {
+  label: string;
+  value: string;
+}
+
+const RECENT_DISPLAY_LIMIT = 5;
 
 interface PlayerSportDetailViewProps {
   sportName: string;
@@ -40,17 +49,57 @@ interface PlayerSportDetailViewProps {
   age?: string | number | null;
   teams?: string[];
   fields?: DetailFieldItem[];
-  careerStatsHeader?: string;
-  careerStatsColumns?: StatTableColumn[];
-  careerStatsRows?: Record<string, unknown>[];
-  /** Optional second stats table (e.g. Bowling, alongside a Batting `careerStats*` table) — its own card, shown only when it has rows. */
-  secondaryStatsHeader?: string;
-  secondaryStatsColumns?: StatTableColumn[];
-  secondaryStatsRows?: Record<string, unknown>[];
-  recentMatches?: GenericMatchRow[];
-  debutMatches?: { category: string; debut: string; last: string }[];
+  /** Events & Personal Best card (Athletics/Swimming) — omitted for sports
+   * without a personal-best concept. */
+  personalBests?: PersonalBestItem[];
+  /** Career-style stats tables — one card per entry, each shown only when
+   * it has rows (mirrors Cricket's independent Batting/Bowling cards). */
+  statCards?: StatCardConfig[];
+  /** Recent Matches/Fights/Events tables — sliced to the last 5 with a
+   * "View more" toggle, same as Cricket's Recent Matches card. */
+  recentCards?: StatCardConfig[];
   onEditPress?: () => void;
   onBackPress?: () => void;
+}
+
+function DataTable({ card }: { card: StatCardConfig }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.tableContainer}>
+        <View style={styles.tableHeaderRow}>
+          {card.columns.map((col, idx) => (
+            <Text
+              key={idx}
+              style={[styles.thCell, col.width ? { width: col.width } : { flex: 1 }, idx === 0 && { textAlign: 'left' }]}
+            >
+              {col.label}
+            </Text>
+          ))}
+        </View>
+
+        {card.rows.map((row, rIdx) => (
+          <View key={rIdx} style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}>
+            {card.columns.map((col, cIdx) => {
+              const raw = row[col.key];
+              const val = raw === null || raw === undefined || raw === '' ? '-' : String(raw);
+              return (
+                <Text
+                  key={cIdx}
+                  style={[
+                    cIdx === 0 ? styles.tdCellBold : styles.tdCell,
+                    col.width ? { width: col.width } : { flex: 1 },
+                    cIdx === 0 && { textAlign: 'left' },
+                  ]}
+                >
+                  {val}
+                </Text>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
 }
 
 export function PlayerSportDetailView({
@@ -63,35 +112,38 @@ export function PlayerSportDetailView({
   age,
   teams = [],
   fields = [],
-  careerStatsHeader = 'Career Stats',
-  careerStatsColumns = [
-    { key: 'format', label: 'Format', width: 90 },
-    { key: 'matches', label: 'Mat', width: 45 },
-    { key: 'goals', label: 'Goals', width: 50 },
-    { key: 'assists', label: 'Assists', width: 55 },
-    { key: 'rating', label: 'Rating', width: 55 },
-  ],
-  careerStatsRows = [],
-  secondaryStatsHeader = 'Career Stats',
-  secondaryStatsColumns = [],
-  secondaryStatsRows = [],
-  recentMatches = [],
-  debutMatches = [],
+  personalBests = [],
+  statCards = [],
+  recentCards = [],
   onEditPress,
   onBackPress,
 }: PlayerSportDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'matches'>('overview');
+  const [expandedRecent, setExpandedRecent] = useState<Record<number, boolean>>({});
 
   const displayName = fullName || 'Player Name';
   const nameParts = displayName.trim().split(' ');
   const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : displayName;
 
-  // Real data only — no placeholder/sample rows. Each table renders its own
-  // empty state below when the player hasn't entered anything yet.
-  const displayCareerRows = careerStatsRows;
-  const displaySecondaryRows = secondaryStatsRows;
-  const displayRecentMatches = recentMatches;
-  const displayDebutMatches = debutMatches;
+  const hasAnyRecent = recentCards.some((c) => c.rows.length > 0);
+
+  const renderRecentCard = (card: StatCardConfig, idx: number, limit?: number) => {
+    if (card.rows.length === 0) return null;
+    const isExpanded = !!expandedRecent[idx];
+    const rows = limit && !isExpanded ? card.rows.slice(0, limit) : card.rows;
+    return (
+      <View key={idx} style={[styles.card, shadows.sm]}>
+        <Text style={styles.cardHeaderTitle}>{card.header}</Text>
+        <DataTable card={{ ...card, rows }} />
+        {limit && !isExpanded && card.rows.length > limit ? (
+          <Pressable onPress={() => setExpandedRecent((prev) => ({ ...prev, [idx]: true }))} style={styles.viewMoreButton}>
+            <Text style={styles.viewMoreText}>View more</Text>
+            <Ionicons name="chevron-down" size={14} color={colors.primary} />
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -168,7 +220,7 @@ export function PlayerSportDetailView({
             {activeTab === 'overview' && <View style={styles.activeTabLine} />}
           </Pressable>
 
-          {(displayRecentMatches.length > 0 || displayDebutMatches.length > 0) && (
+          {hasAnyRecent && (
             <Pressable
               style={[styles.tabButton, activeTab === 'matches' && styles.tabButtonActive]}
               onPress={() => setActiveTab('matches')}
@@ -236,235 +288,36 @@ export function PlayerSportDetailView({
               </View>
             </View>
 
-            {/* Card 2: Career Stats — only shown when player has added stats */}
-            {displayCareerRows.length > 0 && (
+            {/* Card: Events & Personal Best — Athletics/Swimming only */}
+            {personalBests.length > 0 && (
               <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>{shortName} {careerStatsHeader}</Text>
-
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.tableContainer}>
-                    {/* Header Row */}
-                    <View style={styles.tableHeaderRow}>
-                      {careerStatsColumns.map((col, idx) => (
-                        <Text
-                          key={idx}
-                          style={[
-                            styles.thCell,
-                            col.width ? { width: col.width } : { flex: 1 },
-                            idx === 0 && { textAlign: 'left' },
-                          ]}
-                        >
-                          {col.label}
-                        </Text>
-                      ))}
-                    </View>
-
-                    {/* Data Rows */}
-                    {displayCareerRows.map((row, rIdx) => (
-                      <View
-                        key={rIdx}
-                        style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}
-                      >
-                        {careerStatsColumns.map((col, cIdx) => {
-                          const val = String(row[col.key] ?? '-');
-                          return (
-                            <Text
-                              key={cIdx}
-                              style={[
-                                cIdx === 0 ? styles.tdCellBold : styles.tdCell,
-                                col.width ? { width: col.width } : { flex: 1 },
-                                cIdx === 0 && { textAlign: 'left' },
-                              ]}
-                            >
-                              {val}
-                            </Text>
-                          );
-                        })}
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Card 2b: Secondary Stats (e.g. Bowling) — only shown when player has added rows */}
-            {displaySecondaryRows.length > 0 && (
-              <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>{shortName} {secondaryStatsHeader}</Text>
-
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.tableContainer}>
-                    {/* Header Row */}
-                    <View style={styles.tableHeaderRow}>
-                      {secondaryStatsColumns.map((col, idx) => (
-                        <Text
-                          key={idx}
-                          style={[
-                            styles.thCell,
-                            col.width ? { width: col.width } : { flex: 1 },
-                            idx === 0 && { textAlign: 'left' },
-                          ]}
-                        >
-                          {col.label}
-                        </Text>
-                      ))}
-                    </View>
-
-                    {/* Data Rows */}
-                    {displaySecondaryRows.map((row, rIdx) => (
-                      <View
-                        key={rIdx}
-                        style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}
-                      >
-                        {secondaryStatsColumns.map((col, cIdx) => {
-                          const val = String(row[col.key] ?? '-');
-                          return (
-                            <Text
-                              key={cIdx}
-                              style={[
-                                cIdx === 0 ? styles.tdCellBold : styles.tdCell,
-                                col.width ? { width: col.width } : { flex: 1 },
-                                cIdx === 0 && { textAlign: 'left' },
-                              ]}
-                            >
-                              {val}
-                            </Text>
-                          );
-                        })}
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Card 3: Recent Matches — only shown when player has added matches */}
-            {displayRecentMatches.length > 0 && (
-              <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
-
-                <View style={styles.recentMatchesTable}>
-                  <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                    <Text style={styles.thCellStat}>Perf</Text>
-                    <Text style={styles.thCellResult}>Result</Text>
-                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                  </View>
-
-                  {displayRecentMatches.map((m, idx) => (
-                    <View
-                      key={idx}
-                      style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                    >
-                      <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
-                        {m.opponent || 'Match'}
-                      </Text>
-                      <Text style={styles.tdCellStat}>{m.scoreOrStat || '--'}</Text>
-                      <Text style={styles.tdCellResult}>{m.result || '--'}</Text>
-                      <Text style={[styles.tdCellFaint, styles.thDate]}>
-                        {formatShortMatchDate(m.match_date)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Card 4: Debut/Last Matches — only shown when player has debut data */}
-            {displayDebutMatches.length > 0 && (
-              <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
-
-                {displayDebutMatches.map((item, idx) => (
-                  <View key={idx} style={styles.debutBlock}>
-                    <View style={styles.debutCategoryHeader}>
-                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                    </View>
-
-                    <View style={styles.debutRow}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>DEBUT</Text>
-                        <Text style={styles.debutMatchText}>{item.debut}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
-
-                    <View style={[styles.debutRow, styles.borderTopDivider]}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>LAST</Text>
-                        <Text style={styles.debutMatchText}>{item.last}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
+                <Text style={styles.cardHeaderTitle}>Events &amp; Personal Best</Text>
+                {personalBests.map((pb, idx) => (
+                  <View key={idx} style={[styles.personalBestRow, idx % 2 === 1 && styles.tableRowAlt]}>
+                    <Text style={styles.tdCellBold}>{pb.label}</Text>
+                    <Text style={styles.tdCell}>{pb.value || '-'}</Text>
                   </View>
                 ))}
               </View>
             )}
+
+            {/* Stat Cards — one per section, each shown only when it has rows */}
+            {statCards.map(
+              (card, idx) =>
+                card.rows.length > 0 && (
+                  <View key={idx} style={[styles.card, shadows.sm]}>
+                    <Text style={styles.cardHeaderTitle}>{shortName} {card.header}</Text>
+                    <DataTable card={card} />
+                  </View>
+                )
+            )}
+
+            {/* Recent Cards — sliced to 5 with a "View more" toggle */}
+            {recentCards.map((card, idx) => renderRecentCard(card, idx, RECENT_DISPLAY_LIMIT))}
           </>
         ) : (
-          /* Matches Tab Content — only real saved data is shown */
-          <>
-            {displayDebutMatches.length > 0 && (
-              <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
-
-                {displayDebutMatches.map((item, idx) => (
-                  <View key={idx} style={styles.debutBlock}>
-                    <View style={styles.debutCategoryHeader}>
-                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                    </View>
-
-                    <View style={styles.debutRow}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>DEBUT</Text>
-                        <Text style={styles.debutMatchText}>{item.debut}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
-
-                    <View style={[styles.debutRow, styles.borderTopDivider]}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>LAST</Text>
-                        <Text style={styles.debutMatchText}>{item.last}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {displayRecentMatches.length > 0 && (
-              <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
-
-                <View style={styles.recentMatchesTable}>
-                  <View style={styles.tableHeaderRow}>
-                    <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
-                    <Text style={styles.thCellStat}>Perf</Text>
-                    <Text style={styles.thCellResult}>Result</Text>
-                    <Text style={[styles.thCell, styles.thDate]}>Date</Text>
-                  </View>
-
-                  {displayRecentMatches.map((m, idx) => (
-                    <View
-                      key={idx}
-                      style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
-                    >
-                      <Text style={[styles.tdCellBold, styles.thMatchName]} numberOfLines={1}>
-                        {m.opponent || 'Match'}
-                      </Text>
-                      <Text style={styles.tdCellStat}>{m.scoreOrStat || '--'}</Text>
-                      <Text style={styles.tdCellResult}>{m.result || '--'}</Text>
-                      <Text style={[styles.tdCellFaint, styles.thDate]}>
-                        {formatShortMatchDate(m.match_date)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-          </>
+          /* Matches Tab Content — full recent history, no slicing */
+          <>{recentCards.map((card, idx) => renderRecentCard(card, idx))}</>
         )}
       </ScrollView>
     </View>
@@ -721,30 +574,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
   },
-  thMatchName: {
-    flex: 1,
-    textAlign: 'left',
-  },
-  thCellStat: {
-    width: 80,
-    textAlign: 'center',
-    ...typography.caption,
-    color: colors.textMuted,
-    fontWeight: '700',
-    fontSize: 11,
-  },
-  thCellResult: {
-    width: 60,
-    textAlign: 'center',
-    ...typography.caption,
-    color: colors.textMuted,
-    fontWeight: '700',
-    fontSize: 11,
-  },
-  thDate: {
-    width: 85,
-    textAlign: 'right',
-  },
   tdCell: {
     ...typography.body,
     color: colors.text,
@@ -757,78 +586,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 13,
   },
-  tdCellStat: {
-    width: 80,
-    textAlign: 'center',
-    ...typography.body,
-    color: colors.text,
-    fontSize: 13,
-  },
-  tdCellResult: {
-    width: 60,
-    textAlign: 'center',
-    ...typography.body,
-    color: colors.success,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  tdCellFaint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  recentMatchesTable: {
-    marginTop: spacing.xs,
-  },
-  debutBlock: {
-    backgroundColor: colors.cardSubtle,
-    borderRadius: radius.md,
-    marginBottom: spacing.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  debutCategoryHeader: {
-    backgroundColor: '#EBEFF7',
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.md,
-  },
-  debutCategoryTitle: {
-    ...typography.caption,
-    color: colors.navy,
-    fontWeight: '800',
-    fontSize: 11,
-    letterSpacing: 0.8,
-  },
-  debutRow: {
+  personalBestRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.card,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.xs,
   },
-  borderTopDivider: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  viewMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: spacing.sm,
   },
-  debutContent: {
-    flex: 1,
-    paddingRight: spacing.sm,
-    gap: 2,
-  },
-  debutMatchText: {
-    ...typography.body,
-    color: colors.text,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  emptyStateText: {
-    ...typography.body,
-    color: colors.textMuted,
-    fontSize: 13,
-    textAlign: 'center',
-    paddingVertical: spacing.md,
+  viewMoreText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

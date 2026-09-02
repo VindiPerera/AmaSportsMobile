@@ -11,6 +11,7 @@ import {
   PlayerSearchResult,
   PlayerSportEntry,
   PublicPlayerProfile,
+  SportAnalysisResponse,
   UpdatePlayerProfilePayload,
 } from '../types';
 
@@ -261,6 +262,22 @@ export const playerService = {
   async fetchCricketAnalysis(formatId?: number | null, options?: { silent?: boolean }) {
     const { data } = await apiClient.get<ApiSuccessResponse<CricketAnalysisResponse>>(
       '/player/cricket-analysis',
+      {
+        params: formatId ? { format: formatId } : undefined,
+        skipSubscriptionRedirect: options?.silent,
+      }
+    );
+    return data.data;
+  },
+
+  /**
+   * Generic counterpart to fetchCricketAnalysis for every sport
+   * GenericSportAnalysisService knows how to aggregate — see
+   * SportAnalysisConfig on the backend for the supported slug list.
+   */
+  async fetchSportAnalysis(sportSlug: string, formatId?: number | null, options?: { silent?: boolean }) {
+    const { data } = await apiClient.get<ApiSuccessResponse<SportAnalysisResponse>>(
+      `/player/${sportSlug}/analysis`,
       {
         params: formatId ? { format: formatId } : undefined,
         skipSubscriptionRedirect: options?.silent,

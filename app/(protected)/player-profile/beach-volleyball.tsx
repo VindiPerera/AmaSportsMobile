@@ -12,7 +12,8 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { StatTable } from '../../../src/components/player/StatTable';
+import { StatSectionWizard } from '../../../src/components/player/StatSectionWizard';
+import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
@@ -29,7 +30,7 @@ import { ApiError, BeachVolleyballProfileFormValues, PickedImage } from '../../.
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
   passes: '', setting: '', serve: '', attacking: '', blocking: '', digging: '',
-  third_place: '', second_place: '', champion: '',
+  third_place: '', second_place: '', champion: '', year: '',
 };
 
 // Best-of-3 (spec §D2) — only 3 set columns, unlike indoor Volleyball's 5.
@@ -65,6 +66,8 @@ export default function BeachVolleyballProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [careerLocked, setCareerLocked] = useState(false);
+  const [recentLocked, setRecentLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -149,6 +152,8 @@ export default function BeachVolleyballProfileScreen() {
       await beachVolleyballService.saveProfile(values);
       await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
+      setCareerLocked(false);
+      setRecentLocked(false);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -168,6 +173,12 @@ export default function BeachVolleyballProfileScreen() {
     );
   }
 
+  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
+  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
+  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
+  const labelFor = (options: { label: string; value: string }[], id: unknown) =>
+    options.find((o) => o.value === String(id ?? ''))?.label ?? String(id ?? '-');
+
   if (isViewing) {
     const fields = [
       { label: 'POSITION', value: formValues.player_position },
@@ -176,11 +187,16 @@ export default function BeachVolleyballProfileScreen() {
       { label: 'EDUCATION', value: formValues.college_university },
     ];
 
-    const mappedRecent = (formValues.recent_matches || []).map((m) => ({
-      match_date: m.match_date,
-      opponent: m.opponent,
-      scoreOrStat: m.set_1 ? `Sets: ${m.set_1}-${m.set_2}` : '--',
-      result: m.win ? 'WIN' : (m.lost ? 'LOSS' : 'DRAW'),
+    const careerRows = (formValues.career_stats || []).map((r) => ({
+      ...r,
+      format_id: labelFor(formatOptions, r.format_id),
+      age_category_id: labelFor(ageOptions, r.age_category_id),
+      match_category_id: labelFor(categoryOptions, r.match_category_id),
+    }));
+
+    const recentRows = (formValues.recent_matches || []).map((m) => ({
+      ...m,
+      result: m.win ? 'WIN' : m.lost ? 'LOSS' : '-',
     }));
 
     return (
@@ -194,25 +210,50 @@ export default function BeachVolleyballProfileScreen() {
         age={formValues.age}
         teams={formValues.teams}
         fields={fields}
-        careerStatsHeader="Beach Volleyball Stats"
-        careerStatsColumns={[
-          { key: 'format_id', label: 'Format', width: 90 },
-          { key: 'matches', label: 'Mat', width: 50 },
-          { key: 'attacking', label: 'Attacks', width: 60 },
-          { key: 'blocking', label: 'Blocks', width: 55 },
-          { key: 'serve', label: 'Aces', width: 50 },
+        statCards={[
+          {
+            header: 'Beach Volleyball Stats',
+            columns: [
+              { key: 'year', label: 'Year', width: 55 },
+              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'age_category_id', label: 'Age', width: 70 },
+              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'matches', label: 'Mat', width: 45 },
+              { key: 'win', label: 'Win', width: 45 },
+              { key: 'lost', label: 'Lost', width: 45 },
+              { key: 'passes', label: 'Passes', width: 55 },
+              { key: 'setting', label: 'Setting', width: 55 },
+              { key: 'serve', label: 'Serve', width: 50 },
+              { key: 'attacking', label: 'Attacking', width: 65 },
+              { key: 'blocking', label: 'Blocking', width: 60 },
+              { key: 'digging', label: 'Digging', width: 55 },
+              { key: 'third_place', label: '3rd', width: 40 },
+              { key: 'second_place', label: '2nd', width: 40 },
+              { key: 'champion', label: 'Champion', width: 60 },
+            ],
+            rows: careerRows,
+          },
         ]}
-        careerStatsRows={formValues.career_stats}
-        recentMatches={mappedRecent}
+        recentCards={[
+          {
+            header: 'Recent Matches',
+            columns: [
+              { key: 'match_date', label: 'Date', width: 85 },
+              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'set_1', label: 'Set 1', width: 50 },
+              { key: 'set_2', label: 'Set 2', width: 50 },
+              { key: 'set_3', label: 'Set 3', width: 50 },
+              { key: 'result', label: 'Result', width: 60 },
+            ],
+            rows: recentRows,
+          },
+        ]}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
     );
   }
-
-  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
-  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
-  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
 
   return (
     <SportProfileLayout
@@ -304,12 +345,16 @@ export default function BeachVolleyballProfileScreen() {
         />
       </View>
 
-      <StatTable
+      <StatSectionWizard
         title="Career Status"
+        addLabel="Add New Stat"
         control={control}
         name="career_stats"
         emptyRow={EMPTY_CAREER_ROW}
-        columns={[
+        identityKey={['format_id', 'age_category_id', 'match_category_id', 'year']}
+        locked={careerLocked}
+        onEntryAdded={() => setCareerLocked(true)}
+        detailColumns={[
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
@@ -328,11 +373,14 @@ export default function BeachVolleyballProfileScreen() {
         ]}
       />
 
-      <StatTable
+      <RecentMatchTable
         title="Recent Matches"
+        addLabel="Add New Match"
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
+        locked={recentLocked}
+        onEntryAdded={() => setRecentLocked(true)}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },

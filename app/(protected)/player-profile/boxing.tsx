@@ -12,7 +12,8 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
-import { StatTable } from '../../../src/components/player/StatTable';
+import { StatSectionWizard } from '../../../src/components/player/StatSectionWizard';
+import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
@@ -27,7 +28,7 @@ import { ApiError, BoxingProfileFormValues, PickedImage } from '../../../src/typ
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', weight_class_id: '',
-  matches: '', win: '', lost: '', third_place: '', second_place: '', champion: '',
+  matches: '', win: '', lost: '', third_place: '', second_place: '', champion: '', year: '',
 };
 
 const EMPTY_RECENT_FIGHT_ROW = {
@@ -61,6 +62,8 @@ export default function BoxingProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [careerLocked, setCareerLocked] = useState(false);
+  const [recentLocked, setRecentLocked] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -146,6 +149,8 @@ export default function BoxingProfileScreen() {
       await boxingService.saveProfile(values);
       await useAuthStore.getState().refreshProfile();
       setIsViewing(true);
+      setCareerLocked(false);
+      setRecentLocked(false);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -165,19 +170,33 @@ export default function BoxingProfileScreen() {
     );
   }
 
+  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
+  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
+  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
+  const weightClassOptions = lookups.boxing_weight_classes.map((w) => ({ label: w.name, value: String(w.id) }));
+  const labelFor = (options: { label: string; value: string }[], id: unknown) =>
+    options.find((o) => o.value === String(id ?? ''))?.label ?? String(id ?? '-');
+
   if (isViewing) {
     const fields = [
-      { label: 'WEIGHT CLASS', value: formValues.weight_class_id },
+      { label: 'WEIGHT CLASS', value: labelFor(weightClassOptions, formValues.weight_class_id) },
       { label: 'RANKING', value: formValues.current_ranking },
       { label: 'HEIGHT', value: formValues.height },
       { label: 'WEIGHT', value: formValues.weight },
     ];
 
-    const mappedRecent = (formValues.recent_fights || []).map((f) => ({
-      match_date: f.fight_date,
-      opponent: f.opponent,
-      scoreOrStat: f.place ? `Rank ${f.place}` : '--',
-      result: f.win ? 'WIN' : (f.lost ? 'LOSS' : 'DRAW'),
+    const careerRows = (formValues.career_stats || []).map((r) => ({
+      ...r,
+      format_id: labelFor(formatOptions, r.format_id),
+      age_category_id: labelFor(ageOptions, r.age_category_id),
+      match_category_id: labelFor(categoryOptions, r.match_category_id),
+      weight_class_id: labelFor(weightClassOptions, r.weight_class_id),
+    }));
+
+    const recentRows = (formValues.recent_fights || []).map((f) => ({
+      ...f,
+      weight_class_id: labelFor(weightClassOptions, f.weight_class_id),
+      result: f.win ? 'WIN' : f.lost ? 'LOSS' : '-',
     }));
 
     return (
@@ -191,26 +210,44 @@ export default function BoxingProfileScreen() {
         age={formValues.age}
         teams={formValues.teams}
         fields={fields}
-        careerStatsHeader="Boxing Fight Stats"
-        careerStatsColumns={[
-          { key: 'format_id', label: 'Format', width: 90 },
-          { key: 'matches', label: 'Fights', width: 55 },
-          { key: 'win', label: 'Win', width: 50 },
-          { key: 'lost', label: 'Lost', width: 50 },
-          { key: 'champion', label: 'Belt', width: 60 },
+        statCards={[
+          {
+            header: 'Boxing Fight Stats',
+            columns: [
+              { key: 'year', label: 'Year', width: 55 },
+              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'age_category_id', label: 'Age', width: 70 },
+              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'weight_class_id', label: 'Weight Class', width: 90 },
+              { key: 'matches', label: 'Fights', width: 55 },
+              { key: 'win', label: 'Win', width: 50 },
+              { key: 'lost', label: 'Lost', width: 50 },
+              { key: 'third_place', label: '3rd', width: 45 },
+              { key: 'second_place', label: '2nd', width: 45 },
+              { key: 'champion', label: 'Belt', width: 60 },
+            ],
+            rows: careerRows,
+          },
         ]}
-        careerStatsRows={formValues.career_stats}
-        recentMatches={mappedRecent}
+        recentCards={[
+          {
+            header: 'Recent Fights',
+            columns: [
+              { key: 'fight_date', label: 'Date', width: 85 },
+              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'weight_class_id', label: 'Weight Class', width: 90 },
+              { key: 'place', label: 'Place', width: 60 },
+              { key: 'result', label: 'Result', width: 60 },
+            ],
+            rows: recentRows,
+          },
+        ]}
         onEditPress={() => setIsViewing(false)}
         onBackPress={() => router.back()}
       />
     );
   }
-
-  const formatOptions = lookups.formats.map((f) => ({ label: f.name, value: String(f.id) }));
-  const ageOptions = lookups.age_categories.map((a) => ({ label: a.name, value: String(a.id) }));
-  const categoryOptions = lookups.match_categories.map((c) => ({ label: c.name, value: String(c.id) }));
-  const weightClassOptions = lookups.boxing_weight_classes.map((w) => ({ label: w.name, value: String(w.id) }));
 
   return (
     <SportProfileLayout
@@ -315,12 +352,16 @@ export default function BoxingProfileScreen() {
         />
       </View>
 
-      <StatTable
+      <StatSectionWizard
         title="Career Status"
+        addLabel="Add New Stat"
         control={control}
         name="career_stats"
         emptyRow={EMPTY_CAREER_ROW}
-        columns={[
+        identityKey={['format_id', 'age_category_id', 'match_category_id', 'weight_class_id', 'year']}
+        locked={careerLocked}
+        onEntryAdded={() => setCareerLocked(true)}
+        detailColumns={[
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
@@ -334,11 +375,14 @@ export default function BoxingProfileScreen() {
         ]}
       />
 
-      <StatTable
+      <RecentMatchTable
         title="Recent Fight"
+        addLabel="Add New Fight"
         control={control}
         name="recent_fights"
         emptyRow={EMPTY_RECENT_FIGHT_ROW}
+        locked={recentLocked}
+        onEntryAdded={() => setRecentLocked(true)}
         columns={[
           { key: 'fight_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Fight vs', type: 'text' },

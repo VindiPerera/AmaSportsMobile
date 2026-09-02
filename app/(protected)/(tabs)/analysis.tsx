@@ -4,27 +4,32 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { Button } from '../../../src/components/ui/Button';
+import { Chip } from '../../../src/components/ui/Chip';
 import { ComingSoonAnalysis } from '../../../src/components/analysis/ComingSoonAnalysis';
 import { AnalysisSkeleton } from '../../../src/components/analysis/AnalysisSkeleton';
+import { CricketAnalysisScreen } from '../../../src/components/analysis/CricketAnalysisScreen';
+import { GenericAnalysisScreen, GENERIC_ANALYSIS_SLUGS } from '../../../src/components/analysis/GenericAnalysisScreen';
 import { colors, radius, spacing, typography } from '../../../src/theme';
 import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
+import { playerService } from '../../../src/services/playerService';
+import { PlayerProfile, PlayerSportEntry } from '../../../src/types';
 
 /**
- * Analysis tab — intentionally decoupled from the player profile (no more
- * reading the player's registered sports or cricket stats to decide what to
- * show). A dedicated player analytics page is planned for the web app; this
- * tab will point at that data source once it exists, so it always renders
- * the generic "Coming Soon" placeholder below for now.
- *
- * The real per-sport analytics implementation isn't gone — it's just not
- * wired up here. See `src/components/analysis/CricketAnalysisScreen.tsx`
- * plus `playerService.fetchCricketAnalysis()` and the backend
- * CricketAnalysisController/Service, all left untouched for reconnecting
- * later (e.g. once this tab fetches from the new player analytics page).
+ * Analysis tab — dispatches to a real per-sport analysis screen for every
+ * sport the player has completed a profile for: Cricket gets its own
+ * bespoke screen (CricketAnalysisScreen), every slug in
+ * GENERIC_ANALYSIS_SLUGS gets the config-driven GenericAnalysisScreen, and
+ * anything else (Tennis/Badminton/Table Tennis, Soft-Ball-Cricket — see
+ * SportAnalysisConfig's docblock for why) falls back to "Coming Soon". A
+ * chip row lets the player switch between sports when they've registered
+ * more than one.
  */
 export default function AnalysisScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [player, setPlayer] = useState<PlayerProfile | null>(null);
+  const [sports, setSports] = useState<PlayerSportEntry[]>([]);
+  const [selectedSportSlug, setSelectedSportSlug] = useState<string | null>(null);
 
   const subscriptionStatus = useSubscriptionStore((s) => s.status);
   const refreshSubscription = useSubscriptionStore((s) => s.refresh);
@@ -32,9 +37,20 @@ export default function AnalysisScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      await refreshSubscription();
+      const [, profile, playerSports] = await Promise.all([
+        refreshSubscription(),
+        playerService.fetchProfile(),
+        playerService.fetchSports(),
+      ]);
+      setPlayer(profile);
+      const completed = playerSports.filter((s) => s.status === 'completed');
+      setSports(completed);
+      setSelectedSportSlug((current) => {
+        if (current && completed.some((s) => s.sport.slug === current)) return current;
+        return completed[0]?.sport.slug ?? null;
+      });
     } catch {
-      setError('Could not load your subscription status. Pull to retry.');
+      setError('Could not load your sports. Pull to retry.');
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +113,8 @@ export default function AnalysisScreen() {
     );
   }
 
+  const selectedEntry = sports.find((s) => s.sport.slug === selectedSportSlug) ?? null;
+
   return (
     <ScreenContainer edges={['top', 'bottom']}>
       <View style={styles.headerBar}>
@@ -104,8 +122,35 @@ export default function AnalysisScreen() {
         <Text style={styles.headerSubtitle}>Performance breakdown</Text>
       </View>
 
+      {sports.length > 1 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.switcherWrapper}
+          contentContainerStyle={styles.switcherRow}
+        >
+          {sports.map((entry) => (
+            <Chip
+              key={entry.sport.slug}
+              label={entry.sport.name}
+              tone="primary"
+              active={entry.sport.slug === selectedSportSlug}
+              onPress={() => setSelectedSportSlug(entry.sport.slug)}
+            />
+          ))}
+        </ScrollView>
+      ) : null}
+
       <View style={styles.body}>
-        <ComingSoonAnalysis />
+        {!selectedEntry ? (
+          <ComingSoonAnalysis />
+        ) : selectedEntry.sport.slug === 'cricket' ? (
+          <CricketAnalysisScreen player={player} />
+        ) : GENERIC_ANALYSIS_SLUGS.includes(selectedEntry.sport.slug) ? (
+          <GenericAnalysisScreen player={player} sportSlug={selectedEntry.sport.slug} sportName={selectedEntry.sport.name} />
+        ) : (
+          <ComingSoonAnalysis sportName={selectedEntry.sport.name} sportSlug={selectedEntry.sport.slug} />
+        )}
       </View>
     </ScreenContainer>
   );
@@ -129,6 +174,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 1,
+  },
+  switcherWrapper: {
+    flexGrow: 0,
+    marginBottom: spacing.sm,
+  },
+  switcherRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingVertical: 2,
   },
   centerState: {
     flex: 1,

@@ -5,6 +5,7 @@ export * from './player';
 export * from './playerSearch';
 export * from './cricket';
 export * from './cricketAnalysis';
+export * from './sportAnalysis';
 export * from './hockey';
 export * from './baseball';
 export * from './netball';
