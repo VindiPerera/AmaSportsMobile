@@ -98,11 +98,12 @@ export default function CricketProfileScreen() {
 
   // One Batting add/update, one Bowling add/update, and one new Recent
   // Match per save — each table locks its own "Add" button the moment an
-  // entry goes in, and all three unlock together once "Save Cricket
-  // Profile" succeeds.
-  const [battingLocked, setBattingLocked] = useState(false);
-  const [bowlingLocked, setBowlingLocked] = useState(false);
-  const [recentMatchLocked, setRecentMatchLocked] = useState(false);
+  // entry goes in (tracked entirely inside RecentMatchTable/CareerStatTable
+  // themselves, so there's nothing here to fall out of sync with them).
+  // Bumping this after a successful save is this screen's only part in
+  // that: it tells all three tables their pending entry is now saved, so
+  // they forget it and unlock Add for a genuinely fresh session.
+  const [savedVersion, setSavedVersion] = useState(0);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -240,9 +241,7 @@ export default function CricketProfileScreen() {
       }
       await playerService.saveCricketProfile(values);
       await useAuthStore.getState().refreshProfile();
-      setBattingLocked(false);
-      setBowlingLocked(false);
-      setRecentMatchLocked(false);
+      setSavedVersion((v) => v + 1);
       setIsViewing(true);
     } catch (err) {
       setError(
@@ -415,8 +414,7 @@ export default function CricketProfileScreen() {
         control={control}
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
-        locked={recentMatchLocked}
-        onEntryAdded={() => setRecentMatchLocked(true)}
+        resetSignal={savedVersion}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },
@@ -442,8 +440,7 @@ export default function CricketProfileScreen() {
         categories={careerCategoryOptions}
         divisions={careerDivisionOptions}
         mergeRows={mergeBattingRows as never}
-        locked={battingLocked}
-        onEntryAdded={() => setBattingLocked(true)}
+        resetSignal={savedVersion}
         detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'won', label: 'Won', type: 'number' },
@@ -473,8 +470,7 @@ export default function CricketProfileScreen() {
         categories={careerCategoryOptions}
         divisions={careerDivisionOptions}
         mergeRows={mergeBowlingRows as never}
-        locked={bowlingLocked}
-        onEntryAdded={() => setBowlingLocked(true)}
+        resetSignal={savedVersion}
         detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'innings', label: 'Innings', type: 'number' },
