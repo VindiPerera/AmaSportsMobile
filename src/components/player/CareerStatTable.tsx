@@ -27,6 +27,11 @@ interface CareerStatTableProps<TFieldValues extends FieldValues> {
    * business — it isn't tracked by the parent, so there's only ever one
    * piece of state to keep in sync, not two. */
   resetSignal: number;
+  /** Fired whenever this table's own lock state changes, so a parent that
+   * needs to know "was an entry added this session" (e.g. to require a
+   * Recent Match alongside it) can track it without this component giving
+   * up owning that state itself. Optional — most callers don't need it. */
+  onLockChange?: (locked: boolean) => void;
 }
 
 /**
@@ -47,6 +52,7 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
   detailColumns,
   mergeRows,
   resetSignal,
+  onLockChange,
 }: CareerStatTableProps<TFieldValues>) {
   const { fields, append, update } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
@@ -64,6 +70,10 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
   useEffect(() => {
     setSessionIndex(null);
   }, [resetSignal]);
+
+  useEffect(() => {
+    onLockChange?.(isLocked);
+  }, [isLocked, onLockChange]);
 
   const rows = fields as unknown as Record<string, string>[];
   const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
@@ -86,7 +96,12 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
       update(index, mergeRows(rows[index], row) as never);
       setSessionIndex(index);
     } else {
-      append(row as never);
+      // Route through mergeRows here too (merging into the blank emptyRow)
+      // rather than appending the raw entry — that's the only place derived
+      // columns (Average, Strike Rate, Economy) get calculated, so a brand
+      // new entry gets them from its very first save, not just once a
+      // second match merges into it.
+      append(mergeRows(emptyRow, row) as never);
       setSessionIndex(rows.length);
     }
     setModalVisible(false);

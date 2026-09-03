@@ -57,10 +57,12 @@ function round2(value: number): string {
 
 /**
  * Merges `incoming` into `existing` for Batting Career Stats. Counts add up;
- * HS/Best take the higher of the two; Average is recalculated from the
- * merged Runs/Innings/Not-Out (summing an average would be meaningless).
- * Strike Rate can't be recomputed here — career rows don't track balls
- * faced — so the newest entered value wins.
+ * HS/Best take the higher of the two; Average (Runs ÷ Dismissals) and Strike
+ * Rate (Runs ÷ Balls × 100) are always recalculated from the merged totals —
+ * neither is ever typed in directly (see CareerStatAddModal's `computed`
+ * column filter), so this is also how a brand new entry (not just a merge)
+ * gets its Average/SR: CareerStatTable runs every save through here,
+ * merging into a blank row when there's nothing to merge into yet.
  */
 export function mergeBattingRows(
   existing: CricketBattingRowForm,
@@ -77,9 +79,9 @@ export function mergeBattingRows(
     innings: sum(existing.innings, incoming.innings),
     not_out: sum(existing.not_out, incoming.not_out),
     runs: sum(existing.runs, incoming.runs),
+    balls: sum(existing.balls, incoming.balls),
     hs: best(existing.hs, incoming.hs),
     best: best(existing.best, incoming.best),
-    sr: newest(existing.sr, incoming.sr),
     hundreds: sum(existing.hundreds, incoming.hundreds),
     fifties: sum(existing.fifties, incoming.fifties),
     fours: sum(existing.fours, incoming.fours),
@@ -94,9 +96,10 @@ export function mergeBattingRows(
   };
 
   const dismissals = toNum(merged.innings) - toNum(merged.not_out);
-  if (dismissals > 0) {
-    merged.average = round2(toNum(merged.runs) / dismissals);
-  }
+  merged.average = dismissals > 0 ? round2(toNum(merged.runs) / dismissals) : '';
+
+  const balls = toNum(merged.balls);
+  merged.sr = balls > 0 ? round2((toNum(merged.runs) / balls) * 100) : '';
 
   return merged;
 }

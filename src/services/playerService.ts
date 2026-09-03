@@ -78,6 +78,7 @@ function cricketFormToPayload(values: CricketProfileFormValues) {
         innings: idOrNull(row.innings),
         not_out: idOrNull(row.not_out),
         runs: idOrNull(row.runs),
+        balls: idOrNull(row.balls),
         hs: row.hs || null,
         average: parseFloatOrNull(row.average),
         best: idOrNull(row.best),

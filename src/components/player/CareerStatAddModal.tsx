@@ -342,7 +342,10 @@ function CareerStatAddModalBody({
               <Text style={styles.stepTitle}>Match Details</Text>
 
               <View style={styles.detailGrid}>
-                {detailColumns.map((column) => (
+                {/* Computed columns (Average, Strike Rate, Economy, ...) are
+                    calculated from the other fields on save (see
+                    statMerge.ts) — never a direct input here. */}
+                {detailColumns.filter((column) => !column.computed).map((column) => (
                   <DetailField
                     key={column.key}
                     column={column}

@@ -70,11 +70,36 @@ export const MAX_RECENT_MATCHES = 10;
  * displayed (see CricketPlayerDetailView), so both stay in sync regardless
  * of the order rows happen to arrive in (e.g. older data saved before this
  * rule existed).
+ *
+ * `rows` arrives oldest-added-first (RecentMatchTable only ever appends).
+ * `Array.sort` is stable, so a plain sort would keep same-date rows (most
+ * often several with no date at all) in that oldest-first order — meaning
+ * the match a player just saved could tie with older ones and lose the cap
+ * to them. Reversing first flips same-date rows to newest-added-first, so
+ * ties break in favor of whatever was saved most recently.
  */
 export function sortRecentMatchesNewestFirst<T extends { match_date?: unknown }>(rows: T[]): T[] {
   return [...rows]
+    .reverse()
     .sort((a, b) => String(b.match_date ?? '').localeCompare(String(a.match_date ?? '')))
     .slice(0, MAX_RECENT_MATCHES);
+}
+
+/**
+ * Newest Year first for the Batting/Bowling Career Stats tables (see
+ * CricketPlayerDetailView) — a 2027 entry added after a 2026 one should show
+ * above it, not below. No cap here (unlike Recent Matches): every
+ * Category+Division entry stays visible.
+ *
+ * Same reverse-then-stable-sort as sortRecentMatchesNewestFirst: rows arrive
+ * oldest-added-first (CareerStatTable only ever appends), so reversing first
+ * means same-year rows (several Category+Divisions logged in the same year)
+ * tie-break in favor of whichever was added most recently.
+ */
+export function sortCareerStatsNewestFirst<T extends { year?: unknown }>(rows: T[]): T[] {
+  return [...rows]
+    .reverse()
+    .sort((a, b) => String(b.year ?? '').localeCompare(String(a.year ?? '')));
 }
 
 export function formatShortMatchDate(isoDate: string | null | undefined): string {

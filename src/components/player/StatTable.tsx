@@ -16,6 +16,12 @@ export interface StatColumn {
   options?: DropdownOption[];
   /** Minimum width (px) the field claims before wrapping to the next line. */
   width?: number;
+  /** True for a derived stat (e.g. Average, Strike Rate, Economy) that's
+   * always calculated from other columns — never typed in directly. Only
+   * CareerStatAddModal reads this, to skip rendering an input for it; the
+   * computed value still shows in every read-only table via the normal row
+   * data, since it's a real (calculated) field on the row like any other. */
+  computed?: boolean;
 }
 
 const FIELD_MIN_WIDTH: Record<ColumnType, number> = {

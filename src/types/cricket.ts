@@ -19,7 +19,12 @@ export interface CricketBattingRowForm {
   innings: string;
   not_out: string;
   runs: string;
+  // Only career field needed to derive Strike Rate (Runs ÷ Balls × 100) — see
+  // statMerge.mergeBattingRows. Bowling already tracked `balls`; batting didn't.
+  balls: string;
   hs: string;
+  // Average and Strike Rate are always derived (see mergeBattingRows) — never
+  // typed in directly (see CareerStatAddModal's `computed` column filter).
   average: string;
   best: string;
   sr: string;

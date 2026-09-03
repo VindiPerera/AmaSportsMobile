@@ -6,7 +6,6 @@ import { colors, radius, spacing, typography } from '../../theme';
 import { StatColumn } from './StatTable';
 import { StatDataTable } from './StatDataTable';
 import { SimpleStatAddModal } from './SimpleStatAddModal';
-import { sortRecentMatchesNewestFirst } from '../../utils/date';
 
 interface RecentMatchTableProps<TFieldValues extends FieldValues> {
   title: string;
@@ -23,6 +22,11 @@ interface RecentMatchTableProps<TFieldValues extends FieldValues> {
    * business — it isn't tracked by the parent, so there's only ever one
    * piece of state to keep in sync, not two. */
   resetSignal: number;
+  /** Fired whenever this table's own lock state changes, so a parent that
+   * needs to know "was a match added this session" (e.g. to require a
+   * Batting/Bowling stat alongside it) can track it without this component
+   * giving up owning that state itself. Optional — most callers don't need it. */
+  onLockChange?: (locked: boolean) => void;
 }
 
 /**
@@ -30,10 +34,16 @@ interface RecentMatchTableProps<TFieldValues extends FieldValues> {
  * same "one add per save" flow as the Batting/Bowling Career Stats tables
  * (CareerStatTable). Unlike those, there's no Category+Division to pick and
  * no merge step: every match is its own row, so "Add" never combines into
- * an existing entry — it's inserted, then the whole list is re-sorted
- * newest-first and capped to the 10 most recent (see
- * sortRecentMatchesNewestFirst) — adding an 11th drops the oldest, not the
- * one just added.
+ * an existing entry — it's just appended.
+ *
+ * This component deliberately does NOT sort or cap to the 10-most-recent —
+ * that's a read-view concern (see sortRecentMatchesNewestFirst, applied in
+ * CricketPlayerDetailView when rendering the profile). Doing it here too
+ * used to mean the match you just added could immediately get sorted past
+ * the cap and vanish from the session preview below with no explanation
+ * the moment the player already had 10+ saved. Now the just-added match
+ * always shows; the newest-10 rule is enforced only where matches are
+ * actually displayed.
  *
  * The Edit screen deliberately doesn't list already-saved matches here —
  * this screen is for adding, not reviewing/deleting past entries (those are
@@ -50,6 +60,7 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
   emptyRow,
   columns,
   resetSignal,
+  onLockChange,
 }: RecentMatchTableProps<TFieldValues>) {
   const { fields, replace } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
@@ -67,32 +78,28 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
     setSessionIndex(null);
   }, [resetSignal]);
 
+  useEffect(() => {
+    onLockChange?.(isLocked);
+  }, [isLocked, onLockChange]);
+
   const rows = fields as unknown as Record<string, unknown>[];
   const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
 
   const handleSave = (row: Record<string, unknown>) => {
     if (sessionIndex !== null) {
-      // Correcting the match added earlier this session — still re-sort in
-      // case the date changed, and re-locate it afterwards. A date old
-      // enough to fall past the 10-match cap drops it from `sorted`
-      // entirely (indexOf -1) — treat that the same as never having added
-      // one, rather than pointing sessionIndex at the wrong row.
+      // Correcting the match added earlier this session — replace it in
+      // place. No re-sort/re-cap here, so the index it lives at never moves.
       const next = rows.map((existing, index) => (index === sessionIndex ? row : existing));
-      const sorted = sortRecentMatchesNewestFirst(next);
-      const newIndex = sorted.indexOf(row);
-      replace(sorted as never);
-      setSessionIndex(newIndex === -1 ? null : newIndex);
+      replace(next as never);
       setModalVisible(false);
       return;
     }
-    // Newest first, capped at 10 — adding an 11th drops the oldest one
-    // rather than the one just added. Re-sorting the whole array (not just
-    // appending) also keeps things correct if the player enters matches
-    // out of date order.
-    const sorted = sortRecentMatchesNewestFirst([...rows, row]);
-    const newIndex = sorted.indexOf(row);
-    replace(sorted as never);
-    setSessionIndex(newIndex === -1 ? null : newIndex);
+    // Just append — no sort, no cap. The newest-10-first rule is applied
+    // only when matches are displayed (CricketPlayerDetailView), not here,
+    // so the match the player just entered always shows below.
+    const next = [...rows, row];
+    replace(next as never);
+    setSessionIndex(next.length - 1);
     setModalVisible(false);
   };
 

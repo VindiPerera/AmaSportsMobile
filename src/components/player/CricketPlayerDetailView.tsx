@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { CricketProfileFormValues, Lookups } from '../../types';
-import { formatBornDate, formatDetailedAge, formatShortMatchDate, sortRecentMatchesNewestFirst } from '../../utils/date';
+import { formatBornDate, formatDetailedAge, formatShortMatchDate, sortCareerStatsNewestFirst, sortRecentMatchesNewestFirst } from '../../utils/date';
 import { ImageLightbox } from '../ui/ImageLightbox';
 
 interface CricketPlayerDetailViewProps {
@@ -69,13 +69,14 @@ export function CricketPlayerDetailView({
     return found ? found.name : '-';
   };
 
-  // Process Batting Rows
+  // Process Batting Rows — newest Year first regardless of the order they
+  // arrived in (e.g. a 2027 entry added after a 2026 one shows above it).
   const hasBattingStats = values.batting && values.batting.length > 0;
-  const battingRows = hasBattingStats ? values.batting : [];
+  const battingRows = hasBattingStats ? sortCareerStatsNewestFirst(values.batting) : [];
 
-  // Process Bowling Rows
+  // Process Bowling Rows — same newest-Year-first rule as Batting above.
   const hasBowlingStats = values.bowling && values.bowling.length > 0;
-  const bowlingRows = hasBowlingStats ? values.bowling : [];
+  const bowlingRows = hasBowlingStats ? sortCareerStatsNewestFirst(values.bowling) : [];
 
   // Process Recent Matches — newest first regardless of the order they
   // arrived in (e.g. older data saved before this rule existed).
@@ -817,8 +818,14 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   thDate: {
-    width: 85,
+    // Was 85 with no padding — the date text ("06-May-2026") already used
+    // the full width, so adding paddingRight without widening would wrap
+    // it instead of creating breathing room before the Match column.
+    width: 93,
     textAlign: 'right',
+    // Right-aligned against a left-aligned Match column right next to it —
+    // without this they sit flush against each other with no gap.
+    paddingRight: spacing.sm,
   },
   tdCell: {
     ...typography.body,

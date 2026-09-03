@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -34,7 +34,7 @@ import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/ty
 
 const EMPTY_BATTING_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
-  matches: '', won: '', lost: '', innings: '', not_out: '', runs: '', hs: '', average: '',
+  matches: '', won: '', lost: '', innings: '', not_out: '', runs: '', balls: '', hs: '', average: '',
   best: '', sr: '', hundreds: '', fifties: '', fours: '', sixes: '', catches: '', stumpings: '',
   run_outs: '', direct_hits: '', runs_saved: '', runs_giving: '', stumps_missing: '',
 };
@@ -104,6 +104,13 @@ export default function CricketProfileScreen() {
   // that: it tells all three tables their pending entry is now saved, so
   // they forget it and unlock Add for a genuinely fresh session.
   const [savedVersion, setSavedVersion] = useState(0);
+
+  // Mirrors of each table's own "locked" state (see the tables' onLockChange)
+  // — the parent needs this one thing they otherwise keep private: whether a
+  // new match requires a Batting/Bowling stat alongside it before saving.
+  const [matchAdded, setMatchAdded] = useState(false);
+  const [battingAdded, setBattingAdded] = useState(false);
+  const [bowlingAdded, setBowlingAdded] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -222,6 +229,13 @@ export default function CricketProfileScreen() {
   const onSubmit = async (values: CricketProfileFormValues) => {
     if (!fullName.trim()) {
       setError('Full name is required.');
+      return;
+    }
+    if (matchAdded && !battingAdded && !bowlingAdded) {
+      Alert.alert(
+        'Add a career stat',
+        'You added a Recent Match — add a Batting or Bowling stat for it before saving.'
+      );
       return;
     }
     setError(null);
@@ -415,6 +429,7 @@ export default function CricketProfileScreen() {
         name="recent_matches"
         emptyRow={EMPTY_RECENT_MATCH_ROW}
         resetSignal={savedVersion}
+        onLockChange={setMatchAdded}
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },
@@ -441,6 +456,7 @@ export default function CricketProfileScreen() {
         divisions={careerDivisionOptions}
         mergeRows={mergeBattingRows as never}
         resetSignal={savedVersion}
+        onLockChange={setBattingAdded}
         detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'won', label: 'Won', type: 'number' },
@@ -448,10 +464,11 @@ export default function CricketProfileScreen() {
           { key: 'innings', label: 'Innings', type: 'number' },
           { key: 'not_out', label: 'Not Out', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'balls', label: 'Balls Faced', type: 'number' },
           { key: 'hs', label: 'High Score', type: 'text' },
-          { key: 'average', label: 'Average', type: 'text' },
+          { key: 'average', label: 'Average', type: 'text', computed: true },
           { key: 'best', label: 'Best', type: 'number' },
-          { key: 'sr', label: 'Strike Rate', type: 'text' },
+          { key: 'sr', label: 'Strike Rate', type: 'text', computed: true },
           { key: 'hundreds', label: '100s', type: 'number' },
           { key: 'fifties', label: '50s', type: 'number' },
           { key: 'fours', label: '4s', type: 'number' },
@@ -471,6 +488,7 @@ export default function CricketProfileScreen() {
         divisions={careerDivisionOptions}
         mergeRows={mergeBowlingRows as never}
         resetSignal={savedVersion}
+        onLockChange={setBowlingAdded}
         detailColumns={[
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'innings', label: 'Innings', type: 'number' },
@@ -479,9 +497,9 @@ export default function CricketProfileScreen() {
           { key: 'wickets', label: 'Wickets', type: 'number' },
           { key: 'bbi', label: 'BBI', type: 'text' },
           { key: 'bbm', label: 'BBM', type: 'text' },
-          { key: 'average', label: 'Average', type: 'text' },
-          { key: 'economy', label: 'Economy', type: 'text' },
-          { key: 'sr', label: 'Strike Rate', type: 'text' },
+          { key: 'average', label: 'Average', type: 'text', computed: true },
+          { key: 'economy', label: 'Economy', type: 'text', computed: true },
+          { key: 'sr', label: 'Strike Rate', type: 'text', computed: true },
           { key: 'four_w', label: '4w', type: 'number' },
           { key: 'five_w', label: '5w', type: 'number' },
           { key: 'ten_w', label: '10w', type: 'number' },
