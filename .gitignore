@@ -34,7 +34,6 @@ yarn-error.*
 .claude/
 
 # local env files
-.env
 .env*.local
 
 # typescript
@@ -45,3 +44,4 @@ yarn-error.*
 /android
 
 android/local.properties
+config.bat
