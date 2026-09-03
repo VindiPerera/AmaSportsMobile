@@ -5,16 +5,18 @@ export interface HockeyCareerRowForm {
   format_id: string;
   age_category_id: string;
   match_category_id: string;
-  kit_number: string;
-  matches: string;
-  matches_won: string;
-  matches_lost: string;
+  play_position: string;
+  total_matches: string;
   goals: string;
   assist_goals: string;
   defeat_goal: string;
-  result_won: string;
-  result_lost: string;
-  result_drawn: string;
+  won: string;
+  lost: string;
+  drawn: string;
+  red_card: string;
+  yellow_card: string;
+  other_card: string;
+  year: string;
 }
 
 export interface HockeyRecentMatchRowForm {
@@ -27,6 +29,9 @@ export interface HockeyRecentMatchRowForm {
   won: boolean;
   lost: boolean;
   drawn: boolean;
+  red_card: string;
+  yellow_card: string;
+  other_card: string;
 }
 
 export interface HockeyProfileFormValues {

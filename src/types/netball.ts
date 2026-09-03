@@ -4,14 +4,16 @@ export interface NetBallCareerRowForm {
   format_id: string;
   age_category_id: string;
   match_category_id: string;
+  play_position: string;
   matches: string;
-  matches_won: string;
-  matches_lost: string;
   goals: string;
   attempts: string;
   goal_accuracy: string;
-  result_won: string;
-  result_lost: string;
+  won: string;
+  lost: string;
+  no_result: string;
+  draw: string;
+  year: string;
 }
 
 export interface NetBallRecentMatchRowForm {
@@ -21,8 +23,11 @@ export interface NetBallRecentMatchRowForm {
   goals: string;
   attempts: string;
   goal_accuracy: string;
-  win: boolean;
+  play_position: string;
+  won: boolean;
   lost: boolean;
+  no_result: boolean;
+  draw: boolean;
 }
 
 export interface NetBallProfileFormValues {

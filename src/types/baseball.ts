@@ -5,14 +5,15 @@ export interface BaseBallCareerRowForm {
   format_id: string;
   age_category_id: string;
   match_category_id: string;
-  matches: string;
-  nt: string;
+  total_matches: string;
   at_bats: string;
   runs: string;
   hits: string;
   rbi: string;
   won: string;
   lost: string;
+  no_result: string;
+  year: string;
 }
 
 export interface BaseBallRecentMatchRowForm {
@@ -21,7 +22,9 @@ export interface BaseBallRecentMatchRowForm {
   venue: string;
   won: boolean;
   lost: boolean;
+  at_bats: string;
   runs: string;
+  hits: string;
 }
 
 export interface BaseBallProfileFormValues {

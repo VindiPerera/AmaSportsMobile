@@ -28,13 +28,13 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, NetBallProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', matches: '', matches_won: '',
-  matches_lost: '', goals: '', attempts: '', goal_accuracy: '', result_won: '', result_lost: '', year: '',
+  format_id: '', age_category_id: '', match_category_id: '', play_position: '', matches: '',
+  goals: '', attempts: '', goal_accuracy: '', won: '', lost: '', no_result: '', draw: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
   match_date: '', opponent: '', venue: '', goals: '', attempts: '', goal_accuracy: '',
-  win: false, lost: false,
+  play_position: '', won: false, lost: false, no_result: false, draw: false,
 };
 
 const EMPTY_FORM: NetBallProfileFormValues = {
@@ -106,9 +106,11 @@ export default function NetBallProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as NetBallProfileFormValues['career_stats'],
           recent_matches: netBallProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'venue', 'goals', 'attempts', 'goal_accuracy']),
-            win: Boolean(row.win),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'goals', 'attempts', 'goal_accuracy', 'play_position']),
+            won: Boolean(row.won),
             lost: Boolean(row.lost),
+            no_result: Boolean(row.no_result),
+            draw: Boolean(row.draw),
           })) as unknown as NetBallProfileFormValues['recent_matches'],
         });
       } catch {
@@ -194,7 +196,7 @@ export default function NetBallProfileScreen() {
 
     const recentRows = (formValues.recent_matches || []).map((m) => ({
       ...m,
-      result: m.win ? 'WIN' : m.lost ? 'LOSS' : '-',
+      result: m.won ? 'WIN' : m.lost ? 'LOSS' : m.draw ? 'DRAW' : m.no_result ? 'NR' : '-',
     }));
 
     return (
@@ -216,14 +218,15 @@ export default function NetBallProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
-              { key: 'matches', label: 'Mat', width: 45 },
-              { key: 'matches_won', label: 'Won', width: 50 },
-              { key: 'matches_lost', label: 'Lost', width: 50 },
+              { key: 'play_position', label: 'Play Position', width: 100 },
+              { key: 'matches', label: 'Matches', width: 65 },
               { key: 'goals', label: 'Goals', width: 55 },
               { key: 'attempts', label: 'Attempts', width: 65 },
               { key: 'goal_accuracy', label: 'Acc %', width: 60 },
-              { key: 'result_won', label: 'Res Won', width: 60 },
-              { key: 'result_lost', label: 'Res Lost', width: 60 },
+              { key: 'won', label: 'Won', width: 50 },
+              { key: 'lost', label: 'Lost', width: 50 },
+              { key: 'no_result', label: 'No Result', width: 75 },
+              { key: 'draw', label: 'Draw', width: 50 },
             ],
             rows: careerRows,
           },
@@ -233,11 +236,12 @@ export default function NetBallProfileScreen() {
             header: 'Recent Matches',
             columns: [
               { key: 'match_date', label: 'Date', width: 85 },
-              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'opponent', label: 'Match vs', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
               { key: 'goals', label: 'Goals', width: 55 },
               { key: 'attempts', label: 'Attempts', width: 65 },
               { key: 'goal_accuracy', label: 'Acc %', width: 60 },
+              { key: 'play_position', label: 'Play Position', width: 100 },
               { key: 'result', label: 'Result', width: 60 },
             ],
             rows: recentRows,
@@ -352,14 +356,15 @@ export default function NetBallProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
           { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'matches_won', label: 'Win', type: 'number' },
-          { key: 'matches_lost', label: 'Lost', type: 'number' },
           { key: 'goals', label: 'Goals', type: 'number' },
           { key: 'attempts', label: 'Attempts', type: 'number' },
           { key: 'goal_accuracy', label: 'Goal Accuracy', type: 'decimal' },
-          { key: 'result_won', label: 'Won', type: 'number' },
-          { key: 'result_lost', label: 'Lost', type: 'number' },
+          { key: 'won', label: 'Won', type: 'number' },
+          { key: 'lost', label: 'Lost', type: 'number' },
+          { key: 'no_result', label: 'No Result', type: 'number' },
+          { key: 'draw', label: 'Draw', type: 'number' },
         ]}
       />
 
@@ -378,8 +383,11 @@ export default function NetBallProfileScreen() {
           { key: 'goals', label: 'Goals', type: 'number' },
           { key: 'attempts', label: 'Attempts', type: 'number' },
           { key: 'goal_accuracy', label: 'Goal Accuracy', type: 'decimal' },
-          { key: 'win', label: 'Win', type: 'boolean' },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
+          { key: 'won', label: 'Won', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
+          { key: 'no_result', label: 'No Result', type: 'boolean' },
+          { key: 'draw', label: 'Draw', type: 'boolean' },
         ]}
       />
 

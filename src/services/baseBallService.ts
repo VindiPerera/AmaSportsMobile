@@ -21,14 +21,15 @@ function toPayload(values: BaseBallProfileFormValues) {
         format_id: idOrNull(row.format_id),
         age_category_id: idOrNull(row.age_category_id),
         match_category_id: idOrNull(row.match_category_id),
-        matches: idOrNull(row.matches),
-        nt: idOrNull(row.nt),
+        total_matches: idOrNull(row.total_matches),
         at_bats: idOrNull(row.at_bats),
         runs: idOrNull(row.runs),
         hits: idOrNull(row.hits),
         rbi: idOrNull(row.rbi),
         won: idOrNull(row.won),
         lost: idOrNull(row.lost),
+        no_result: idOrNull(row.no_result),
+        year: idOrNull(row.year),
       })),
     recent_matches: values.recent_matches
       .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
@@ -38,7 +39,9 @@ function toPayload(values: BaseBallProfileFormValues) {
         venue: row.venue || null,
         won: row.won,
         lost: row.lost,
+        at_bats: idOrNull(row.at_bats),
         runs: idOrNull(row.runs),
+        hits: idOrNull(row.hits),
       })),
   };
 }

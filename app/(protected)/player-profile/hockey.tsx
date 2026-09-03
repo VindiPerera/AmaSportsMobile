@@ -27,14 +27,15 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, HockeyProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', kit_number: '', matches: '',
-  matches_won: '', matches_lost: '', goals: '', assist_goals: '', defeat_goal: '',
-  result_won: '', result_lost: '', result_drawn: '', year: '',
+  format_id: '', age_category_id: '', match_category_id: '', play_position: '',
+  total_matches: '', goals: '', assist_goals: '', defeat_goal: '',
+  won: '', lost: '', drawn: '', red_card: '', yellow_card: '', other_card: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
   match_date: '', opponent: '', venue: '', goals: '', assist_goals: '', defeat_goals: '',
   won: false, lost: false, drawn: false,
+  red_card: '', yellow_card: '', other_card: '',
 };
 
 const EMPTY_FORM: HockeyProfileFormValues = {
@@ -106,7 +107,7 @@ export default function HockeyProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as HockeyProfileFormValues['career_stats'],
           recent_matches: hockeyProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'venue', 'goals', 'assist_goals', 'defeat_goals']),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'goals', 'assist_goals', 'defeat_goals', 'red_card', 'yellow_card', 'other_card']),
             won: Boolean(row.won),
             lost: Boolean(row.lost),
             drawn: Boolean(row.drawn),
@@ -217,16 +218,17 @@ export default function HockeyProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
-              { key: 'kit_number', label: 'Kit', width: 45 },
-              { key: 'matches', label: 'Mat', width: 45 },
-              { key: 'matches_won', label: 'Won', width: 50 },
-              { key: 'matches_lost', label: 'Lost', width: 50 },
+              { key: 'play_position', label: 'Play Position', width: 100 },
+              { key: 'total_matches', label: 'Total Matches', width: 90 },
               { key: 'goals', label: 'Goals', width: 55 },
-              { key: 'assist_goals', label: 'Assists', width: 60 },
-              { key: 'defeat_goal', label: 'Defeat Gl', width: 60 },
-              { key: 'result_won', label: 'Res Won', width: 60 },
-              { key: 'result_lost', label: 'Res Lost', width: 60 },
-              { key: 'result_drawn', label: 'Res Drawn', width: 70 },
+              { key: 'assist_goals', label: 'Assist Goal', width: 80 },
+              { key: 'defeat_goal', label: 'Defeat Goal', width: 80 },
+              { key: 'won', label: 'Won', width: 50 },
+              { key: 'lost', label: 'Lost', width: 50 },
+              { key: 'drawn', label: 'Drawn', width: 55 },
+              { key: 'red_card', label: 'Read Card', width: 75 },
+              { key: 'yellow_card', label: 'Yellow Card', width: 80 },
+              { key: 'other_card', label: 'Other', width: 55 },
             ],
             rows: careerRows,
           },
@@ -236,12 +238,15 @@ export default function HockeyProfileScreen() {
             header: 'Recent Matches',
             columns: [
               { key: 'match_date', label: 'Date', width: 85 },
-              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'opponent', label: 'Match vs', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
               { key: 'goals', label: 'Goals', width: 55 },
-              { key: 'assist_goals', label: 'Assists', width: 60 },
-              { key: 'defeat_goals', label: 'Defeat Gl', width: 60 },
+              { key: 'assist_goals', label: 'Assist Goals', width: 80 },
+              { key: 'defeat_goals', label: 'Defeat Goals', width: 80 },
               { key: 'result', label: 'Result', width: 60 },
+              { key: 'red_card', label: 'Read Card', width: 75 },
+              { key: 'yellow_card', label: 'Yellow Card', width: 80 },
+              { key: 'other_card', label: 'Other', width: 55 },
             ],
             rows: recentRows,
           },
@@ -355,16 +360,17 @@ export default function HockeyProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'kit_number', label: 'Kit', type: 'number' },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'matches_won', label: 'Win', type: 'number' },
-          { key: 'matches_lost', label: 'Lost', type: 'number' },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
+          { key: 'total_matches', label: 'Total Matches', type: 'number' },
           { key: 'goals', label: 'Goals', type: 'number' },
           { key: 'assist_goals', label: 'Assist Goals', type: 'number' },
           { key: 'defeat_goal', label: 'Defeat Goal', type: 'number' },
-          { key: 'result_won', label: 'Won', type: 'number' },
-          { key: 'result_lost', label: 'Lost', type: 'number' },
-          { key: 'result_drawn', label: 'Drawn', type: 'number' },
+          { key: 'won', label: 'Won', type: 'number' },
+          { key: 'lost', label: 'Lost', type: 'number' },
+          { key: 'drawn', label: 'Drawn', type: 'number' },
+          { key: 'red_card', label: 'Read Card', type: 'number' },
+          { key: 'yellow_card', label: 'Yellow Card', type: 'number' },
+          { key: 'other_card', label: 'Other', type: 'number' },
         ]}
       />
 
@@ -386,6 +392,9 @@ export default function HockeyProfileScreen() {
           { key: 'won', label: 'Won', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
           { key: 'drawn', label: 'Drawn', type: 'boolean' },
+          { key: 'red_card', label: 'Read Card', type: 'number' },
+          { key: 'yellow_card', label: 'Yellow Card', type: 'number' },
+          { key: 'other_card', label: 'Other', type: 'number' },
         ]}
       />
 

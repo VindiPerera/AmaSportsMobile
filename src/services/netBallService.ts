@@ -21,14 +21,16 @@ function toPayload(values: NetBallProfileFormValues) {
         format_id: idOrNull(row.format_id),
         age_category_id: idOrNull(row.age_category_id),
         match_category_id: idOrNull(row.match_category_id),
+        play_position: row.play_position || null,
         matches: idOrNull(row.matches),
-        matches_won: idOrNull(row.matches_won),
-        matches_lost: idOrNull(row.matches_lost),
         goals: idOrNull(row.goals),
         attempts: idOrNull(row.attempts),
         goal_accuracy: parseFloatOrNull(row.goal_accuracy),
-        result_won: idOrNull(row.result_won),
-        result_lost: idOrNull(row.result_lost),
+        won: idOrNull(row.won),
+        lost: idOrNull(row.lost),
+        no_result: idOrNull(row.no_result),
+        draw: idOrNull(row.draw),
+        year: idOrNull(row.year),
       })),
     recent_matches: values.recent_matches
       .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
@@ -39,8 +41,11 @@ function toPayload(values: NetBallProfileFormValues) {
         goals: idOrNull(row.goals),
         attempts: idOrNull(row.attempts),
         goal_accuracy: parseFloatOrNull(row.goal_accuracy),
-        win: row.win,
+        play_position: row.play_position || null,
+        won: row.won,
         lost: row.lost,
+        no_result: row.no_result,
+        draw: row.draw,
       })),
   };
 }

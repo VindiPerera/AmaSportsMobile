@@ -28,12 +28,13 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, BaseBallProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', matches: '', nt: '',
-  at_bats: '', runs: '', hits: '', rbi: '', won: '', lost: '', year: '',
+  format_id: '', age_category_id: '', match_category_id: '', total_matches: '',
+  at_bats: '', runs: '', hits: '', rbi: '', won: '', lost: '', no_result: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', venue: '', won: false, lost: false, runs: '',
+  match_date: '', opponent: '', venue: '', won: false, lost: false,
+  at_bats: '', runs: '', hits: '',
 };
 
 const EMPTY_FORM: BaseBallProfileFormValues = {
@@ -105,7 +106,7 @@ export default function BaseBallProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BaseBallProfileFormValues['career_stats'],
           recent_matches: baseBallProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'venue', 'runs']),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'at_bats', 'runs', 'hits']),
             won: Boolean(row.won),
             lost: Boolean(row.lost),
           })) as unknown as BaseBallProfileFormValues['recent_matches'],
@@ -215,14 +216,14 @@ export default function BaseBallProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
-              { key: 'matches', label: 'Mat', width: 45 },
-              { key: 'nt', label: 'NT', width: 45 },
-              { key: 'at_bats', label: 'AB', width: 50 },
+              { key: 'total_matches', label: 'Total Matches', width: 90 },
+              { key: 'at_bats', label: 'At Bats', width: 60 },
               { key: 'runs', label: 'Runs', width: 55 },
               { key: 'hits', label: 'Hits', width: 50 },
-              { key: 'rbi', label: 'RBI', width: 50 },
+              { key: 'rbi', label: 'Runs Batted In', width: 100 },
               { key: 'won', label: 'Won', width: 50 },
               { key: 'lost', label: 'Lost', width: 50 },
+              { key: 'no_result', label: 'No Result', width: 75 },
             ],
             rows: careerRows,
           },
@@ -232,10 +233,12 @@ export default function BaseBallProfileScreen() {
             header: 'Recent Matches',
             columns: [
               { key: 'match_date', label: 'Date', width: 85 },
-              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'opponent', label: 'Match vs', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
-              { key: 'runs', label: 'Runs', width: 55 },
               { key: 'result', label: 'Result', width: 60 },
+              { key: 'at_bats', label: 'At Bats', width: 60 },
+              { key: 'runs', label: 'Runs', width: 55 },
+              { key: 'hits', label: 'Hits', width: 50 },
             ],
             rows: recentRows,
           },
@@ -349,14 +352,14 @@ export default function BaseBallProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'nt', label: 'NT', type: 'number' },
+          { key: 'total_matches', label: 'Total Matches', type: 'number' },
           { key: 'at_bats', label: 'At Bats', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
           { key: 'hits', label: 'Hits', type: 'number' },
-          { key: 'rbi', label: 'RBI', type: 'number' },
+          { key: 'rbi', label: 'Runs Batted In', type: 'number' },
           { key: 'won', label: 'Won', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
+          { key: 'no_result', label: 'No Result', type: 'number' },
         ]}
       />
 
@@ -374,7 +377,9 @@ export default function BaseBallProfileScreen() {
           { key: 'venue', label: 'Venue', type: 'text' },
           { key: 'won', label: 'Won', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
+          { key: 'at_bats', label: 'At Bats', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
+          { key: 'hits', label: 'Hits', type: 'number' },
         ]}
       />
 
