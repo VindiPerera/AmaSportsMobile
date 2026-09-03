@@ -43,7 +43,6 @@ export function CricketPlayerDetailView({
   onBackPress,
 }: CricketPlayerDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'matches'>('overview');
-  const [showAllRecent, setShowAllRecent] = useState(false);
   // Tapping the cover photo or the avatar opens it full-screen in this.
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
@@ -82,7 +81,6 @@ export function CricketPlayerDetailView({
   // arrived in (e.g. older data saved before this rule existed).
   const hasRecentMatches = values.recent_matches && values.recent_matches.length > 0;
   const recentMatches = hasRecentMatches ? sortRecentMatchesNewestFirst(values.recent_matches) : [];
-  const displayedRecentMatches = showAllRecent ? recentMatches : recentMatches.slice(0, 5);
 
   // Debut & Last Matches (not supported yet)
   const debutLastData: any[] = [];
@@ -381,22 +379,13 @@ export function CricketPlayerDetailView({
               </View>
             )}
 
-            {/* Card 3: Recent Matches */}
+            {/* Card 3: Recent Matches — always the full (up to 10) list, no
+                "View more" toggle to expand first. */}
             {hasRecentMatches && (
               <View style={[styles.card, shadows.sm]}>
                 <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
 
-                <RecentMatchesTable matches={displayedRecentMatches} />
-
-                {!showAllRecent && recentMatches.length > 3 && (
-                  <Pressable
-                    style={styles.viewMoreButton}
-                    onPress={() => setShowAllRecent(true)}
-                  >
-                    <Text style={styles.viewMoreText}>View more</Text>
-                    <Ionicons name="chevron-down" size={14} color={colors.primary} />
-                  </Pressable>
-                )}
+                <RecentMatchesTable matches={recentMatches} />
               </View>
             )}
 
@@ -857,20 +846,6 @@ const styles = StyleSheet.create({
   recentMatchesTableScrollable: {
     // A little trailing breathing room once scrolled all the way right.
     paddingRight: spacing.sm,
-  },
-  viewMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  viewMoreText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 13,
   },
   debutBlock: {
     backgroundColor: colors.cardSubtle,
