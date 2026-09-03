@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrayPath, Control, FieldValues, useFieldArray } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,12 +15,14 @@ interface RecentMatchTableProps<TFieldValues extends FieldValues> {
   name: ArrayPath<TFieldValues>;
   emptyRow: Record<string, unknown>;
   columns: StatColumn[];
-  /** True once a match has been added this editing session — the "Add New
-   * Match" button locks until "Save Cricket Profile" succeeds (see
-   * cricket.tsx), so only one new match goes in per save. */
-  locked: boolean;
-  /** Fired right after a match is added. */
-  onEntryAdded: () => void;
+  /** Bumped by the parent every time "Save Cricket Profile" succeeds — the
+   * table watches this to forget which match was "this session's" (see
+   * sessionIndex below), so the Add button unlocks for a genuinely fresh
+   * session rather than staying pointed at the just-saved match. Whether
+   * the Add button is locked is otherwise entirely this component's own
+   * business — it isn't tracked by the parent, so there's only ever one
+   * piece of state to keep in sync, not two. */
+  resetSignal: number;
 }
 
 /**
@@ -47,16 +49,23 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
   name,
   emptyRow,
   columns,
-  locked,
-  onEntryAdded,
+  resetSignal,
 }: RecentMatchTableProps<TFieldValues>) {
   const { fields, replace } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
   // Index (in `rows`) of the one match added this session, or null before
-  // that happens — the Add button disables the moment this is set (see
-  // `locked`), so the modal is only ever reachable afterwards through the
-  // table's edit pencil, which is always correcting this same match.
+  // that happens — this alone both locks the Add button (`isLocked` below)
+  // and picks the row the session table/edit pencil shows, so the two can
+  // never fall out of sync the way two separately-tracked flags could.
   const [sessionIndex, setSessionIndex] = useState<number | null>(null);
+  const isLocked = sessionIndex !== null;
+
+  // A successful save means this match is no longer "pending" — forget it
+  // so Add unlocks for a fresh one next time, instead of staying pointed at
+  // (and silently re-editing) the one that just got saved.
+  useEffect(() => {
+    setSessionIndex(null);
+  }, [resetSignal]);
 
   const rows = fields as unknown as Record<string, unknown>[];
   const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
@@ -85,7 +94,6 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
     replace(sorted as never);
     setSessionIndex(newIndex === -1 ? null : newIndex);
     setModalVisible(false);
-    onEntryAdded();
   };
 
   return (
@@ -99,21 +107,21 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
         </View>
         <Pressable
           onPress={() => setModalVisible(true)}
-          disabled={locked}
+          disabled={isLocked}
           style={({ pressed }) => [
             styles.addRowButton,
-            locked && styles.addRowButtonLocked,
-            pressed && !locked && styles.addRowButtonPressed,
+            isLocked && styles.addRowButtonLocked,
+            pressed && !isLocked && styles.addRowButtonPressed,
           ]}
           accessibilityRole="button"
-          accessibilityState={{ disabled: locked }}
+          accessibilityState={{ disabled: isLocked }}
         >
-          <Ionicons name={locked ? 'lock-closed' : 'add'} size={16} color={colors.white} />
+          <Ionicons name={isLocked ? 'lock-closed' : 'add'} size={16} color={colors.white} />
           <Text style={styles.addRowText}>{addLabel}</Text>
         </Pressable>
       </View>
 
-      {locked ? (
+      {isLocked ? (
         <Text style={styles.lockedHint}>Save your Cricket Profile to add another match.</Text>
       ) : null}
 

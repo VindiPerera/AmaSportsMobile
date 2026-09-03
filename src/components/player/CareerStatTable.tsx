@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrayPath, Control, FieldValues, useFieldArray } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,13 +19,14 @@ interface CareerStatTableProps<TFieldValues extends FieldValues> {
   divisions: DropdownOption[];
   detailColumns: StatColumn[];
   mergeRows: (existing: Record<string, string>, incoming: Record<string, string>) => Record<string, string>;
-  /** True once an entry has been added/updated this editing session — the
-   * "Add New Stat" button locks until "Save Cricket Profile" succeeds (see
-   * cricket.tsx), so only one Batting and one Bowling change go in per save. */
-  locked: boolean;
-  /** Fired right after an entry is added or merged — the parent uses this to
-   * set `locked`. */
-  onEntryAdded: () => void;
+  /** Bumped by the parent every time "Save Cricket Profile" succeeds — the
+   * table watches this to forget which entry was "this session's" (see
+   * sessionIndex below), so the Add button unlocks for a genuinely fresh
+   * session rather than staying pointed at the just-saved entry. Whether
+   * the Add button is locked is otherwise entirely this component's own
+   * business — it isn't tracked by the parent, so there's only ever one
+   * piece of state to keep in sync, not two. */
+  resetSignal: number;
 }
 
 /**
@@ -45,18 +46,24 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
   divisions,
   detailColumns,
   mergeRows,
-  locked,
-  onEntryAdded,
+  resetSignal,
 }: CareerStatTableProps<TFieldValues>) {
   const { fields, append, update } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
   // Index (in `rows`) of the one entry this session's "Add" touched — either
   // a brand new row or one it merged into — or null before that happens.
-  // The Add button disables the moment this is set (see `locked`), so the
-  // modal is only ever reachable afterwards through the table's edit
-  // pencil, which corrects this same entry (replacing it outright, never
-  // merging again).
+  // This alone both locks the Add button (`isLocked` below) and picks the
+  // row the session table/edit pencil shows, so the two can never fall out
+  // of sync the way two separately-tracked flags could.
   const [sessionIndex, setSessionIndex] = useState<number | null>(null);
+  const isLocked = sessionIndex !== null;
+
+  // A successful save means this entry is no longer "pending" — forget it
+  // so Add unlocks for a fresh one next time, instead of staying pointed at
+  // (and silently re-editing) the one that just got saved.
+  useEffect(() => {
+    setSessionIndex(null);
+  }, [resetSignal]);
 
   const rows = fields as unknown as Record<string, string>[];
   const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
@@ -83,7 +90,6 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
       setSessionIndex(rows.length);
     }
     setModalVisible(false);
-    onEntryAdded();
   };
 
   // Category/Division/Year identify each entry (see entryKey) but aren't
@@ -107,21 +113,21 @@ export function CareerStatTable<TFieldValues extends FieldValues>({
         </View>
         <Pressable
           onPress={() => setModalVisible(true)}
-          disabled={locked}
+          disabled={isLocked}
           style={({ pressed }) => [
             styles.addRowButton,
-            locked && styles.addRowButtonLocked,
-            pressed && !locked && styles.addRowButtonPressed,
+            isLocked && styles.addRowButtonLocked,
+            pressed && !isLocked && styles.addRowButtonPressed,
           ]}
           accessibilityRole="button"
-          accessibilityState={{ disabled: locked }}
+          accessibilityState={{ disabled: isLocked }}
         >
-          <Ionicons name={locked ? 'lock-closed' : 'add'} size={16} color={colors.white} />
+          <Ionicons name={isLocked ? 'lock-closed' : 'add'} size={16} color={colors.white} />
           <Text style={styles.addRowText}>{addLabel}</Text>
         </Pressable>
       </View>
 
-      {locked ? (
+      {isLocked ? (
         <Text style={styles.lockedHint}>
           Save your Cricket Profile to add another entry here.
         </Text>
