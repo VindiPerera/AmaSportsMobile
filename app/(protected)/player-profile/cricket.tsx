@@ -13,6 +13,7 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
+import { PhotoGalleryUpload } from '../../../src/components/player/PhotoGalleryUpload';
 import { CareerStatTable } from '../../../src/components/player/CareerStatTable';
 import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
 import { mergeBattingRows, mergeBowlingRows } from '../../../src/utils/statMerge';
@@ -30,7 +31,7 @@ import {
   PLAYING_ROLE_OPTIONS,
 } from '../../../src/constants/cricketOptions';
 import { calculateAge, sortRecentMatchesNewestFirst } from '../../../src/utils/date';
-import { ApiError, CricketProfileFormValues, PickedImage } from '../../../src/types';
+import { ApiError, CricketProfileFormValues, PickedImage, PlayerPhoto } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
@@ -123,6 +124,9 @@ export default function CricketProfileScreen() {
   const [collegeLogoUrl, setCollegeLogoUrl] = useState<string | null>(null);
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
+  // Photo gallery (see PhotoGalleryUpload) — same "own endpoint, not part
+  // of Save" idea as team/college logos above.
+  const [photos, setPhotos] = useState<PlayerPhoto[]>([]);
 
   const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<CricketProfileFormValues>({
     defaultValues: EMPTY_FORM,
@@ -143,6 +147,7 @@ export default function CricketProfileScreen() {
         setCountry(profile.country ?? '');
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
+        setPhotos(profile.photos ?? []);
         setTeamLogos(
           Object.fromEntries((cricketProfile.team_logos ?? []).map((l) => [l.team_name, l.logo_url]))
         );
@@ -192,6 +197,16 @@ export default function CricketProfileScreen() {
       const computed = calculateAge(isoDate);
       if (computed !== null) setValue('age', String(computed));
     }
+  };
+
+  const handleUploadPhoto = async (image: PickedImage) => {
+    const uploaded = await playerService.uploadPlayerPhoto(image);
+    setPhotos((prev) => [...prev, uploaded]);
+  };
+
+  const handleRemovePhoto = async (photoId: number) => {
+    await playerService.removePlayerPhoto(photoId);
+    setPhotos((prev) => prev.filter((p) => p.id !== photoId));
   };
 
   const handleUploadCollegeLogo = async (image: PickedImage) => {
@@ -315,6 +330,14 @@ export default function CricketProfileScreen() {
         <View style={sportStyles.avatarOverlay}>
           <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
+      </View>
+
+      <View style={[sportStyles.sectionCard, shadows.sm]}>
+        <Text style={sportStyles.sectionTitle}>
+          <Ionicons name="images-outline" size={18} color={colors.primary} />
+          Photo Gallery
+        </Text>
+        <PhotoGalleryUpload photos={photos} onUpload={handleUploadPhoto} onRemove={handleRemovePhoto} />
       </View>
 
       <View style={[sportStyles.sectionCard, shadows.sm]}>

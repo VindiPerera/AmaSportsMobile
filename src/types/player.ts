@@ -11,12 +11,19 @@ export interface PlayerSportEntry {
   sport: SportOption;
 }
 
+/** One gallery photo (see PlayerPhotoController) — up to 10 per player. */
+export interface PlayerPhoto {
+  id: number;
+  url: string;
+}
+
 export interface PlayerProfile {
   id: number;
   full_name: string | null;
   country: string | null;
   cover_photo_url: string | null;
   photo_url: string | null;
+  photos: PlayerPhoto[];
 }
 
 /** A picked image ready to attach to a multipart `FormData` upload. */

@@ -60,6 +60,14 @@ interface PlayerSportDetailViewProps {
   recentCards?: StatCardConfig[];
   onEditPress?: () => void;
   onBackPress?: () => void;
+  /** True when embedded inline in another screen that already provides its
+   * own header/photo/edit affordance (see the Player Profile tab) — skips
+   * this component's own cover-photo/nav-bar/identity header and dark tab
+   * styling, and renders as a plain block instead of a self-contained
+   * full-screen view (no `flex:1` + internal ScrollView, which don't nest
+   * inside another scrolling screen). `onBackPress`/coverUrl/photoUrl are
+   * unused in this mode. */
+  embedded?: boolean;
 }
 
 function DataTable({ card }: { card: StatCardConfig }) {
@@ -117,6 +125,7 @@ export function PlayerSportDetailView({
   recentCards = [],
   onEditPress,
   onBackPress,
+  embedded = false,
 }: PlayerSportDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'matches'>('overview');
   const [expandedRecent, setExpandedRecent] = useState<Record<number, boolean>>({});
@@ -146,8 +155,11 @@ export function PlayerSportDetailView({
   };
 
   return (
-    <View style={styles.container}>
-      {/* Dark Navy Header Banner */}
+    <View style={embedded ? styles.embeddedContainer : styles.container}>
+      {/* Dark Navy Header Banner — skipped when embedded (the Player
+          Profile tab's own photo carousel + edit/logout icons stand in
+          for it instead). */}
+      {!embedded && (
       <View style={styles.headerBanner}>
         {coverUrl ? (
           <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
@@ -207,39 +219,80 @@ export function PlayerSportDetailView({
             )}
           </View>
         </View>
+      </View>
+      )}
 
-        {/* Navigation Tabs — Matches tab only shown when player has match data */}
-        <View style={styles.tabsRow}>
-          <Pressable
-            style={[styles.tabButton, activeTab === 'overview' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('overview')}
+      {/* Navigation Tabs */}
+      <View style={embedded ? styles.embeddedTabsRow : styles.tabsRow}>
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'overview' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'overview' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <Ionicons
+            name="person-outline"
+            size={14}
+            color={activeTab === 'overview' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'overview' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'overview' && styles.tabTextActive,
+            ]}
           >
-            <Text style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}>
-              Overview
-            </Text>
-            {activeTab === 'overview' && <View style={styles.activeTabLine} />}
-          </Pressable>
+            Overview
+          </Text>
+          {!embedded && activeTab === 'overview' && <View style={styles.activeTabLine} />}
+        </Pressable>
 
-          {hasAnyRecent && (
-            <Pressable
-              style={[styles.tabButton, activeTab === 'matches' && styles.tabButtonActive]}
-              onPress={() => setActiveTab('matches')}
+        {hasAnyRecent && (
+          <Pressable
+            style={[
+              embedded ? styles.embeddedTabButton : styles.tabButton,
+              embedded && activeTab === 'matches' && styles.embeddedTabButtonActive,
+              !embedded && activeTab === 'matches' && styles.tabButtonActive,
+            ]}
+            onPress={() => setActiveTab('matches')}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={14}
+              color={activeTab === 'matches' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                embedded ? styles.embeddedTabText : styles.tabText,
+                embedded && activeTab === 'matches' && styles.embeddedTabTextActive,
+                !embedded && activeTab === 'matches' && styles.tabTextActive,
+              ]}
             >
-              <Text style={[styles.tabText, activeTab === 'matches' && styles.tabTextActive]}>
-                Matches
-              </Text>
-              {activeTab === 'matches' && <View style={styles.activeTabLine} />}
-            </Pressable>
-          )}
-        </View>
+              Matches
+            </Text>
+            {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
+          </Pressable>
+        )}
       </View>
 
       {/* Main Content */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        scrollEnabled={!embedded}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {activeTab === 'overview' ? (
           <>
             {/* Card 1: Personal Overview */}
             <View style={[styles.card, shadows.sm]}>
+              <View style={styles.cardHeaderRow}>
+                <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+                <Text style={styles.cardHeaderTitle}>About Athlete</Text>
+              </View>
               <View style={styles.detailGrid}>
                 {/* Full Name */}
                 <View style={styles.gridItemFull}>
@@ -466,6 +519,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.energy,
     borderRadius: radius.full,
   },
+  embeddedContainer: {
+    backgroundColor: colors.background,
+  },
+  embeddedTabsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  embeddedTabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  embeddedTabButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  embeddedTabText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '700',
+  },
+  embeddedTabTextActive: {
+    color: colors.white,
+  },
   scrollContent: {
     padding: spacing.md,
     paddingBottom: spacing['3xl'],
@@ -478,12 +560,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing.md,
+  },
   cardHeaderTitle: {
     ...typography.subtitle,
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: '800',
     fontSize: 16,
-    marginBottom: spacing.md,
   },
   detailGrid: {
     gap: spacing.md,

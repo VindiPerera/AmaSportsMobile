@@ -289,6 +289,25 @@ export const playerService = {
     await apiClient.delete('/player/cricket-profile/college-logo');
   },
 
+  /** Adds one photo to the player's gallery (up to 10 — see PlayerPhoto.
+   * MAX_PHOTOS on the backend) — immediate, not part of updateProfile's
+   * bulk save. Caller is expected to have already run the picked image
+   * through compressImageToWebp (see PhotoGalleryUpload). */
+  async uploadPlayerPhoto(photo: PickedImage) {
+    const formData = new FormData();
+    appendPickedImage(formData, 'photo', photo);
+    const { data } = await apiClient.post<ApiSuccessResponse<{ id: number; url: string }>>(
+      '/player/photos',
+      formData
+    );
+    return data.data;
+  },
+
+  /** Removes one gallery photo. */
+  async removePlayerPhoto(photoId: number) {
+    await apiClient.delete(`/player/photos/${photoId}`);
+  },
+
   /**
    * Read-only, server-aggregated stats for the Analysis tab. `formatId`
    * omitted (or null) means "All". Pass `silent: true` for background/
