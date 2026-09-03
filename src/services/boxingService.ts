@@ -23,7 +23,6 @@ function toPayload(values: BoxingProfileFormValues) {
         age_category_id: idOrNull(row.age_category_id),
         match_category_id: idOrNull(row.match_category_id),
         weight_class_id: idOrNull(row.weight_class_id),
-        matches: idOrNull(row.matches),
         win: idOrNull(row.win),
         lost: idOrNull(row.lost),
         third_place: idOrNull(row.third_place),

@@ -4,6 +4,7 @@ export interface BasketballCareerRowForm {
   format_id: string;
   age_category_id: string;
   match_category_id: string;
+  play_position: string;
   matches: string;
   win: string;
   lost: string;
@@ -19,6 +20,7 @@ export interface BasketballRecentMatchRowForm {
   match_date: string;
   opponent: string;
   venue: string;
+  play_position: string;
   win: boolean;
   lost: boolean;
   points: string;

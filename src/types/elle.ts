@@ -7,6 +7,7 @@ export interface ElleCareerRowForm {
   matches: string;
   win: string;
   lost: string;
+  total_balls: string;
   runs: string;
   catches: string;
   third_place: string;
@@ -20,6 +21,7 @@ export interface ElleRecentMatchRowForm {
   venue: string;
   win: boolean;
   lost: boolean;
+  total_balls: string;
   runs: string;
   catches: string;
   place: string;

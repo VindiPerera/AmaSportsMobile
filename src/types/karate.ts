@@ -2,13 +2,11 @@ export interface KarateCareerRowForm {
   format_id: string;
   age_category_id: string;
   match_category_id: string;
-  matches: string;
+  style: string;
   fights: string;
   win: string;
   lost: string;
-  stats: string;
   weight_category: string;
-  age_category: string;
   third_place: string;
   second_place: string;
   champion: string;
@@ -18,9 +16,9 @@ export interface KarateRecentMatchRowForm {
   match_date: string;
   opponent: string;
   venue: string;
+  style: string;
   win: boolean;
   lost: boolean;
-  stats: string;
   weight_category: string;
   age_category: string;
   place: string;

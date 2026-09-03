@@ -37,8 +37,8 @@ const EMPTY_RECENT_FIGHT_ROW = {
 };
 
 const EMPTY_FORM: JudoProfileFormValues = {
-  born: '', age: '', height: '', weight: '', college_university: '', current_ranking: '',
-  teams: [], career_stats: [], recent_fights: [],
+  born: '', age: '', height: '', weight: '', weight_position_id: '', competition_level_id: '',
+  college_university: '', current_ranking: '', teams: [], career_stats: [], recent_fights: [],
 };
 
 function toFormString(value: unknown): string {
@@ -98,6 +98,8 @@ export default function JudoProfileScreen() {
           age: toFormString(judoProfile.age),
           height: judoProfile.height ?? '',
           weight: judoProfile.weight ?? '',
+          weight_position_id: toFormString(judoProfile.weight_position_id),
+          competition_level_id: toFormString(judoProfile.competition_level_id),
           college_university: judoProfile.college_university ?? '',
           current_ranking: judoProfile.current_ranking ?? '',
           teams: judoProfile.teams ?? [],
@@ -180,6 +182,8 @@ export default function JudoProfileScreen() {
 
   if (isViewing) {
     const fields = [
+      { label: 'WEIGHT POSITION', value: labelFor(weightPositionOptions, formValues.weight_position_id) },
+      { label: 'COMPETITION LEVEL', value: labelFor(competitionLevelOptions, formValues.competition_level_id) },
       { label: 'RANKING', value: formValues.current_ranking },
       { label: 'HEIGHT', value: formValues.height },
       { label: 'WEIGHT', value: formValues.weight },
@@ -318,6 +322,26 @@ export default function JudoProfileScreen() {
             name="weight"
             render={({ field: { value, onChange } }) => (
               <TextField label="Weight" value={value} onChangeText={onChange} />
+            )}
+          />
+        </View>
+      </View>
+      <View style={styles.headerRow}>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="weight_position_id"
+            render={({ field: { value, onChange } }) => (
+              <Dropdown label="Weight Position" value={value} options={weightPositionOptions} onChange={onChange} />
+            )}
+          />
+        </View>
+        <View style={styles.headerRowItem}>
+          <Controller
+            control={control}
+            name="competition_level_id"
+            render={({ field: { value, onChange } }) => (
+              <Dropdown label="Competition Level" value={value} options={competitionLevelOptions} onChange={onChange} />
             )}
           />
         </View>

@@ -30,9 +30,10 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, KabadiProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_STAT_FIELDS = {
-  cbp: '', raids: '', successful_raids: '', unsuccessful_raids: '', raid_touch_point: '',
-  raid_bonus_point: '', tackles: '', successful_tackles: '', unsuccessful_tackles: '',
-  empty_raids: '', yellow_cards: '', green_cards: '', red_cards: '',
+  tpe: '', cbp: '', raids: '', successful_raids: '', unsuccessful_raids: '',
+  empty_raids: '', raid_touch_point: '', raid_bonus_point: '', tackles: '',
+  successful_tackles: '', unsuccessful_tackles: '', green_cards: '',
+  yellow_cards: '', red_cards: '',
 };
 
 const EMPTY_CAREER_ROW = {
@@ -51,18 +52,19 @@ const EMPTY_FORM: KabadiProfileFormValues = {
 };
 
 const STAT_COLUMNS: StatColumn[] = [
+  { key: 'tpe', label: 'TPE', type: 'number' },
   { key: 'cbp', label: 'CBP', type: 'number' },
   { key: 'raids', label: 'R', type: 'number' },
   { key: 'successful_raids', label: 'SR', type: 'number' },
   { key: 'unsuccessful_raids', label: 'UR', type: 'number' },
+  { key: 'empty_raids', label: 'EM', type: 'number' },
   { key: 'raid_touch_point', label: 'RTP', type: 'number' },
   { key: 'raid_bonus_point', label: 'RBP', type: 'number' },
   { key: 'tackles', label: 'T', type: 'number' },
   { key: 'successful_tackles', label: 'ST', type: 'number' },
   { key: 'unsuccessful_tackles', label: 'UT', type: 'number' },
-  { key: 'empty_raids', label: 'EM', type: 'number' },
-  { key: 'yellow_cards', label: 'YC', type: 'number' },
   { key: 'green_cards', label: 'GC', type: 'number' },
+  { key: 'yellow_cards', label: 'YC', type: 'number' },
   { key: 'red_cards', label: 'RC', type: 'number' },
 ];
 

@@ -29,11 +29,12 @@ import { ApiError, AthleticsProfileFormValues, PickedImage } from '../../../src/
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', athletics_event_id: '',
-  matches: '', third_place: '', second_place: '', champion: '', year: '',
+  personal_best: '', third_place: '', second_place: '', champion: '', year: '',
 };
 
 const EMPTY_RECENT_EVENT_ROW = {
-  event_date: '', age_category_id: '', match_category_id: '', matches: '', athletics_event_id: '', place: '',
+  event_date: '', format_id: '', age_category_id: '', match_category_id: '',
+  athletics_event_id: '', personal_best: '', place: '',
 };
 
 const EMPTY_FORM: AthleticsProfileFormValues = {
@@ -199,6 +200,7 @@ export default function AthleticsProfileScreen() {
 
     const recentRows = (formValues.recent_events || []).map((e) => ({
       ...e,
+      format_id: labelFor(formatOptions, e.format_id),
       age_category_id: labelFor(ageOptions, e.age_category_id),
       match_category_id: labelFor(categoryOptions, e.match_category_id),
       athletics_event_id: labelFor(eventOptions, e.athletics_event_id),
@@ -226,7 +228,7 @@ export default function AthleticsProfileScreen() {
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
               { key: 'athletics_event_id', label: 'Event', width: 100 },
-              { key: 'matches', label: 'Events', width: 55 },
+              { key: 'personal_best', label: 'Personal Best', width: 95 },
               { key: 'champion', label: 'Gold', width: 50 },
               { key: 'second_place', label: 'Silver', width: 50 },
               { key: 'third_place', label: 'Bronze', width: 55 },
@@ -239,9 +241,11 @@ export default function AthleticsProfileScreen() {
             header: 'Recent Events',
             columns: [
               { key: 'event_date', label: 'Date', width: 85 },
+              { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
               { key: 'athletics_event_id', label: 'Event', width: 100 },
+              { key: 'personal_best', label: 'Personal Best', width: 95 },
               { key: 'place', label: 'Place', width: 55 },
               { key: 'result', label: 'Result', width: 65 },
             ],
@@ -364,7 +368,7 @@ export default function AthleticsProfileScreen() {
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
           { key: 'athletics_event_id', label: 'Event', type: 'select', options: eventOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
+          { key: 'personal_best', label: 'Personal Best', type: 'text' },
           { key: 'third_place', label: '3rd Place', type: 'number' },
           { key: 'second_place', label: '2nd Place', type: 'number' },
           { key: 'champion', label: 'Champion', type: 'number' },
@@ -381,10 +385,11 @@ export default function AthleticsProfileScreen() {
         onEntryAdded={() => setRecentLocked(true)}
         columns={[
           { key: 'event_date', label: 'Date', type: 'date' },
+          { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'athletics_event_id', label: 'Event', type: 'select', options: eventOptions },
+          { key: 'personal_best', label: 'Personal Best', type: 'text' },
           { key: 'place', label: 'Place', type: 'text' },
         ]}
       />

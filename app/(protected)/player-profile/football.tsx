@@ -30,13 +30,13 @@ import { ApiError, FootballProfileFormValues, PickedImage } from '../../../src/t
 // GK columns (goalkeeper_clean_sheets/goalkeeper_goals_conceded) are always
 // present but optional — client-confirmed to not hide them per position.
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
+  format_id: '', age_category_id: '', match_category_id: '', play_position: '', matches: '', win: '', lost: '',
   goals: '', assists: '', defensive_actions: '', goalkeeper_clean_sheets: '',
   goalkeeper_goals_conceded: '', yellow_card: '', red_card: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', venue: '', win: false, lost: false,
+  match_date: '', opponent: '', venue: '', play_position: '', win: false, lost: false,
   goals: '', assists: '', defensive_actions: '', goalkeeper_clean_sheets: '',
   goalkeeper_goals_conceded: '', yellow_card: '', red_card: '',
 };
@@ -58,7 +58,7 @@ function mapRow(row: Record<string, unknown>, keys: string[]): Record<string, st
   return mapped;
 }
 
-const STAT_KEYS = ['goals', 'assists', 'defensive_actions', 'goalkeeper_clean_sheets', 'goalkeeper_goals_conceded', 'yellow_card', 'red_card'];
+const STAT_KEYS = ['goals', 'assists', 'defensive_actions', 'goalkeeper_clean_sheets', 'goalkeeper_goals_conceded', 'yellow_card', 'red_card', 'play_position'];
 
 export default function FootballProfileScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
@@ -222,6 +222,7 @@ export default function FootballProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'matches', label: 'Mat', width: 45 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },
@@ -243,6 +244,7 @@ export default function FootballProfileScreen() {
               { key: 'match_date', label: 'Date', width: 85 },
               { key: 'opponent', label: 'Opponent', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'goals', label: 'Goals', width: 55 },
               { key: 'assists', label: 'Assists', width: 60 },
               { key: 'yellow_card', label: 'YC', width: 45 },
@@ -361,6 +363,7 @@ export default function FootballProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'win', label: 'Win', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
@@ -386,6 +389,7 @@ export default function FootballProfileScreen() {
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },
           { key: 'venue', label: 'Venue', type: 'text' },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
           { key: 'win', label: 'Win', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
           { key: 'goals', label: 'Goals', type: 'number' },

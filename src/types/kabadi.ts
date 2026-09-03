@@ -1,17 +1,18 @@
 /** Field names spelled out; the abbreviated labels (R, SR, CBP, ...) live in the UI/glossary only. */
 export interface KabadiStatFields {
+  tpe: string;
   cbp: string;
   raids: string;
   successful_raids: string;
   unsuccessful_raids: string;
+  empty_raids: string;
   raid_touch_point: string;
   raid_bonus_point: string;
   tackles: string;
   successful_tackles: string;
   unsuccessful_tackles: string;
-  empty_raids: string;
-  yellow_cards: string;
   green_cards: string;
+  yellow_cards: string;
   red_cards: string;
 }
 

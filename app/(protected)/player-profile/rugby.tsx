@@ -27,12 +27,12 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, PickedImage, RugbyProfileFormValues } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
+  format_id: '', age_category_id: '', match_category_id: '', play_position: '', matches: '', win: '', lost: '',
   tries: '', conversion: '', penalty_kick: '', drop_goal: '', yellow_card: '', red_card: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', win: false, lost: false,
+  match_date: '', opponent: '', venue: '', play_position: '', win: false, lost: false,
   tries: '', conversion: '', penalty_kick: '', drop_goal: '', yellow_card: '', red_card: '',
 };
 
@@ -105,7 +105,7 @@ export default function RugbyProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as RugbyProfileFormValues['career_stats'],
           recent_matches: rugbyProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'tries', 'conversion', 'penalty_kick', 'drop_goal', 'yellow_card', 'red_card']),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'play_position', 'tries', 'conversion', 'penalty_kick', 'drop_goal', 'yellow_card', 'red_card']),
             win: Boolean(row.win),
             lost: Boolean(row.lost),
           })) as unknown as RugbyProfileFormValues['recent_matches'],
@@ -215,6 +215,7 @@ export default function RugbyProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'matches', label: 'Mat', width: 45 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },
@@ -234,6 +235,8 @@ export default function RugbyProfileScreen() {
             columns: [
               { key: 'match_date', label: 'Date', width: 85 },
               { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'tries', label: 'Tries', width: 50 },
               { key: 'conversion', label: 'Conv', width: 50 },
               { key: 'penalty_kick', label: 'Pen Kick', width: 60 },
@@ -352,6 +355,7 @@ export default function RugbyProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'win', label: 'Win', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
@@ -375,6 +379,8 @@ export default function RugbyProfileScreen() {
         columns={[
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },
+          { key: 'venue', label: 'Venue', type: 'text' },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
           { key: 'win', label: 'Win', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
           { key: 'tries', label: 'Try', type: 'number' },

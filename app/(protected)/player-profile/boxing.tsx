@@ -28,7 +28,7 @@ import { ApiError, BoxingProfileFormValues, PickedImage } from '../../../src/typ
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', weight_class_id: '',
-  matches: '', win: '', lost: '', third_place: '', second_place: '', champion: '', year: '',
+  win: '', lost: '', third_place: '', second_place: '', champion: '', year: '',
 };
 
 const EMPTY_RECENT_FIGHT_ROW = {
@@ -219,7 +219,6 @@ export default function BoxingProfileScreen() {
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
               { key: 'weight_class_id', label: 'Weight Class', width: 90 },
-              { key: 'matches', label: 'Fights', width: 55 },
               { key: 'win', label: 'Win', width: 50 },
               { key: 'lost', label: 'Lost', width: 50 },
               { key: 'third_place', label: '3rd', width: 45 },
@@ -366,7 +365,6 @@ export default function BoxingProfileScreen() {
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
           { key: 'weight_class_id', label: 'Weight Class', type: 'select', options: weightClassOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'win', label: 'Win', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
           { key: 'third_place', label: '3rd Place', type: 'number' },

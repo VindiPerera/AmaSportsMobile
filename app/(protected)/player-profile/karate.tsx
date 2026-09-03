@@ -28,13 +28,13 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, KarateProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', matches: '', fights: '', win: '', lost: '',
-  stats: '', weight_category: '', age_category: '', third_place: '', second_place: '', champion: '', year: '',
+  format_id: '', age_category_id: '', match_category_id: '', style: '', fights: '', win: '', lost: '',
+  weight_category: '', third_place: '', second_place: '', champion: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', venue: '', win: false, lost: false,
-  stats: '', weight_category: '', age_category: '', place: '',
+  match_date: '', opponent: '', venue: '', style: '', win: false, lost: false,
+  weight_category: '', age_category: '', place: '',
 };
 
 const EMPTY_FORM: KarateProfileFormValues = {
@@ -107,7 +107,7 @@ export default function KarateProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as KarateProfileFormValues['career_stats'],
           recent_matches: karateProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'venue', 'stats', 'weight_category', 'age_category', 'place']),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'style', 'weight_category', 'age_category', 'place']),
             win: Boolean(row.win),
             lost: Boolean(row.lost),
           })) as unknown as KarateProfileFormValues['recent_matches'],
@@ -193,6 +193,7 @@ export default function KarateProfileScreen() {
       format_id: labelFor(formatOptions, r.format_id),
       age_category_id: labelFor(ageOptions, r.age_category_id),
       match_category_id: labelFor(categoryOptions, r.match_category_id),
+      style: labelFor(styleOptions, r.style),
     }));
 
     const recentRows = (formValues.recent_matches || []).map((m) => ({
@@ -219,13 +220,11 @@ export default function KarateProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
-              { key: 'matches', label: 'Mat', width: 45 },
-              { key: 'fights', label: 'Bouts', width: 50 },
+              { key: 'style', label: 'Style', width: 85 },
+              { key: 'fights', label: 'Total Fights', width: 80 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },
-              { key: 'stats', label: 'Stats', width: 90 },
               { key: 'weight_category', label: 'Weight Cat.', width: 80 },
-              { key: 'age_category', label: 'Age Cat.', width: 80 },
               { key: 'third_place', label: '3rd', width: 40 },
               { key: 'second_place', label: '2nd', width: 40 },
               { key: 'champion', label: 'Gold', width: 55 },
@@ -238,11 +237,13 @@ export default function KarateProfileScreen() {
             header: 'Recent Matches',
             columns: [
               { key: 'match_date', label: 'Date', width: 85 },
-              { key: 'opponent', label: 'Opponent', width: 110 },
+              { key: 'opponent', label: 'Fight vs', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
-              { key: 'weight_category', label: 'Weight Cat.', width: 80 },
-              { key: 'place', label: 'Place', width: 60 },
+              { key: 'style', label: 'Style', width: 85 },
               { key: 'result', label: 'Result', width: 60 },
+              { key: 'weight_category', label: 'Weight Cat.', width: 80 },
+              { key: 'age_category', label: 'Age Cat.', width: 80 },
+              { key: 'place', label: 'Place', width: 60 },
             ],
             rows: recentRows,
           },
@@ -374,13 +375,11 @@ export default function KarateProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'fights', label: 'Fights', type: 'number' },
+          { key: 'style', label: 'Style', type: 'select', options: styleOptions },
+          { key: 'fights', label: 'Total Fights', type: 'number' },
           { key: 'win', label: 'Win', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
-          { key: 'stats', label: 'Stats', type: 'text' },
           { key: 'weight_category', label: 'Weight Cat.', type: 'text' },
-          { key: 'age_category', label: 'Age Cat.', type: 'text' },
           { key: 'third_place', label: '3rd Place', type: 'number' },
           { key: 'second_place', label: '2nd Place', type: 'number' },
           { key: 'champion', label: 'Champion', type: 'number' },
@@ -400,9 +399,9 @@ export default function KarateProfileScreen() {
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Fight vs', type: 'text' },
           { key: 'venue', label: 'Venue', type: 'text' },
+          { key: 'style', label: 'Style', type: 'select', options: styleOptions },
           { key: 'win', label: 'Win', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
-          { key: 'stats', label: 'Stats', type: 'text' },
           { key: 'weight_category', label: 'Weight Cat.', type: 'text' },
           { key: 'age_category', label: 'Age Cat.', type: 'text' },
           { key: 'place', label: 'Place', type: 'text' },

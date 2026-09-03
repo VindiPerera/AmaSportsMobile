@@ -28,6 +28,8 @@ export interface JudoProfileFormValues {
   age: string;
   height: string;
   weight: string;
+  weight_position_id: string;
+  competition_level_id: string;
   college_university: string;
   current_ranking: string;
   teams: string[];
@@ -41,6 +43,8 @@ export interface JudoProfileResponse {
   age: number | null;
   height: string | null;
   weight: string | null;
+  weight_position_id: number | null;
+  competition_level_id: number | null;
   college_university: string | null;
   current_ranking: string | null;
   teams: string[];

@@ -9,7 +9,7 @@ export interface AthleticsCareerRowForm {
   age_category_id: string;
   match_category_id: string;
   athletics_event_id: string;
-  matches: string;
+  personal_best: string;
   third_place: string;
   second_place: string;
   champion: string;
@@ -17,10 +17,11 @@ export interface AthleticsCareerRowForm {
 
 export interface AthleticsRecentEventRowForm {
   event_date: string;
+  format_id: string;
   age_category_id: string;
   match_category_id: string;
-  matches: string;
   athletics_event_id: string;
+  personal_best: string;
   place: string;
 }
 

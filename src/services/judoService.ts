@@ -12,6 +12,8 @@ function toPayload(values: JudoProfileFormValues) {
     age: idOrNull(values.age),
     height: values.height || null,
     weight: values.weight || null,
+    weight_position_id: idOrNull(values.weight_position_id),
+    competition_level_id: idOrNull(values.competition_level_id),
     college_university: values.college_university || null,
     current_ranking: values.current_ranking || null,
     teams: values.teams.filter((team) => team.trim() !== ''),

@@ -28,12 +28,13 @@ import { calculateAge } from '../../../src/utils/date';
 import { ApiError, BasketballProfileFormValues, PickedImage } from '../../../src/types';
 
 const EMPTY_CAREER_ROW = {
-  format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
+  format_id: '', age_category_id: '', match_category_id: '', play_position: '', matches: '', win: '', lost: '',
   points: '', rebounds: '', assists: '', blocks: '', steals: '', minutes: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', venue: '', points: '', rebounds: '', assists: '', steals: '', blocks: '',
+  match_date: '', opponent: '', venue: '', play_position: '', win: false, lost: false,
+  points: '', rebounds: '', assists: '', blocks: '', steals: '', minutes: '',
 };
 
 const EMPTY_FORM: BasketballProfileFormValues = {
@@ -105,7 +106,9 @@ export default function BasketballProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BasketballProfileFormValues['career_stats'],
           recent_matches: basketballProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'venue', 'points', 'rebounds', 'assists', 'blocks', 'steals', 'minutes']),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'play_position', 'points', 'rebounds', 'assists', 'blocks', 'steals', 'minutes']),
+            win: Boolean(row.win),
+            lost: Boolean(row.lost),
           })) as unknown as BasketballProfileFormValues['recent_matches'],
         });
       } catch {
@@ -208,6 +211,7 @@ export default function BasketballProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'matches', label: 'Mat', width: 45 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },
@@ -228,13 +232,19 @@ export default function BasketballProfileScreen() {
               { key: 'match_date', label: 'Date', width: 85 },
               { key: 'opponent', label: 'Opponent', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'play_position', label: 'Play Position', width: 95 },
+              { key: 'result', label: 'Result', width: 60 },
               { key: 'points', label: 'PTS', width: 50 },
               { key: 'rebounds', label: 'REB', width: 50 },
               { key: 'assists', label: 'AST', width: 50 },
               { key: 'blocks', label: 'BLK', width: 50 },
               { key: 'steals', label: 'STL', width: 50 },
+              { key: 'minutes', label: 'MIN', width: 50 },
             ],
-            rows: (formValues.recent_matches || []) as unknown as Record<string, unknown>[],
+            rows: (formValues.recent_matches || []).map((m) => ({
+              ...m,
+              result: m.win ? 'WIN' : m.lost ? 'LOSS' : '-',
+            })),
           },
         ]}
         onEditPress={() => setIsViewing(false)}
@@ -346,6 +356,7 @@ export default function BasketballProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
           { key: 'matches', label: 'Matches', type: 'number' },
           { key: 'win', label: 'Win', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
@@ -354,6 +365,7 @@ export default function BasketballProfileScreen() {
           { key: 'assists', label: 'Assists', type: 'number' },
           { key: 'blocks', label: 'Blocks', type: 'number' },
           { key: 'steals', label: 'Steals', type: 'number' },
+          { key: 'minutes', label: 'Minutes', type: 'number' },
         ]}
       />
 
@@ -369,11 +381,15 @@ export default function BasketballProfileScreen() {
           { key: 'match_date', label: 'Date', type: 'date' },
           { key: 'opponent', label: 'Match vs', type: 'text' },
           { key: 'venue', label: 'Venue', type: 'text' },
+          { key: 'play_position', label: 'Play Position', type: 'text' },
+          { key: 'win', label: 'Win', type: 'boolean' },
+          { key: 'lost', label: 'Lost', type: 'boolean' },
           { key: 'points', label: 'Points', type: 'number' },
           { key: 'rebounds', label: 'Rebounds', type: 'number' },
           { key: 'assists', label: 'Assists', type: 'number' },
           { key: 'blocks', label: 'Blocks', type: 'number' },
           { key: 'steals', label: 'Steals', type: 'number' },
+          { key: 'minutes', label: 'Minutes', type: 'number' },
         ]}
       />
 

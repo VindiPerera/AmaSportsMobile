@@ -27,7 +27,6 @@ function toPayload(values: SwimmingProfileFormValues) {
         age_category_id: idOrNull(row.age_category_id),
         match_category_id: idOrNull(row.match_category_id),
         swimming_event_id: idOrNull(row.swimming_event_id),
-        matches: idOrNull(row.matches),
         current_time: row.current_time || null,
         third_place: idOrNull(row.third_place),
         second_place: idOrNull(row.second_place),
@@ -37,9 +36,9 @@ function toPayload(values: SwimmingProfileFormValues) {
       .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
       .map((row) => ({
         event_date: row.event_date || null,
+        format_id: idOrNull(row.format_id),
         age_category_id: idOrNull(row.age_category_id),
         match_category_id: idOrNull(row.match_category_id),
-        matches: idOrNull(row.matches),
         swimming_event_id: idOrNull(row.swimming_event_id),
         performance_time: row.performance_time || null,
         place: row.place || null,

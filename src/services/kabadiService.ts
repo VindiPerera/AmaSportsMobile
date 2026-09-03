@@ -13,6 +13,7 @@ function idOrNull(value: string): number | null {
 
 function statFieldsToPayload(row: KabadiStatFields) {
   return {
+    tpe: idOrNull(row.tpe),
     cbp: idOrNull(row.cbp),
     raids: idOrNull(row.raids),
     successful_raids: idOrNull(row.successful_raids),

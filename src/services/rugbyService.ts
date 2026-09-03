@@ -21,6 +21,7 @@ function toPayload(values: RugbyProfileFormValues) {
         format_id: idOrNull(row.format_id),
         age_category_id: idOrNull(row.age_category_id),
         match_category_id: idOrNull(row.match_category_id),
+        play_position: row.play_position || null,
         matches: idOrNull(row.matches),
         win: idOrNull(row.win),
         lost: idOrNull(row.lost),
@@ -36,6 +37,8 @@ function toPayload(values: RugbyProfileFormValues) {
       .map((row) => ({
         match_date: row.match_date || null,
         opponent: row.opponent || null,
+        venue: row.venue || null,
+        play_position: row.play_position || null,
         win: row.win,
         lost: row.lost,
         tries: idOrNull(row.tries),

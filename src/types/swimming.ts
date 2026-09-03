@@ -8,7 +8,6 @@ export interface SwimmingCareerRowForm {
   age_category_id: string;
   match_category_id: string;
   swimming_event_id: string;
-  matches: string;
   current_time: string;
   third_place: string;
   second_place: string;
@@ -17,9 +16,9 @@ export interface SwimmingCareerRowForm {
 
 export interface SwimmingRecentEventRowForm {
   event_date: string;
+  format_id: string;
   age_category_id: string;
   match_category_id: string;
-  matches: string;
   swimming_event_id: string;
   performance_time: string;
   place: string;

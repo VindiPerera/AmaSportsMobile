@@ -3,7 +3,6 @@ export interface BoxingCareerRowForm {
   age_category_id: string;
   match_category_id: string;
   weight_class_id: string;
-  matches: string;
   win: string;
   lost: string;
   third_place: string;

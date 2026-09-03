@@ -29,11 +29,12 @@ import { ApiError, ElleProfileFormValues, PickedImage } from '../../../src/types
 
 const EMPTY_CAREER_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', matches: '', win: '', lost: '',
-  runs: '', catches: '', third_place: '', second_place: '', champion: '', year: '',
+  total_balls: '', runs: '', catches: '', third_place: '', second_place: '', champion: '', year: '',
 };
 
 const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', venue: '', win: false, lost: false, runs: '', catches: '', place: '',
+  match_date: '', opponent: '', venue: '', win: false, lost: false,
+  total_balls: '', runs: '', catches: '', place: '',
 };
 
 const EMPTY_FORM: ElleProfileFormValues = {
@@ -105,7 +106,7 @@ export default function ElleProfileScreen() {
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as ElleProfileFormValues['career_stats'],
           recent_matches: elleProfile.recent_matches.map((row) => ({
-            ...mapRow(row, ['match_date', 'opponent', 'venue', 'runs', 'catches', 'place']),
+            ...mapRow(row, ['match_date', 'opponent', 'venue', 'total_balls', 'runs', 'catches', 'place']),
             win: Boolean(row.win),
             lost: Boolean(row.lost),
           })) as unknown as ElleProfileFormValues['recent_matches'],
@@ -215,9 +216,10 @@ export default function ElleProfileScreen() {
               { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
               { key: 'match_category_id', label: 'Category', width: 90 },
-              { key: 'matches', label: 'Mat', width: 45 },
+              { key: 'matches', label: 'Total Matches', width: 90 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },
+              { key: 'total_balls', label: 'Total Balls', width: 80 },
               { key: 'runs', label: 'Runs', width: 55 },
               { key: 'catches', label: 'Catches', width: 65 },
               { key: 'third_place', label: '3rd', width: 45 },
@@ -234,9 +236,11 @@ export default function ElleProfileScreen() {
               { key: 'match_date', label: 'Date', width: 85 },
               { key: 'opponent', label: 'Opponent', width: 110 },
               { key: 'venue', label: 'Venue', width: 100 },
+              { key: 'result', label: 'Result', width: 60 },
+              { key: 'total_balls', label: 'Total Balls', width: 80 },
               { key: 'runs', label: 'Runs', width: 55 },
               { key: 'catches', label: 'Catches', width: 65 },
-              { key: 'result', label: 'Result', width: 60 },
+              { key: 'place', label: 'Place', width: 60 },
             ],
             rows: recentRows,
           },
@@ -350,9 +354,10 @@ export default function ElleProfileScreen() {
           { key: 'format_id', label: 'Format', type: 'select', options: formatOptions },
           { key: 'age_category_id', label: 'Age', type: 'select', options: ageOptions },
           { key: 'match_category_id', label: 'Category', type: 'select', options: categoryOptions },
-          { key: 'matches', label: 'Matches', type: 'number' },
+          { key: 'matches', label: 'Total Matches', type: 'number' },
           { key: 'win', label: 'Win', type: 'number' },
           { key: 'lost', label: 'Lost', type: 'number' },
+          { key: 'total_balls', label: 'Total Balls', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
           { key: 'catches', label: 'Catches', type: 'number' },
           { key: 'third_place', label: '3rd Place', type: 'number' },
@@ -375,6 +380,7 @@ export default function ElleProfileScreen() {
           { key: 'venue', label: 'Venue', type: 'text' },
           { key: 'win', label: 'Win', type: 'boolean' },
           { key: 'lost', label: 'Lost', type: 'boolean' },
+          { key: 'total_balls', label: 'Total Balls', type: 'number' },
           { key: 'runs', label: 'Runs', type: 'number' },
           { key: 'catches', label: 'Catches', type: 'number' },
           { key: 'place', label: 'Place', type: 'text' },
