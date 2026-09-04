@@ -25,7 +25,7 @@ const DIRECT_ROUTES: Record<string, string> = {
 };
 
 /** Tennis/Badminton/Table Tennis share one form screen, disambiguated by a `sport` param. */
-const RACKET_SPORT_SLUGS = new Set(['tennis', 'badminton', 'table-tennis']);
+export const RACKET_SPORT_SLUGS = new Set(['tennis', 'badminton', 'table-tennis']);
 
 export interface RouteTarget {
   pathname: string;

@@ -9,6 +9,7 @@ import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { colors, radius, spacing, typography } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { validateLoginForm, LoginFormErrors } from '../../src/utils/validation';
+import { resolvePostAuthRoute } from '../../src/utils/postAuthRoute';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -28,7 +29,7 @@ export default function LoginScreen() {
 
     try {
       await login({ email: email.trim(), password });
-      router.replace('/(protected)/(tabs)/home');
+      router.replace(await resolvePostAuthRoute('/(protected)/(tabs)/home'));
     } catch {
       // Error surfaced via store `error` state.
     }

@@ -28,6 +28,14 @@ interface CricketPlayerDetailViewProps {
   collegeLogoUrl?: string | null;
   onEditPress?: () => void;
   onBackPress?: () => void;
+  /** True when embedded inline in another screen that already provides its
+   * own header/photo/edit affordance (see the Player Profile tab) — skips
+   * this component's own cover-photo/nav-bar/identity header and dark tab
+   * styling, and renders as a plain block (no `flex:1` + internal
+   * ScrollView, which don't nest inside another scrolling screen) instead
+   * of a self-contained full-screen view. `onBackPress`/coverUrl/photoUrl
+   * are unused in this mode. */
+  embedded?: boolean;
 }
 
 export function CricketPlayerDetailView({
@@ -41,8 +49,9 @@ export function CricketPlayerDetailView({
   collegeLogoUrl,
   onEditPress,
   onBackPress,
+  embedded = false,
 }: CricketPlayerDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'matches'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches'>('overview');
   // Tapping the cover photo or the avatar opens it full-screen in this.
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
@@ -52,9 +61,7 @@ export function CricketPlayerDetailView({
   const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : displayName;
 
   // Division lookup helper — `cricket_divisions` (not the shared `formats`
-  // table other sports use), shown under the "Div" header below. Only a
-  // handful of Categories have one, so a blank formatId is normal, not an
-  // error — shown as "-" rather than a fabricated placeholder.
+  // table other sports use), shown under the "Div" header below.
   const getFormatName = (formatId: string): string => {
     if (!formatId) return '-';
     const found = lookups.cricket_divisions.find((f) => String(f.id) === String(formatId));
@@ -62,44 +69,52 @@ export function CricketPlayerDetailView({
   };
 
   // Category lookup helper — `cricket_categories` (not the shared
-  // `age_categories` table other sports use), shown under the "Cat" header
-  // below.
+  // `age_categories` table other sports use), shown under the "Cat" header.
   const getAgeCategoryName = (ageCategoryId: string): string => {
     const found = lookups.cricket_categories.find((a) => String(a.id) === String(ageCategoryId));
     return found ? found.name : '-';
   };
 
-  // Process Batting Rows — newest Year first regardless of the order they
-  // arrived in (e.g. a 2027 entry added after a 2026 one shows above it).
+  // Process Batting Rows — newest Year first
   const hasBattingStats = values.batting && values.batting.length > 0;
   const battingRows = hasBattingStats ? sortCareerStatsNewestFirst(values.batting) : [];
 
-  // Process Bowling Rows — same newest-Year-first rule as Batting above.
+  // Process Bowling Rows — newest Year first
   const hasBowlingStats = values.bowling && values.bowling.length > 0;
   const bowlingRows = hasBowlingStats ? sortCareerStatsNewestFirst(values.bowling) : [];
 
-  // Process Recent Matches — newest first regardless of the order they
-  // arrived in (e.g. older data saved before this rule existed).
+  // Process Recent Matches — newest first
   const hasRecentMatches = values.recent_matches && values.recent_matches.length > 0;
   const recentMatches = hasRecentMatches ? sortRecentMatchesNewestFirst(values.recent_matches) : [];
+
+  // Highlight Stats calculations for header/summary
+  const totalMatches = Math.max(
+    battingRows.reduce((sum, r) => sum + (parseInt(r.matches, 10) || 0), 0),
+    bowlingRows.reduce((sum, r) => sum + (parseInt(r.matches, 10) || 0), 0)
+  );
+  const totalRuns = battingRows.reduce((sum, r) => sum + (parseInt(r.runs, 10) || 0), 0);
+  const totalWickets = bowlingRows.reduce((sum, r) => sum + (parseInt(r.wickets, 10) || 0), 0);
+  const primaryStatLabel = totalRuns >= totalWickets ? 'Runs' : 'Wickets';
+  const primaryStatValue = totalRuns >= totalWickets ? totalRuns : totalWickets;
 
   // Debut & Last Matches (not supported yet)
   const debutLastData: any[] = [];
 
   return (
-    <View style={styles.container}>
-      {/* Dark Navy Header Banner */}
+    <View style={embedded ? styles.embeddedContainer : styles.container}>
+      {/* Dark Navy Header Banner — skipped when embedded (the Player
+          Profile tab's own photo carousel + edit/logout icons stand in
+          for it instead). */}
+      {!embedded && (
       <View style={styles.headerBanner}>
         {coverUrl ? (
           <Pressable onPress={() => setLightboxUri(coverUrl)} style={StyleSheet.absoluteFill}>
-            <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            <Image source={{ uri: coverUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.85 }]} resizeMode="cover" />
           </Pressable>
         ) : null}
-        {/* Light scrim, not a heavy one — the cover photo itself should read
-            clearly; this only needs to keep the white name/icon text
-            legible where it sits near the bottom. */}
+        {/* Rich cinematic gradient overlay for high contrast and readability */}
         <LinearGradient
-          colors={coverUrl ? ['rgba(11, 25, 44, 0.15)', 'rgba(11, 25, 44, 0.55)'] : colors.gradientHero}
+          colors={coverUrl ? ['rgba(17, 24, 39, 0.4)', 'rgba(17, 24, 39, 0.85)'] : colors.gradientHero}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -151,44 +166,105 @@ export function CricketPlayerDetailView({
             )}
           </View>
         </View>
+      </View>
+      )}
 
-        {/* Navigation Tabs (Overview / Matches) */}
-        <View style={styles.tabsRow}>
-          <Pressable
-            style={[styles.tabButton, activeTab === 'overview' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('overview')}
+      {/* Navigation Tabs (Overview / Career Stats / Matches) */}
+      <View style={embedded ? styles.embeddedTabsRow : styles.tabsRow}>
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'overview' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'overview' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <Ionicons
+            name="person-outline"
+            size={14}
+            color={activeTab === 'overview' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'overview' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'overview' && styles.tabTextActive,
+            ]}
           >
-            <Text
-              style={[styles.tabText, activeTab === 'overview' && styles.tabTextActive]}
-            >
-              Overview
-            </Text>
-            {activeTab === 'overview' && <View style={styles.activeTabLine} />}
-          </Pressable>
+            Overview
+          </Text>
+          {!embedded && activeTab === 'overview' && <View style={styles.activeTabLine} />}
+        </Pressable>
 
-          <Pressable
-            style={[styles.tabButton, activeTab === 'matches' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('matches')}
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'stats' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'stats' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('stats')}
+        >
+          <Ionicons
+            name="stats-chart-outline"
+            size={14}
+            color={activeTab === 'stats' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'stats' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'stats' && styles.tabTextActive,
+            ]}
           >
-            <Text
-              style={[styles.tabText, activeTab === 'matches' && styles.tabTextActive]}
-            >
-              Matches
-            </Text>
-            {activeTab === 'matches' && <View style={styles.activeTabLine} />}
-          </Pressable>
-        </View>
+            Stats
+          </Text>
+          {!embedded && activeTab === 'stats' && <View style={styles.activeTabLine} />}
+        </Pressable>
+
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'matches' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'matches' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('matches')}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={14}
+            color={activeTab === 'matches' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'matches' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'matches' && styles.tabTextActive,
+            ]}
+          >
+            Matches
+          </Text>
+          {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
+        </Pressable>
       </View>
 
       {/* Main Tab Content */}
       <ScrollView
+        scrollEnabled={!embedded}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {activeTab === 'overview' ? (
           <>
-            {/* Card 1: Personal Overview Details */}
+            {/* Card 1: Personal Overview Details (ABOUT) */}
             <View style={[styles.card, shadows.sm]}>
+              <View style={styles.cardHeaderRow}>
+                <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+                <Text style={styles.cardHeaderTitle}>About Athlete</Text>
+              </View>
+
               <View style={styles.detailGrid}>
                 {/* Full Name */}
                 <View style={styles.gridItemFull}>
@@ -274,7 +350,10 @@ export function CricketPlayerDetailView({
             {/* Card 2: Career Stats */}
             {(hasBattingStats || hasBowlingStats) && (
               <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>{shortName} Career Stats</Text>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+                  <Text style={styles.cardHeaderTitle}>{shortName} Career Stats</Text>
+                </View>
 
                 {/* Batting & Fielding */}
                 {hasBattingStats && (
@@ -313,7 +392,7 @@ export function CricketPlayerDetailView({
                             <Text style={styles.tdCell}>{row.matches || '-'}</Text>
                             <Text style={styles.tdCell}>{row.innings || '-'}</Text>
                             <Text style={styles.tdCell}>{row.not_out || '-'}</Text>
-                            <Text style={styles.tdCellBold}>{row.runs || '-'}</Text>
+                            <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.runs || '-'}</Text>
                             <Text style={styles.tdCell}>{row.hs || '-'}</Text>
                             <Text style={styles.tdCell}>{row.average || '-'}</Text>
                             <Text style={styles.tdCell}>{row.sr || '-'}</Text>
@@ -365,7 +444,7 @@ export function CricketPlayerDetailView({
                             <Text style={styles.tdCell}>{row.innings || '-'}</Text>
                             <Text style={styles.tdCell}>{row.balls || '-'}</Text>
                             <Text style={styles.tdCell}>{row.runs || '-'}</Text>
-                            <Text style={styles.tdCellBold}>{row.wickets || '-'}</Text>
+                            <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.wickets || '-'}</Text>
                             <Text style={styles.tdCell}>{row.bbi || '-'}</Text>
                             <Text style={styles.tdCell}>{row.average || '-'}</Text>
                             <Text style={styles.tdCell}>{row.economy || '-'}</Text>
@@ -380,89 +459,150 @@ export function CricketPlayerDetailView({
               </View>
             )}
 
-            {/* Card 3: Recent Matches — always the full (up to 10) list, no
-                "View more" toggle to expand first. */}
+            {/* Card 3: Recent Matches */}
             {hasRecentMatches && (
               <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                  <Text style={styles.cardHeaderTitle}>Recent Matches of {shortName}</Text>
+                </View>
 
                 <RecentMatchesTable matches={recentMatches} />
               </View>
             )}
-
-            {/* Card 4: Debut/Last Matches */}
-            {debutLastData.length > 0 && (
+          </>
+        ) : activeTab === 'stats' ? (
+          /* Stats Tab Content */
+          <>
+            {(hasBattingStats || hasBowlingStats) ? (
               <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Debut/Last Matches of {shortName}</Text>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+                  <Text style={styles.cardHeaderTitle}>{shortName} Career Statistics</Text>
+                </View>
 
-                {debutLastData.map((item, idx) => (
-                  <View key={idx} style={styles.debutBlock}>
-                    <View style={styles.debutCategoryHeader}>
-                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                    </View>
+                {/* Batting & Fielding */}
+                {hasBattingStats && (
+                  <View style={styles.statSubSection}>
+                    <Text style={styles.subSectionHeader}>BATTING & FIELDING</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.tableContainer}>
+                        <View style={styles.tableHeaderRow}>
+                          <Text style={styles.thCell}>Year</Text>
+                          <Text style={styles.thCell}>Cat</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
+                          <Text style={styles.thCell}>Mat</Text>
+                          <Text style={styles.thCell}>Inns</Text>
+                          <Text style={styles.thCell}>NO</Text>
+                          <Text style={styles.thCell}>Runs</Text>
+                          <Text style={styles.thCell}>HS</Text>
+                          <Text style={styles.thCell}>Ave</Text>
+                          <Text style={styles.thCell}>SR</Text>
+                          <Text style={styles.thCell}>100s</Text>
+                          <Text style={styles.thCell}>50s</Text>
+                          <Text style={styles.thCell}>Ct</Text>
+                        </View>
 
-                    {/* Debut Entry */}
-                    <View style={styles.debutRow}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>DEBUT</Text>
-                        <Text style={styles.debutMatchText}>{item.debut}</Text>
+                        {battingRows.map((row, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                          >
+                            <Text style={styles.tdCell}>{row.year || '-'}</Text>
+                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
+                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                              {getFormatName(row.format_id)}
+                            </Text>
+                            <Text style={styles.tdCell}>{row.matches || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.innings || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.not_out || '-'}</Text>
+                            <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.runs || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.hs || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.sr || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.hundreds || '0'}</Text>
+                            <Text style={styles.tdCell}>{row.fifties || '0'}</Text>
+                            <Text style={styles.tdCell}>{row.catches || '0'}</Text>
+                          </View>
+                        ))}
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
-
-                    {/* Last Entry */}
-                    <View style={[styles.debutRow, styles.borderTopDivider]}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>LAST</Text>
-                        <Text style={styles.debutMatchText}>{item.last}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
+                    </ScrollView>
                   </View>
-                ))}
+                )}
+
+                {/* Bowling */}
+                {hasBowlingStats && (
+                  <View style={styles.statSubSection}>
+                    <Text style={styles.subSectionHeader}>BOWLING</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.tableContainer}>
+                        <View style={styles.tableHeaderRow}>
+                          <Text style={styles.thCell}>Year</Text>
+                          <Text style={styles.thCell}>Cat</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
+                          <Text style={styles.thCell}>Mat</Text>
+                          <Text style={styles.thCell}>Inns</Text>
+                          <Text style={styles.thCell}>Balls</Text>
+                          <Text style={styles.thCell}>Runs</Text>
+                          <Text style={styles.thCell}>Wkts</Text>
+                          <Text style={styles.thCell}>BBI</Text>
+                          <Text style={styles.thCell}>Ave</Text>
+                          <Text style={styles.thCell}>Econ</Text>
+                          <Text style={styles.thCell}>4w</Text>
+                          <Text style={styles.thCell}>5w</Text>
+                        </View>
+
+                        {bowlingRows.map((row, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
+                          >
+                            <Text style={styles.tdCell}>{row.year || '-'}</Text>
+                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
+                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                              {getFormatName(row.format_id)}
+                            </Text>
+                            <Text style={styles.tdCell}>{row.matches || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.innings || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.balls || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.runs || '-'}</Text>
+                            <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.wickets || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.bbi || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.economy || '-'}</Text>
+                            <Text style={styles.tdCell}>{row.four_w || '0'}</Text>
+                            <Text style={styles.tdCell}>{row.five_w || '0'}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={[styles.card, styles.emptyStatsCard]}>
+                <Ionicons name="stats-chart-outline" size={32} color={colors.textMuted} />
+                <Text style={styles.emptyStatsText}>No career stats recorded yet.</Text>
               </View>
             )}
           </>
         ) : (
           /* Matches Tab Content */
           <>
-            {/* Debut/Last Matches - Player */}
-            {debutLastData.length > 0 && (
+            {/* Recent Matches */}
+            {hasRecentMatches ? (
               <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Debut/Last Matches - Player</Text>
-
-                {debutLastData.map((item, idx) => (
-                  <View key={idx} style={styles.debutBlock}>
-                    <View style={styles.debutCategoryHeader}>
-                      <Text style={styles.debutCategoryTitle}>{item.category}</Text>
-                    </View>
-
-                    <View style={styles.debutRow}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>DEBUT</Text>
-                        <Text style={styles.debutMatchText}>{item.debut}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
-
-                    <View style={[styles.debutRow, styles.borderTopDivider]}>
-                      <View style={styles.debutContent}>
-                        <Text style={styles.fieldLabel}>LAST</Text>
-                        <Text style={styles.debutMatchText}>{item.last}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Recent Matches - Player */}
-            {hasRecentMatches && (
-              <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Recent Matches - Player</Text>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                  <Text style={styles.cardHeaderTitle}>Recent Matches - {shortName}</Text>
+                </View>
 
                 <RecentMatchesTable matches={recentMatches} />
+              </View>
+            ) : (
+              <View style={[styles.card, styles.emptyStatsCard]}>
+                <Ionicons name="calendar-outline" size={32} color={colors.textMuted} />
+                <Text style={styles.emptyStatsText}>No recent matches recorded yet.</Text>
               </View>
             )}
 
@@ -667,6 +807,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.energy,
     borderRadius: radius.full,
   },
+  embeddedContainer: {
+    backgroundColor: colors.background,
+  },
+  embeddedTabsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  embeddedTabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  embeddedTabButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  embeddedTabText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '700',
+  },
+  embeddedTabTextActive: {
+    color: colors.white,
+  },
   scrollContent: {
     padding: spacing.md,
     paddingBottom: spacing['3xl'],
@@ -679,12 +848,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing.md,
+  },
   cardHeaderTitle: {
     ...typography.subtitle,
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: '800',
     fontSize: 16,
-    marginBottom: spacing.md,
+  },
+  emptyStatsCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.xs,
+  },
+  emptyStatsText: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  tdCellHighlight: {
+    color: colors.primary,
+    fontWeight: '800',
   },
   detailGrid: {
     gap: spacing.md,

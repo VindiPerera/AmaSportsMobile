@@ -1,11 +1,20 @@
 import { apiClient } from './apiClient';
-import { ApiSuccessResponse, SubscriptionOrder, SubscriptionStatus } from '../types';
+import { ApiSuccessResponse, SubscriptionOrder, SubscriptionPrices, SubscriptionStatus } from '../types';
 
 export const subscriptionService = {
   /** Drives the Add Sport / Analysis paywall gate + the Profile/Home status displays. */
   async fetchStatus() {
     const { data } = await apiClient.get<ApiSuccessResponse<SubscriptionStatus>>(
       '/player/subscription-status'
+    );
+    return data.data;
+  },
+
+  /** Every admin-configured country price + the default — drives the price
+   * preview on the country-selection screen (see select-country.tsx). */
+  async fetchPrices() {
+    const { data } = await apiClient.get<ApiSuccessResponse<SubscriptionPrices>>(
+      '/subscription-prices'
     );
     return data.data;
   },

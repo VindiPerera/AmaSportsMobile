@@ -25,3 +25,15 @@ export interface SubscriptionOrder {
   order_id: string;
   approve_url: string;
 }
+
+/**
+ * GET /subscription-prices response — every admin-configured country price
+ * (see Admin\SubscriptionPriceController), keyed by the exact country name
+ * from constants/countries.ts, plus the default any other country falls
+ * back to. Drives the price preview on the country-selection screen.
+ */
+export interface SubscriptionPrices {
+  default_amount: number;
+  currency: string;
+  prices: Record<string, number>;
+}

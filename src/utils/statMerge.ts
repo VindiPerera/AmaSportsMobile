@@ -70,6 +70,14 @@ export function mergeBattingRows(
 ): CricketBattingRowForm {
   const merged: CricketBattingRowForm = {
     ...existing,
+    // These two are normally identical between existing/incoming (they're
+    // the merge key — see entryKey below) so `newest` is a no-op for a real
+    // merge, but they must still be assigned explicitly: when this runs
+    // against a blank row for a brand-new entry (see CareerStatTable), only
+    // `incoming` actually has the player's picked Category/Division, and
+    // relying on the `...existing` spread above would silently drop them.
+    age_category_id: newest(existing.age_category_id, incoming.age_category_id),
+    format_id: newest(existing.format_id, incoming.format_id),
     year: newest(existing.year, incoming.year),
     cricket_match_type_id: newest(existing.cricket_match_type_id, incoming.cricket_match_type_id),
     match_category_id: newest(existing.match_category_id, incoming.match_category_id),
@@ -115,6 +123,9 @@ export function mergeBowlingRows(
 ): CricketBowlingRowForm {
   const merged: CricketBowlingRowForm = {
     ...existing,
+    // See mergeBattingRows above for why these need an explicit assignment.
+    age_category_id: newest(existing.age_category_id, incoming.age_category_id),
+    format_id: newest(existing.format_id, incoming.format_id),
     year: newest(existing.year, incoming.year),
     cricket_match_type_id: newest(existing.cricket_match_type_id, incoming.cricket_match_type_id),
     match_category_id: newest(existing.match_category_id, incoming.match_category_id),

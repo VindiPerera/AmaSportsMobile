@@ -10,6 +10,7 @@ import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { colors, radius, spacing, typography } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { validateRegisterForm, RegisterFormErrors } from '../../src/utils/validation';
+import { resolvePostAuthRoute } from '../../src/utils/postAuthRoute';
 
 /** Simple length/variety heuristic — visual guidance only, not a hard gate. */
 function passwordStrength(password: string): 0 | 1 | 2 | 3 {
@@ -53,9 +54,11 @@ export default function RegisterScreen() {
         password,
         password_confirmation: passwordConfirmation,
       });
-      // A brand-new player has no sport profile yet — land them straight on
-      // Player Profile instead of Home so they set one up right away.
-      router.replace('/(protected)/(tabs)/player-profile');
+      // Sport creation lives on Home now (see home.tsx), not the Player
+      // Profile tab — land a brand-new player there so "Add a sport" is
+      // right in front of them. Country selection (see postAuthRoute.ts)
+      // takes priority over even that, since it gates subscription pricing.
+      router.replace(await resolvePostAuthRoute('/(protected)/(tabs)/home'));
     } catch {
       // Error surfaced via store `error` state.
     }
