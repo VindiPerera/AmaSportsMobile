@@ -34,7 +34,7 @@ const BENEFITS = [
   {
     icon: 'calendar-outline' as const,
     title: 'One price, a full year',
-    text: '$10 covers everything above for 12 months from the day you subscribe — no extra or per-sport charges until it’s time to renew.',
+    text: 'Your subscription price covers everything above for 12 months from the day you subscribe — no extra or per-sport charges until it’s time to renew.',
   },
 ];
 
@@ -188,14 +188,14 @@ export default function SubscriptionPaywallScreen() {
                 </Text>
                 <View style={{ backgroundColor: colors.energy, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 }}>
                   <Text style={{ ...typography.body, color: colors.navy, fontWeight: '800' }}>
-                    ${(status?.amount || 10).toFixed(0)} / year
+                    ${(status?.amount ?? 10).toFixed(2)} / year
                   </Text>
                 </View>
               </View>
             </View>
           ) : (
             <>
-              <Text style={styles.priceValue}>${(status?.amount || 10).toFixed(0)}</Text>
+              <Text style={styles.priceValue}>${(status?.amount ?? 10).toFixed(2)}</Text>
               <Text style={styles.priceUnit}>/ year</Text>
             </>
           )}
@@ -256,7 +256,7 @@ export default function SubscriptionPaywallScreen() {
               />
               <Text style={styles.disclaimer}>
                 Your trial lasts 10 days from the moment you start it — no PayPal, no charge. After that, keeping
-                your sports and Analysis unlocked requires the ${(status?.amount || 10).toFixed(0)}/year subscription;
+                your sports and Analysis unlocked requires the ${(status?.amount ?? 10).toFixed(2)}/year subscription;
                 we&rsquo;ll remind you before it ends.
               </Text>
             </>
@@ -280,7 +280,7 @@ export default function SubscriptionPaywallScreen() {
               ) : null}
 
               <Button
-                label={isRenewal ? 'Renew Now — $10/year' : 'Subscribe Now — $10/year'}
+                label={`${isRenewal ? 'Renew Now' : 'Subscribe Now'} — $${(status?.amount ?? 10).toFixed(2)}/year`}
                 onPress={handleSubscribe}
                 loading={isProcessing}
                 disabled={isProcessing}
