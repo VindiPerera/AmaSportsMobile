@@ -128,15 +128,17 @@ export default function RacketSportProfileScreen() {
         const doubleStats = racketProfile.career_stats.filter((row) => row.category === 'double');
         const mixDoubleStats = racketProfile.career_stats.filter((row) => row.category === 'mix_double');
 
+        const ov = profile.overview;
+
         reset({
-          born: racketProfile.born ?? '',
-          age: toFormString(racketProfile.age),
-          height: racketProfile.height ?? '',
-          dominant_hand: racketProfile.dominant_hand ?? '',
-          weight: racketProfile.weight ?? '',
+          born: racketProfile.born || ov?.born || '',
+          age: toFormString(racketProfile.age || ov?.age),
+          height: racketProfile.height || ov?.height || '',
+          dominant_hand: racketProfile.dominant_hand || ov?.dominant_hand || '',
+          weight: racketProfile.weight || ov?.weight || '',
           current_ranking: racketProfile.current_ranking ?? '',
-          college_university: racketProfile.college_university ?? '',
-          teams: racketProfile.teams ?? [],
+          college_university: racketProfile.college_university || ov?.college_university || '',
+          teams: (racketProfile.teams && racketProfile.teams.length > 0) ? racketProfile.teams : (ov?.teams ?? []),
           single_stats: singleStats.map((row) => mapRow(row, CAREER_ROW_KEYS)) as unknown as RacketSportProfileFormValues['single_stats'],
           double_stats: doubleStats.map((row) => mapRow(row, CAREER_ROW_KEYS)) as unknown as RacketSportProfileFormValues['double_stats'],
           mix_double_stats: mixDoubleStats.map((row) => mapRow(row, CAREER_ROW_KEYS)) as unknown as RacketSportProfileFormValues['mix_double_stats'],

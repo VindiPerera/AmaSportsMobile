@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ArrayPath, Control, FieldValues, useFieldArray } from 'react-hook-form';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { Dropdown, DropdownOption } from './Dropdown';
 import { StatCell, StatColumn } from './StatTable';
+import { StatDataTable } from './StatDataTable';
 
 export type FieldMergeStrategy = 'sum' | 'best' | 'newest';
 
@@ -114,18 +115,39 @@ export function StatSectionWizard<TFieldValues extends FieldValues>({
 }: StatSectionWizardProps<TFieldValues>) {
   const { fields, append, update } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
+  const [sessionIndex, setSessionIndex] = useState<number | null>(null);
 
   const rows = fields as unknown as Record<string, string>[];
+
+  // If the parent unlocks (e.g. on successful save), clear sessionIndex
+  useEffect(() => {
+    if (!locked) {
+      setSessionIndex(null);
+    }
+  }, [locked]);
+
+  // Determine active row for the session. If user already added an entry this session (locked=true)
+  // before mounting, fallback to the latest row so they can view & edit it immediately.
+  const activeIndex = sessionIndex !== null ? sessionIndex : (locked && rows.length > 0 ? rows.length - 1 : null);
+  const sessionRow = activeIndex !== null ? rows[activeIndex] : null;
+  const isLocked = locked || sessionIndex !== null;
 
   const findIndex = (idValues: Record<string, string>) =>
     rows.findIndex((row) => entryKeyGeneric(row, identityKey) === entryKeyGeneric(idValues, identityKey));
 
   const handleSave = (row: Record<string, string>) => {
+    if (sessionRow && activeIndex !== null) {
+      update(activeIndex, row as never);
+      setModalVisible(false);
+      return;
+    }
     const index = findIndex(row);
     if (index >= 0) {
       update(index, mergeRowGeneric(rows[index], row, detailColumns, identityKey, mergeStrategies) as never);
+      setSessionIndex(index);
     } else {
       append(row as never);
+      setSessionIndex(rows.length);
     }
     setModalVisible(false);
     onEntryAdded();
@@ -142,32 +164,38 @@ export function StatSectionWizard<TFieldValues extends FieldValues>({
         </View>
         <Pressable
           onPress={() => setModalVisible(true)}
-          disabled={locked}
+          disabled={isLocked}
           style={({ pressed }) => [
             styles.addRowButton,
-            locked && styles.addRowButtonLocked,
-            pressed && !locked && styles.addRowButtonPressed,
+            isLocked && styles.addRowButtonLocked,
+            pressed && !isLocked && styles.addRowButtonPressed,
           ]}
           accessibilityRole="button"
-          accessibilityState={{ disabled: locked }}
+          accessibilityState={{ disabled: isLocked }}
         >
-          <Ionicons name={locked ? 'lock-closed' : 'add'} size={16} color={colors.white} />
+          <Ionicons name={isLocked ? 'lock-closed' : 'add'} size={16} color={colors.white} />
           <Text style={styles.addRowText}>{addLabel}</Text>
         </Pressable>
       </View>
 
-      {locked ? <Text style={styles.lockedHint}>Save your profile to add another entry here.</Text> : null}
+      {isLocked ? <Text style={styles.lockedHint}>Save your profile to add another entry here.</Text> : null}
 
-      {fields.length === 0 ? (
+      {sessionRow ? (
+        <StatDataTable columns={detailColumns} rows={[sessionRow]} onEditRow={() => setModalVisible(true)} />
+      ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={22} color={colors.textFaint} />
-          <Text style={styles.emptyText}>No entries added yet — tap &quot;{addLabel}&quot; to begin.</Text>
+          <Text style={styles.emptyText}>
+            {fields.length === 0
+              ? `No entries added yet — tap "${addLabel}" to begin.`
+              : `No entry added yet this session — tap "${addLabel}" to add one.`}
+          </Text>
         </View>
-      ) : null}
+      )}
 
       <StatSectionAddModal
         visible={isModalVisible}
-        title={addLabel}
+        title={sessionRow ? 'Edit Entry' : addLabel}
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
         emptyRow={emptyRow}
@@ -175,6 +203,7 @@ export function StatSectionWizard<TFieldValues extends FieldValues>({
         detailColumns={detailColumns}
         identityKey={identityKey}
         hasExistingEntry={(idValues) => findIndex(idValues) >= 0}
+        editRow={sessionRow ?? undefined}
       />
     </View>
   );
@@ -190,6 +219,7 @@ interface StatSectionAddModalProps {
   detailColumns: StatColumn[];
   identityKey: string[];
   hasExistingEntry: (idValues: Record<string, string>) => boolean;
+  editRow?: Record<string, string> | null;
 }
 
 type Step = 'choice' | 'existing' | 'select' | 'detail';
@@ -216,6 +246,7 @@ function StatSectionAddModalBody({
   detailColumns,
   identityKey,
   hasExistingEntry,
+  editRow,
 }: StatSectionAddModalProps) {
   // Year isn't a Dropdown-driven identity field — like Cricket's own wizard,
   // a new entry is always tagged with the current year automatically, and
@@ -225,13 +256,22 @@ function StatSectionAddModalBody({
   const identityColumns = detailColumns.filter((c) => identityKey.includes(c.key) && c.key !== 'year');
   const restColumns = detailColumns.filter((c) => !identityKey.includes(c.key));
 
+  const isEditing = !!editRow;
   const hasEntries = rows.length > 0;
-  const [step, setStep] = useState<Step>(hasEntries ? 'choice' : 'select');
-  const [origin, setOrigin] = useState<'select' | 'existing'>('select');
-  const [idValues, setIdValues] = useState<Record<string, string>>(() =>
-    hasYear ? { year: currentYear } : ({} as Record<string, string>)
-  );
-  const [detail, setDetail] = useState<Record<string, string>>(() => ({ ...emptyRow }));
+  const [step, setStep] = useState<Step>(isEditing ? 'detail' : hasEntries ? 'choice' : 'select');
+  const [origin, setOrigin] = useState<'select' | 'existing'>(isEditing ? 'existing' : 'select');
+  const [idValues, setIdValues] = useState<Record<string, string>>(() => {
+    if (editRow) {
+      const picked: Record<string, string> = {};
+      identityColumns.forEach((c) => {
+        picked[c.key] = editRow[c.key] ?? '';
+      });
+      if (hasYear) picked.year = editRow.year || currentYear;
+      return picked;
+    }
+    return hasYear ? { year: currentYear } : ({} as Record<string, string>);
+  });
+  const [detail, setDetail] = useState<Record<string, string>>(() => ({ ...(editRow ?? emptyRow) }));
 
   const baseEntryLabel = identityColumns
     .map((c) => labelFor(c.options, idValues[c.key] ?? ''))
@@ -240,7 +280,7 @@ function StatSectionAddModalBody({
   const entryLabel = hasYear && idValues.year ? [baseEntryLabel, idValues.year].filter(Boolean).join(' · ') : baseEntryLabel;
   const allIdentityFilled = identityColumns.every((c) => !!idValues[c.key]);
   const alreadyExists = allIdentityFilled && hasExistingEntry(idValues);
-  const willMerge = origin === 'existing';
+  const willMerge = origin === 'existing' && !isEditing;
 
   const pickExisting = (row: Record<string, string>) => {
     const picked: Record<string, string> = {};
@@ -276,14 +316,16 @@ function StatSectionAddModalBody({
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.stepIndicatorRow}>
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <React.Fragment key={i}>
-            {i > 0 ? <View style={styles.stepLine} /> : null}
-            <View style={[styles.stepDot, i + 1 === stepIndex && styles.stepDotActive]} />
-          </React.Fragment>
-        ))}
-      </View>
+      {isEditing ? null : (
+        <View style={styles.stepIndicatorRow}>
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <React.Fragment key={i}>
+              {i > 0 ? <View style={styles.stepLine} /> : null}
+              <View style={[styles.stepDot, i + 1 === stepIndex && styles.stepDotActive]} />
+            </React.Fragment>
+          ))}
+        </View>
+      )}
 
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContent}
@@ -416,12 +458,19 @@ function StatSectionAddModalBody({
           </>
         ) : (
           <>
-            <Pressable onPress={() => setStep(origin)} style={styles.backRow} accessibilityRole="button">
-              <Ionicons name="chevron-back" size={16} color={colors.primary} />
-              <Text style={styles.backRowText}>{entryLabel || 'Back'}</Text>
-            </Pressable>
+            {isEditing ? (
+              <View style={styles.editSummaryCard}>
+                <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+                <Text style={styles.editSummaryText}>{entryLabel}</Text>
+              </View>
+            ) : (
+              <Pressable onPress={() => setStep(origin)} style={styles.backRow} accessibilityRole="button">
+                <Ionicons name="chevron-back" size={16} color={colors.primary} />
+                <Text style={styles.backRowText}>{entryLabel || 'Back'}</Text>
+              </Pressable>
+            )}
 
-            <Text style={styles.stepTitle}>Entry Details</Text>
+            <Text style={styles.stepTitle}>{isEditing ? 'Edit Details' : 'Entry Details'}</Text>
 
             <View style={styles.detailGrid}>
               {restColumns.map((column) => (
@@ -438,7 +487,9 @@ function StatSectionAddModalBody({
 
             <Pressable onPress={handleSave} style={styles.nextButton} accessibilityRole="button">
               <Ionicons name="checkmark-circle-outline" size={16} color={colors.white} />
-              <Text style={styles.nextButtonText}>{willMerge ? 'Save & Merge' : 'Save Entry'}</Text>
+              <Text style={styles.nextButtonText}>
+                {isEditing ? 'Save Changes' : willMerge ? 'Save & Merge' : 'Save Entry'}
+              </Text>
             </Pressable>
           </>
         )}
@@ -697,5 +748,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 11,
     marginBottom: 4,
+  },
+  editSummaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.sm,
+    marginBottom: spacing.md,
+  },
+  editSummaryText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

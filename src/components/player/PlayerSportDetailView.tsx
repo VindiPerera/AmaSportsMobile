@@ -49,6 +49,8 @@ interface PlayerSportDetailViewProps {
   age?: string | number | null;
   teams?: string[];
   fields?: DetailFieldItem[];
+  collegeLogoUrl?: string | null;
+  teamLogos?: Record<string, string | null>;
   /** Events & Personal Best card (Athletics/Swimming) — omitted for sports
    * without a personal-best concept. */
   personalBests?: PersonalBestItem[];
@@ -120,6 +122,8 @@ export function PlayerSportDetailView({
   age,
   teams = [],
   fields = [],
+  collegeLogoUrl,
+  teamLogos,
   personalBests = [],
   statCards = [],
   recentCards = [],
@@ -127,7 +131,7 @@ export function PlayerSportDetailView({
   onBackPress,
   embedded = false,
 }: PlayerSportDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'matches'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches'>('overview');
   const [expandedRecent, setExpandedRecent] = useState<Record<number, boolean>>({});
 
   const displayName = fullName || 'Player Name';
@@ -135,6 +139,7 @@ export function PlayerSportDetailView({
   const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : displayName;
 
   const hasAnyRecent = recentCards.some((c) => c.rows.length > 0);
+  const hasAnyStats = statCards.some((c) => c.rows.length > 0);
 
   const renderRecentCard = (card: StatCardConfig, idx: number, limit?: number) => {
     if (card.rows.length === 0) return null;
@@ -142,7 +147,10 @@ export function PlayerSportDetailView({
     const rows = limit && !isExpanded ? card.rows.slice(0, limit) : card.rows;
     return (
       <View key={idx} style={[styles.card, shadows.sm]}>
-        <Text style={styles.cardHeaderTitle}>{card.header}</Text>
+        <View style={styles.cardHeaderRow}>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          <Text style={styles.cardHeaderTitle}>{card.header} - {shortName}</Text>
+        </View>
         <DataTable card={{ ...card, rows }} />
         {limit && !isExpanded && card.rows.length > limit ? (
           <Pressable onPress={() => setExpandedRecent((prev) => ({ ...prev, [idx]: true }))} style={styles.viewMoreButton}>
@@ -156,19 +164,18 @@ export function PlayerSportDetailView({
 
   return (
     <View style={embedded ? styles.embeddedContainer : styles.container}>
-      {/* Dark Navy Header Banner — skipped when embedded (the Player
-          Profile tab's own photo carousel + edit/logout icons stand in
-          for it instead). */}
+      {/* Dark Navy Header Banner — skipped when embedded */}
       {!embedded && (
       <View style={styles.headerBanner}>
         {coverUrl ? (
-          <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Image source={{ uri: coverUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.85 }]} resizeMode="cover" />
         ) : null}
         <LinearGradient
-          colors={coverUrl ? ['rgba(11, 25, 44, 0.72)', 'rgba(11, 25, 44, 0.92)'] : colors.gradientHero}
+          colors={coverUrl ? ['rgba(17, 24, 39, 0.4)', 'rgba(17, 24, 39, 0.85)'] : colors.gradientHero}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
         {/* Navigation Bar */}
         <View style={styles.navBar}>
@@ -222,7 +229,7 @@ export function PlayerSportDetailView({
       </View>
       )}
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs (Overview / Stats / Matches) */}
       <View style={embedded ? styles.embeddedTabsRow : styles.tabsRow}>
         <Pressable
           style={[
@@ -235,8 +242,8 @@ export function PlayerSportDetailView({
           <Ionicons
             name="person-outline"
             size={14}
-            color={activeTab === 'overview' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
-            style={{ marginRight: 4 }}
+            color={activeTab === 'overview' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
           />
           <Text
             style={[
@@ -250,33 +257,57 @@ export function PlayerSportDetailView({
           {!embedded && activeTab === 'overview' && <View style={styles.activeTabLine} />}
         </Pressable>
 
-        {hasAnyRecent && (
-          <Pressable
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'stats' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'stats' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('stats')}
+        >
+          <Ionicons
+            name="stats-chart-outline"
+            size={14}
+            color={activeTab === 'stats' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
+          />
+          <Text
             style={[
-              embedded ? styles.embeddedTabButton : styles.tabButton,
-              embedded && activeTab === 'matches' && styles.embeddedTabButtonActive,
-              !embedded && activeTab === 'matches' && styles.tabButtonActive,
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'stats' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'stats' && styles.tabTextActive,
             ]}
-            onPress={() => setActiveTab('matches')}
           >
-            <Ionicons
-              name="calendar-outline"
-              size={14}
-              color={activeTab === 'matches' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
-              style={{ marginRight: 4 }}
-            />
-            <Text
-              style={[
-                embedded ? styles.embeddedTabText : styles.tabText,
-                embedded && activeTab === 'matches' && styles.embeddedTabTextActive,
-                !embedded && activeTab === 'matches' && styles.tabTextActive,
-              ]}
-            >
-              Matches
-            </Text>
-            {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
-          </Pressable>
-        )}
+            Stats
+          </Text>
+          {!embedded && activeTab === 'stats' && <View style={styles.activeTabLine} />}
+        </Pressable>
+
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'matches' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'matches' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('matches')}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={14}
+            color={activeTab === 'matches' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'matches' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'matches' && styles.tabTextActive,
+            ]}
+          >
+            Matches
+          </Text>
+          {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
+        </Pressable>
       </View>
 
       {/* Main Content */}
@@ -313,16 +344,25 @@ export function PlayerSportDetailView({
                 </View>
 
                 {/* Custom Fields */}
-                {fields.map((f, idx) =>
-                  f.value ? (
+                {fields.map((f, idx) => {
+                  if (!f.value) return null;
+                  const isEducation = f.label.toLowerCase().includes('education');
+                  return (
                     <View key={idx} style={styles.gridItemFull}>
                       <Text style={styles.fieldLabel}>{f.label.toUpperCase()}</Text>
-                      <Text style={styles.fieldValueBold}>{f.value}</Text>
+                      {isEducation && collegeLogoUrl ? (
+                        <View style={styles.educationRow}>
+                          <Image source={{ uri: collegeLogoUrl }} style={styles.educationLogo} />
+                          <Text style={styles.fieldValueBold}>{f.value}</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.fieldValueBold}>{f.value}</Text>
+                      )}
                     </View>
-                  ) : null
-                )}
+                  );
+                })}
 
-                {/* Teams — only shown when player has added at least one team */}
+                {/* Teams */}
                 {teams.length > 0 && (
                   <View style={styles.gridItemFull}>
                     <Text style={styles.fieldLabel}>TEAMS</Text>
@@ -330,7 +370,11 @@ export function PlayerSportDetailView({
                       {teams.map((t, idx) => (
                         <View key={idx} style={styles.teamBadge}>
                           <View style={styles.teamBadgeIcon}>
-                            <Ionicons name="shield" size={14} color={colors.primary} />
+                            {teamLogos?.[t] ? (
+                              <Image source={{ uri: teamLogos[t]! }} style={styles.teamBadgeLogo} />
+                            ) : (
+                              <Ionicons name="shield" size={14} color={colors.primary} />
+                            )}
                           </View>
                           <Text style={styles.teamBadgeText}>{t}</Text>
                         </View>
@@ -344,7 +388,10 @@ export function PlayerSportDetailView({
             {/* Card: Events & Personal Best — Athletics/Swimming only */}
             {personalBests.length > 0 && (
               <View style={[styles.card, shadows.sm]}>
-                <Text style={styles.cardHeaderTitle}>Events &amp; Personal Best</Text>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="ribbon-outline" size={18} color={colors.primary} />
+                  <Text style={styles.cardHeaderTitle}>Events &amp; Personal Best</Text>
+                </View>
                 {personalBests.map((pb, idx) => (
                   <View key={idx} style={[styles.personalBestRow, idx % 2 === 1 && styles.tableRowAlt]}>
                     <Text style={styles.tdCellBold}>{pb.label}</Text>
@@ -354,23 +401,75 @@ export function PlayerSportDetailView({
               </View>
             )}
 
-            {/* Stat Cards — one per section, each shown only when it has rows */}
+            {/* Stat Cards Preview — one per section, each shown only when it has rows */}
             {statCards.map(
               (card, idx) =>
                 card.rows.length > 0 && (
                   <View key={idx} style={[styles.card, shadows.sm]}>
-                    <Text style={styles.cardHeaderTitle}>{shortName} {card.header}</Text>
+                    <View style={styles.cardHeaderRow}>
+                      <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+                      <Text style={styles.cardHeaderTitle}>{shortName} {card.header}</Text>
+                    </View>
                     <DataTable card={card} />
                   </View>
                 )
             )}
 
-            {/* Recent Cards — sliced to 5 with a "View more" toggle */}
+            {/* Recent Cards Preview — sliced to 5 with a "View more" toggle */}
             {recentCards.map((card, idx) => renderRecentCard(card, idx, RECENT_DISPLAY_LIMIT))}
+          </>
+        ) : activeTab === 'stats' ? (
+          /* Stats Tab Content — full career stats tables */
+          <>
+            {personalBests.length > 0 && (
+              <View style={[styles.card, shadows.sm]}>
+                <View style={styles.cardHeaderRow}>
+                  <Ionicons name="ribbon-outline" size={18} color={colors.primary} />
+                  <Text style={styles.cardHeaderTitle}>Events &amp; Personal Best</Text>
+                </View>
+                {personalBests.map((pb, idx) => (
+                  <View key={idx} style={[styles.personalBestRow, idx % 2 === 1 && styles.tableRowAlt]}>
+                    <Text style={styles.tdCellBold}>{pb.label}</Text>
+                    <Text style={styles.tdCell}>{pb.value || '-'}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {hasAnyStats ? (
+              statCards.map(
+                (card, idx) =>
+                  card.rows.length > 0 && (
+                    <View key={idx} style={[styles.card, shadows.sm]}>
+                      <View style={styles.cardHeaderRow}>
+                        <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
+                        <Text style={styles.cardHeaderTitle}>{shortName} {card.header}</Text>
+                      </View>
+                      <DataTable card={card} />
+                    </View>
+                  )
+              )
+            ) : (
+              personalBests.length === 0 && (
+                <View style={[styles.card, styles.emptyStatsCard]}>
+                  <Ionicons name="stats-chart-outline" size={32} color={colors.textMuted} />
+                  <Text style={styles.emptyStatsText}>No career stats recorded yet.</Text>
+                </View>
+              )
+            )}
           </>
         ) : (
           /* Matches Tab Content — full recent history, no slicing */
-          <>{recentCards.map((card, idx) => renderRecentCard(card, idx))}</>
+          <>
+            {hasAnyRecent ? (
+              recentCards.map((card, idx) => renderRecentCard(card, idx))
+            ) : (
+              <View style={[styles.card, styles.emptyStatsCard]}>
+                <Ionicons name="calendar-outline" size={32} color={colors.textMuted} />
+                <Text style={styles.emptyStatsText}>No recent matches recorded yet.</Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
@@ -529,6 +628,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   embeddedTabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
@@ -692,4 +793,31 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
+  emptyStatsCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.xs,
+  },
+  emptyStatsText: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  educationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  educationLogo: {
+    width: 18,
+    height: 18,
+    borderRadius: radius.full,
+    resizeMode: 'contain',
+  },
+  teamBadgeLogo: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
+  },
 });
+

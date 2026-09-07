@@ -94,13 +94,15 @@ export default function SwimmingProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: swimmingProfile.born ?? '',
-          age: toFormString(swimmingProfile.age),
-          height: swimmingProfile.height ?? '',
-          weight: swimmingProfile.weight ?? '',
-          college_university: swimmingProfile.college_university ?? '',
-          teams: swimmingProfile.teams ?? [],
+          born: swimmingProfile.born || ov?.born || '',
+          age: toFormString(swimmingProfile.age || ov?.age),
+          height: swimmingProfile.height || ov?.height || '',
+          weight: swimmingProfile.weight || ov?.weight || '',
+          college_university: swimmingProfile.college_university || ov?.college_university || '',
+          teams: (swimmingProfile.teams && swimmingProfile.teams.length > 0) ? swimmingProfile.teams : (ov?.teams ?? []),
           personal_bests: swimmingProfile.personal_bests.map((row) =>
             mapRow(row, ['swimming_event_id', 'personal_best'])
           ) as unknown as SwimmingProfileFormValues['personal_bests'],

@@ -94,13 +94,15 @@ export default function AthleticsProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: athleticsProfile.born ?? '',
-          age: toFormString(athleticsProfile.age),
-          height: athleticsProfile.height ?? '',
-          weight: athleticsProfile.weight ?? '',
-          college_university: athleticsProfile.college_university ?? '',
-          teams: athleticsProfile.teams ?? [],
+          born: athleticsProfile.born || ov?.born || '',
+          age: toFormString(athleticsProfile.age || ov?.age),
+          height: athleticsProfile.height || ov?.height || '',
+          weight: athleticsProfile.weight || ov?.weight || '',
+          college_university: athleticsProfile.college_university || ov?.college_university || '',
+          teams: (athleticsProfile.teams && athleticsProfile.teams.length > 0) ? athleticsProfile.teams : (ov?.teams ?? []),
           personal_bests: athleticsProfile.personal_bests.map((row) =>
             mapRow(row, ['athletics_event_id', 'personal_best'])
           ) as unknown as AthleticsProfileFormValues['personal_bests'],

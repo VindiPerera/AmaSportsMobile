@@ -94,14 +94,16 @@ export default function BasketballProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: basketballProfile.born ?? '',
-          age: toFormString(basketballProfile.age),
-          height: basketballProfile.height ?? '',
-          dominant_hand: basketballProfile.dominant_hand ?? '',
+          born: basketballProfile.born || ov?.born || '',
+          age: toFormString(basketballProfile.age || ov?.age),
+          height: basketballProfile.height || ov?.height || '',
+          dominant_hand: basketballProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: basketballProfile.player_position ?? '',
-          college_university: basketballProfile.college_university ?? '',
-          teams: basketballProfile.teams ?? [],
+          college_university: basketballProfile.college_university || ov?.college_university || '',
+          teams: (basketballProfile.teams && basketballProfile.teams.length > 0) ? basketballProfile.teams : (ov?.teams ?? []),
           career_stats: basketballProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BasketballProfileFormValues['career_stats'],

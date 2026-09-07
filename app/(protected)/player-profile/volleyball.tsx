@@ -95,14 +95,16 @@ export default function VolleyballProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: volleyballProfile.born ?? '',
-          age: toFormString(volleyballProfile.age),
-          height: volleyballProfile.height ?? '',
-          dominant_hand: volleyballProfile.dominant_hand ?? '',
+          born: volleyballProfile.born || ov?.born || '',
+          age: toFormString(volleyballProfile.age || ov?.age),
+          height: volleyballProfile.height || ov?.height || '',
+          dominant_hand: volleyballProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: volleyballProfile.player_position ?? '',
-          college_university: volleyballProfile.college_university ?? '',
-          teams: volleyballProfile.teams ?? [],
+          college_university: volleyballProfile.college_university || ov?.college_university || '',
+          teams: (volleyballProfile.teams && volleyballProfile.teams.length > 0) ? volleyballProfile.teams : (ov?.teams ?? []),
           career_stats: volleyballProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as VolleyballProfileFormValues['career_stats'],

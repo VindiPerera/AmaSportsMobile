@@ -93,16 +93,18 @@ export default function JudoProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: judoProfile.born ?? '',
-          age: toFormString(judoProfile.age),
-          height: judoProfile.height ?? '',
-          weight: judoProfile.weight ?? '',
+          born: judoProfile.born || ov?.born || '',
+          age: toFormString(judoProfile.age || ov?.age),
+          height: judoProfile.height || ov?.height || '',
+          weight: judoProfile.weight || ov?.weight || '',
           weight_position_id: toFormString(judoProfile.weight_position_id),
           competition_level_id: toFormString(judoProfile.competition_level_id),
-          college_university: judoProfile.college_university ?? '',
+          college_university: judoProfile.college_university || ov?.college_university || '',
           current_ranking: judoProfile.current_ranking ?? '',
-          teams: judoProfile.teams ?? [],
+          teams: (judoProfile.teams && judoProfile.teams.length > 0) ? judoProfile.teams : (ov?.teams ?? []),
           career_stats: judoProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as JudoProfileFormValues['career_stats'],

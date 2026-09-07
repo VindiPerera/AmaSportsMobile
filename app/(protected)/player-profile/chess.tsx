@@ -92,13 +92,15 @@ export default function ChessProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: chessProfile.born ?? '',
-          age: toFormString(chessProfile.age),
-          height: chessProfile.height ?? '',
+          born: chessProfile.born || ov?.born || '',
+          age: toFormString(chessProfile.age || ov?.age),
+          height: chessProfile.height || ov?.height || '',
           current_ranking: chessProfile.current_ranking ?? '',
-          college_university: chessProfile.college_university ?? '',
-          teams: chessProfile.teams ?? [],
+          college_university: chessProfile.college_university || ov?.college_university || '',
+          teams: (chessProfile.teams && chessProfile.teams.length > 0) ? chessProfile.teams : (ov?.teams ?? []),
           career_stats: chessProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as ChessProfileFormValues['career_stats'],

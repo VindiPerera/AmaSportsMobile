@@ -27,6 +27,8 @@ interface RecentMatchTableProps<TFieldValues extends FieldValues> {
    * Batting/Bowling stat alongside it) can track it without this component
    * giving up owning that state itself. Optional — most callers don't need it. */
   onLockChange?: (locked: boolean) => void;
+  locked?: boolean;
+  onEntryAdded?: () => void;
 }
 
 /**
@@ -61,6 +63,8 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
   columns,
   resetSignal,
   onLockChange,
+  locked,
+  onEntryAdded,
 }: RecentMatchTableProps<TFieldValues>) {
   const { fields, replace } = useFieldArray({ control, name });
   const [isModalVisible, setModalVisible] = useState(false);
@@ -69,7 +73,6 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
   // and picks the row the session table/edit pencil shows, so the two can
   // never fall out of sync the way two separately-tracked flags could.
   const [sessionIndex, setSessionIndex] = useState<number | null>(null);
-  const isLocked = sessionIndex !== null;
 
   // A successful save means this match is no longer "pending" — forget it
   // so Add unlocks for a fresh one next time, instead of staying pointed at
@@ -79,17 +82,25 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
   }, [resetSignal]);
 
   useEffect(() => {
+    if (locked === false) {
+      setSessionIndex(null);
+    }
+  }, [locked]);
+
+  const rows = fields as unknown as Record<string, unknown>[];
+  const activeIndex = sessionIndex !== null ? sessionIndex : (locked && rows.length > 0 ? rows.length - 1 : null);
+  const sessionRow = activeIndex !== null ? rows[activeIndex] : null;
+  const isLocked = (locked ?? false) || sessionIndex !== null;
+
+  useEffect(() => {
     onLockChange?.(isLocked);
   }, [isLocked, onLockChange]);
 
-  const rows = fields as unknown as Record<string, unknown>[];
-  const sessionRow = sessionIndex !== null ? rows[sessionIndex] : null;
-
   const handleSave = (row: Record<string, unknown>) => {
-    if (sessionIndex !== null) {
+    if (sessionRow && activeIndex !== null) {
       // Correcting the match added earlier this session — replace it in
       // place. No re-sort/re-cap here, so the index it lives at never moves.
-      const next = rows.map((existing, index) => (index === sessionIndex ? row : existing));
+      const next = rows.map((existing, index) => (index === activeIndex ? row : existing));
       replace(next as never);
       setModalVisible(false);
       return;
@@ -101,6 +112,7 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
     replace(next as never);
     setSessionIndex(next.length - 1);
     setModalVisible(false);
+    onEntryAdded?.();
   };
 
   return (
@@ -129,7 +141,7 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
       </View>
 
       {isLocked ? (
-        <Text style={styles.lockedHint}>Save your Cricket Profile to add another match.</Text>
+        <Text style={styles.lockedHint}>Save your profile to add another match.</Text>
       ) : null}
 
       {sessionRow ? (
@@ -137,7 +149,11 @@ export function RecentMatchTable<TFieldValues extends FieldValues>({
       ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="document-text-outline" size={22} color={colors.textFaint} />
-          <Text style={styles.emptyText}>No match added yet this session — tap &quot;{addLabel}&quot; to add one.</Text>
+          <Text style={styles.emptyText}>
+            {fields.length === 0
+              ? `No match added yet — tap "${addLabel}" to add one.`
+              : `No match added yet this session — tap "${addLabel}" to add one.`}
+          </Text>
         </View>
       )}
 

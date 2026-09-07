@@ -120,14 +120,16 @@ export default function KabadiProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: kabadiProfile.born ?? '',
-          age: toFormString(kabadiProfile.age),
-          height: kabadiProfile.height ?? '',
-          weight: kabadiProfile.weight ?? '',
+          born: kabadiProfile.born || ov?.born || '',
+          age: toFormString(kabadiProfile.age || ov?.age),
+          height: kabadiProfile.height || ov?.height || '',
+          weight: kabadiProfile.weight || ov?.weight || '',
           player_position: kabadiProfile.player_position ?? '',
-          college_university: kabadiProfile.college_university ?? '',
-          teams: kabadiProfile.teams ?? [],
+          college_university: kabadiProfile.college_university || ov?.college_university || '',
+          teams: (kabadiProfile.teams && kabadiProfile.teams.length > 0) ? kabadiProfile.teams : (ov?.teams ?? []),
           career_stats: kabadiProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as KabadiProfileFormValues['career_stats'],

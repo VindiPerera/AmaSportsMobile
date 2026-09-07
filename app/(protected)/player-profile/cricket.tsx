@@ -153,17 +153,19 @@ export default function CricketProfileScreen() {
         );
         setCollegeLogoUrl(cricketProfile.college_logo_url ?? null);
 
+        const ov = profile.overview;
+
         reset({
-          born: cricketProfile.born ?? '',
-          age: toFormString(cricketProfile.age),
+          born: cricketProfile.born || ov?.born || '',
+          age: toFormString(cricketProfile.age || ov?.age),
           batting_style: cricketProfile.batting_style ?? '',
           bowling_style: cricketProfile.bowling_style ?? '',
           playing_role: cricketProfile.playing_role ?? '',
-          height: cricketProfile.height ?? '',
-          college_university: cricketProfile.college_university ?? '',
+          height: cricketProfile.height || ov?.height || '',
+          college_university: cricketProfile.college_university || ov?.college_university || '',
           pitching_line_breakdown: breakdownToFormValues(cricketProfile.pitching_line_breakdown),
           ball_type_breakdown: breakdownToFormValues(cricketProfile.ball_type_breakdown),
-          teams: cricketProfile.teams ?? [],
+          teams: (cricketProfile.teams && cricketProfile.teams.length > 0) ? cricketProfile.teams : (ov?.teams ?? []),
           batting: cricketProfile.batting.map((row) =>
             mapRow(row, Object.keys(EMPTY_BATTING_ROW))
           ) as unknown as CricketProfileFormValues['batting'],

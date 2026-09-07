@@ -95,14 +95,16 @@ export default function HockeyProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: hockeyProfile.born ?? '',
-          age: toFormString(hockeyProfile.age),
-          height: hockeyProfile.height ?? '',
-          dominant_hand: hockeyProfile.dominant_hand ?? '',
+          born: hockeyProfile.born || ov?.born || '',
+          age: toFormString(hockeyProfile.age || ov?.age),
+          height: hockeyProfile.height || ov?.height || '',
+          dominant_hand: hockeyProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: hockeyProfile.player_position ?? '',
-          college_university: hockeyProfile.college_university ?? '',
-          teams: hockeyProfile.teams ?? [],
+          college_university: hockeyProfile.college_university || ov?.college_university || '',
+          teams: (hockeyProfile.teams && hockeyProfile.teams.length > 0) ? hockeyProfile.teams : (ov?.teams ?? []),
           career_stats: hockeyProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as HockeyProfileFormValues['career_stats'],

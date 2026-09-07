@@ -182,8 +182,8 @@ export function CricketPlayerDetailView({
           <Ionicons
             name="person-outline"
             size={14}
-            color={activeTab === 'overview' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
-            style={{ marginRight: 4 }}
+            color={activeTab === 'overview' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
           />
           <Text
             style={[
@@ -208,8 +208,8 @@ export function CricketPlayerDetailView({
           <Ionicons
             name="stats-chart-outline"
             size={14}
-            color={activeTab === 'stats' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
-            style={{ marginRight: 4 }}
+            color={activeTab === 'stats' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
           />
           <Text
             style={[
@@ -234,8 +234,8 @@ export function CricketPlayerDetailView({
           <Ionicons
             name="calendar-outline"
             size={14}
-            color={activeTab === 'matches' ? (embedded ? colors.primary : colors.white) : colors.textMuted}
-            style={{ marginRight: 4 }}
+            color={activeTab === 'matches' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
           />
           <Text
             style={[
@@ -817,6 +817,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   embeddedTabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,

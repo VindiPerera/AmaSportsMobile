@@ -92,15 +92,17 @@ export default function BoxingProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: boxingProfile.born ?? '',
-          age: toFormString(boxingProfile.age),
-          height: boxingProfile.height ?? '',
-          weight: boxingProfile.weight ?? '',
+          born: boxingProfile.born || ov?.born || '',
+          age: toFormString(boxingProfile.age || ov?.age),
+          height: boxingProfile.height || ov?.height || '',
+          weight: boxingProfile.weight || ov?.weight || '',
           weight_class_id: toFormString(boxingProfile.weight_class_id),
           current_ranking: boxingProfile.current_ranking ?? '',
-          college_university: boxingProfile.college_university ?? '',
-          teams: boxingProfile.teams ?? [],
+          college_university: boxingProfile.college_university || ov?.college_university || '',
+          teams: (boxingProfile.teams && boxingProfile.teams.length > 0) ? boxingProfile.teams : (ov?.teams ?? []),
           career_stats: boxingProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BoxingProfileFormValues['career_stats'],

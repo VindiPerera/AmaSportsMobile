@@ -100,14 +100,16 @@ export default function FootballProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: footballProfile.born ?? '',
-          age: toFormString(footballProfile.age),
-          height: footballProfile.height ?? '',
+          born: footballProfile.born || ov?.born || '',
+          age: toFormString(footballProfile.age || ov?.age),
+          height: footballProfile.height || ov?.height || '',
           dominant_leg: footballProfile.dominant_leg ?? '',
           player_position: footballProfile.player_position ?? '',
-          college_university: footballProfile.college_university ?? '',
-          teams: footballProfile.teams ?? [],
+          college_university: footballProfile.college_university || ov?.college_university || '',
+          teams: (footballProfile.teams && footballProfile.teams.length > 0) ? footballProfile.teams : (ov?.teams ?? []),
           career_stats: footballProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as FootballProfileFormValues['career_stats'],
