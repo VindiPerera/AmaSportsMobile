@@ -12,7 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { CricketProfileFormValues, Lookups } from '../../types';
 import { formatBornDate, formatDetailedAge, formatShortMatchDate, sortCareerStatsNewestFirst, sortRecentMatchesNewestFirst } from '../../utils/date';
+import { abbreviateStatLabel } from '../../utils/statLabels';
 import { ImageLightbox } from '../ui/ImageLightbox';
+import { AchievementsTabPanel } from '../achievements/AchievementsTabPanel';
 
 interface CricketPlayerDetailViewProps {
   fullName: string;
@@ -51,7 +53,7 @@ export function CricketPlayerDetailView({
   onBackPress,
   embedded = false,
 }: CricketPlayerDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches' | 'achievements'>('overview');
   // Tapping the cover photo or the avatar opens it full-screen in this.
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
@@ -60,19 +62,19 @@ export function CricketPlayerDetailView({
   const displayName = fullName || 'Player Name';
   const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` : displayName;
 
-  // Division lookup helper — `cricket_divisions` (not the shared `formats`
-  // table other sports use), shown under the "Div" header below.
+  // Category lookup helper — `cricket_divisions` (not the shared `formats`
+  // table other sports use), shown under the "Category" header below.
   const getFormatName = (formatId: string): string => {
     if (!formatId) return '-';
     const found = lookups.cricket_divisions.find((f) => String(f.id) === String(formatId));
     return found ? found.name : '-';
   };
 
-  // Category lookup helper — `cricket_categories` (not the shared
-  // `age_categories` table other sports use), shown under the "Cat" header.
+  // Format lookup helper — `cricket_categories` (not the shared
+  // `age_categories` table other sports use), shown under the "Format" header.
   const getAgeCategoryName = (ageCategoryId: string): string => {
     const found = lookups.cricket_categories.find((a) => String(a.id) === String(ageCategoryId));
-    return found ? found.name : '-';
+    return found ? abbreviateStatLabel(found.name) : '-';
   };
 
   // Process Batting Rows — newest Year first
@@ -169,8 +171,14 @@ export function CricketPlayerDetailView({
       </View>
       )}
 
-      {/* Navigation Tabs (Overview / Career Stats / Matches) */}
-      <View style={embedded ? styles.embeddedTabsRow : styles.tabsRow}>
+      {/* Navigation Tabs (Overview / Stats / Matches / Achievements) — a
+          horizontal scroller since a 4th tab can overflow narrower phones,
+          unlike the 3-tab row this started as. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={embedded ? styles.embeddedTabsRow : styles.tabsRow}
+      >
         <Pressable
           style={[
             embedded ? styles.embeddedTabButton : styles.tabButton,
@@ -248,7 +256,33 @@ export function CricketPlayerDetailView({
           </Text>
           {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
         </Pressable>
-      </View>
+
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'achievements' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'achievements' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('achievements')}
+        >
+          <Ionicons
+            name="trophy-outline"
+            size={14}
+            color={activeTab === 'achievements' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'achievements' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'achievements' && styles.tabTextActive,
+            ]}
+          >
+          Achievements
+          </Text>
+          {!embedded && activeTab === 'achievements' && <View style={styles.activeTabLine} />}
+        </Pressable>
+      </ScrollView>
 
       {/* Main Tab Content */}
       <ScrollView
@@ -364,15 +398,15 @@ export function CricketPlayerDetailView({
                         {/* Table Header */}
                         <View style={styles.tableHeaderRow}>
                           <Text style={styles.thCell}>Year</Text>
-                          <Text style={styles.thCell}>Cat</Text>
-                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
+                          <Text style={[styles.thCell, styles.thCategoryWide]}>Format</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Category</Text>
                           <Text style={styles.thCell}>Mat</Text>
                           <Text style={styles.thCell}>Inns</Text>
                           <Text style={styles.thCell}>NO</Text>
-                          <Text style={styles.thCell}>Runs</Text>
-                          <Text style={styles.thCell}>HS</Text>
-                          <Text style={styles.thCell}>Ave</Text>
-                          <Text style={styles.thCell}>SR</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Runs</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>HS</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Ave</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>SR</Text>
                           <Text style={styles.thCell}>100s</Text>
                           <Text style={styles.thCell}>50s</Text>
                           <Text style={styles.thCell}>Ct</Text>
@@ -385,17 +419,17 @@ export function CricketPlayerDetailView({
                             style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                           >
                             <Text style={styles.tdCell}>{row.year || '-'}</Text>
-                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
-                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                            <Text style={[styles.tdCell, styles.thCategoryWide]} numberOfLines={1}>{getAgeCategoryName(row.age_category_id)}</Text>
+                            <Text style={[styles.tdCellBold, styles.thFormat]} numberOfLines={1}>
                               {getFormatName(row.format_id)}
                             </Text>
                             <Text style={styles.tdCell}>{row.matches || '-'}</Text>
                             <Text style={styles.tdCell}>{row.innings || '-'}</Text>
                             <Text style={styles.tdCell}>{row.not_out || '-'}</Text>
-                            <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.runs || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.hs || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.sr || '-'}</Text>
+                            <Text style={[styles.tdCellBold, styles.tdCellHighlight, styles.tdCellWide]} numberOfLines={1}>{row.runs || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.hs || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.average || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.sr || '-'}</Text>
                             <Text style={styles.tdCell}>{row.hundreds || '0'}</Text>
                             <Text style={styles.tdCell}>{row.fifties || '0'}</Text>
                             <Text style={styles.tdCell}>{row.catches || '0'}</Text>
@@ -415,16 +449,16 @@ export function CricketPlayerDetailView({
                         {/* Table Header */}
                         <View style={styles.tableHeaderRow}>
                           <Text style={styles.thCell}>Year</Text>
-                          <Text style={styles.thCell}>Cat</Text>
-                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
+                          <Text style={[styles.thCell, styles.thCategoryWide]}>Format</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Category</Text>
                           <Text style={styles.thCell}>Mat</Text>
                           <Text style={styles.thCell}>Inns</Text>
                           <Text style={styles.thCell}>Balls</Text>
-                          <Text style={styles.thCell}>Runs</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Runs</Text>
                           <Text style={styles.thCell}>Wkts</Text>
                           <Text style={styles.thCell}>BBI</Text>
-                          <Text style={styles.thCell}>Ave</Text>
-                          <Text style={styles.thCell}>Econ</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Ave</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Econ</Text>
                           <Text style={styles.thCell}>4w</Text>
                           <Text style={styles.thCell}>5w</Text>
                         </View>
@@ -436,18 +470,18 @@ export function CricketPlayerDetailView({
                             style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                           >
                             <Text style={styles.tdCell}>{row.year || '-'}</Text>
-                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
-                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                            <Text style={[styles.tdCell, styles.thCategoryWide]} numberOfLines={1}>{getAgeCategoryName(row.age_category_id)}</Text>
+                            <Text style={[styles.tdCellBold, styles.thFormat]} numberOfLines={1}>
                               {getFormatName(row.format_id)}
                             </Text>
                             <Text style={styles.tdCell}>{row.matches || '-'}</Text>
                             <Text style={styles.tdCell}>{row.innings || '-'}</Text>
                             <Text style={styles.tdCell}>{row.balls || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.runs || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.runs || '-'}</Text>
                             <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.wickets || '-'}</Text>
                             <Text style={styles.tdCell}>{row.bbi || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.economy || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.average || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.economy || '-'}</Text>
                             <Text style={styles.tdCell}>{row.four_w || '0'}</Text>
                             <Text style={styles.tdCell}>{row.five_w || '0'}</Text>
                           </View>
@@ -489,15 +523,15 @@ export function CricketPlayerDetailView({
                       <View style={styles.tableContainer}>
                         <View style={styles.tableHeaderRow}>
                           <Text style={styles.thCell}>Year</Text>
-                          <Text style={styles.thCell}>Cat</Text>
-                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
+                          <Text style={[styles.thCell, styles.thCategoryWide]}>Format</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Category</Text>
                           <Text style={styles.thCell}>Mat</Text>
                           <Text style={styles.thCell}>Inns</Text>
                           <Text style={styles.thCell}>NO</Text>
-                          <Text style={styles.thCell}>Runs</Text>
-                          <Text style={styles.thCell}>HS</Text>
-                          <Text style={styles.thCell}>Ave</Text>
-                          <Text style={styles.thCell}>SR</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Runs</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>HS</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Ave</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>SR</Text>
                           <Text style={styles.thCell}>100s</Text>
                           <Text style={styles.thCell}>50s</Text>
                           <Text style={styles.thCell}>Ct</Text>
@@ -509,17 +543,17 @@ export function CricketPlayerDetailView({
                             style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                           >
                             <Text style={styles.tdCell}>{row.year || '-'}</Text>
-                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
-                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                            <Text style={[styles.tdCell, styles.thCategoryWide]} numberOfLines={1}>{getAgeCategoryName(row.age_category_id)}</Text>
+                            <Text style={[styles.tdCellBold, styles.thFormat]} numberOfLines={1}>
                               {getFormatName(row.format_id)}
                             </Text>
                             <Text style={styles.tdCell}>{row.matches || '-'}</Text>
                             <Text style={styles.tdCell}>{row.innings || '-'}</Text>
                             <Text style={styles.tdCell}>{row.not_out || '-'}</Text>
-                            <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.runs || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.hs || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.sr || '-'}</Text>
+                            <Text style={[styles.tdCellBold, styles.tdCellHighlight, styles.tdCellWide]} numberOfLines={1}>{row.runs || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.hs || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.average || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.sr || '-'}</Text>
                             <Text style={styles.tdCell}>{row.hundreds || '0'}</Text>
                             <Text style={styles.tdCell}>{row.fifties || '0'}</Text>
                             <Text style={styles.tdCell}>{row.catches || '0'}</Text>
@@ -538,16 +572,16 @@ export function CricketPlayerDetailView({
                       <View style={styles.tableContainer}>
                         <View style={styles.tableHeaderRow}>
                           <Text style={styles.thCell}>Year</Text>
-                          <Text style={styles.thCell}>Cat</Text>
-                          <Text style={[styles.thCell, styles.thFormat]}>Div</Text>
+                          <Text style={[styles.thCell, styles.thCategoryWide]}>Format</Text>
+                          <Text style={[styles.thCell, styles.thFormat]}>Category</Text>
                           <Text style={styles.thCell}>Mat</Text>
                           <Text style={styles.thCell}>Inns</Text>
                           <Text style={styles.thCell}>Balls</Text>
-                          <Text style={styles.thCell}>Runs</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Runs</Text>
                           <Text style={styles.thCell}>Wkts</Text>
                           <Text style={styles.thCell}>BBI</Text>
-                          <Text style={styles.thCell}>Ave</Text>
-                          <Text style={styles.thCell}>Econ</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Ave</Text>
+                          <Text style={[styles.thCell, styles.thCellWide]}>Econ</Text>
                           <Text style={styles.thCell}>4w</Text>
                           <Text style={styles.thCell}>5w</Text>
                         </View>
@@ -558,18 +592,18 @@ export function CricketPlayerDetailView({
                             style={[styles.tableDataRow, idx % 2 === 1 && styles.tableRowAlt]}
                           >
                             <Text style={styles.tdCell}>{row.year || '-'}</Text>
-                            <Text style={styles.tdCell}>{getAgeCategoryName(row.age_category_id)}</Text>
-                            <Text style={[styles.tdCellBold, styles.thFormat]}>
+                            <Text style={[styles.tdCell, styles.thCategoryWide]} numberOfLines={1}>{getAgeCategoryName(row.age_category_id)}</Text>
+                            <Text style={[styles.tdCellBold, styles.thFormat]} numberOfLines={1}>
                               {getFormatName(row.format_id)}
                             </Text>
                             <Text style={styles.tdCell}>{row.matches || '-'}</Text>
                             <Text style={styles.tdCell}>{row.innings || '-'}</Text>
                             <Text style={styles.tdCell}>{row.balls || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.runs || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.runs || '-'}</Text>
                             <Text style={[styles.tdCellBold, styles.tdCellHighlight]}>{row.wickets || '-'}</Text>
                             <Text style={styles.tdCell}>{row.bbi || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.average || '-'}</Text>
-                            <Text style={styles.tdCell}>{row.economy || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.average || '-'}</Text>
+                            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{row.economy || '-'}</Text>
                             <Text style={styles.tdCell}>{row.four_w || '0'}</Text>
                             <Text style={styles.tdCell}>{row.five_w || '0'}</Text>
                           </View>
@@ -586,7 +620,7 @@ export function CricketPlayerDetailView({
               </View>
             )}
           </>
-        ) : (
+        ) : activeTab === 'matches' ? (
           /* Matches Tab Content */
           <>
             {/* Recent Matches */}
@@ -612,6 +646,15 @@ export function CricketPlayerDetailView({
               <Text style={styles.footerCopyright}>© 2026 AmaX Ltd. All rights reserved</Text>
             </View>
           </>
+        ) : (
+          /* Achievements Tab Content */
+          <View style={[styles.card, shadows.sm]}>
+            <View style={styles.cardHeaderRow}>
+              <Ionicons name="trophy-outline" size={18} color={colors.primary} />
+              <Text style={styles.cardHeaderTitle}>Achievements - {shortName}</Text>
+            </View>
+            <AchievementsTabPanel />
+          </View>
         )}
       </ScrollView>
 
@@ -636,7 +679,7 @@ function RecentMatchesTable({ matches }: { matches: CricketProfileFormValues['re
           <Text style={[styles.thCell, styles.thDate]}>Date</Text>
           <Text style={[styles.thCell, styles.thMatchName]}>Match</Text>
           <Text style={styles.thCell}>XI</Text>
-          <Text style={styles.thCell}>Runs</Text>
+          <Text style={[styles.thCell, styles.thCellWide]}>Runs</Text>
           <Text style={styles.thCell}>Balls</Text>
           <Text style={styles.thCell}>4s</Text>
           <Text style={styles.thCell}>6s</Text>
@@ -654,7 +697,7 @@ function RecentMatchesTable({ matches }: { matches: CricketProfileFormValues['re
               {m.opponent || '-'}
             </Text>
             <Text style={styles.tdCell}>{m.played_xi ? 'Y' : 'N'}</Text>
-            <Text style={styles.tdCell}>{m.runs || '-'}</Text>
+            <Text style={[styles.tdCell, styles.tdCellWide]} numberOfLines={1}>{m.runs || '-'}</Text>
             <Text style={styles.tdCell}>{m.balls || '-'}</Text>
             <Text style={styles.tdCell}>{m.fours || '0'}</Text>
             <Text style={styles.tdCell}>{m.sixes || '0'}</Text>
@@ -994,8 +1037,22 @@ const styles = StyleSheet.create({
     width: 38,
     textAlign: 'center',
   },
+  // Runs/HS/Ave/SR/Econ can run to 7+ digits (career totals, or a lopsided
+  // runs-vs-balls ratio blowing up the derived Ave/SR/Econ) — the default
+  // 38px column wraps those onto a second line and breaks row alignment,
+  // so these get more room plus a hard one-line clamp.
+  thCellWide: {
+    width: 82,
+  },
+  // The Format list (e.g. "State Service Div III") runs far longer than the
+  // old Category values it replaced — needs real room, left-aligned like
+  // thFormat below rather than centered.
+  thCategoryWide: {
+    width: 150,
+    textAlign: 'left',
+  },
   thFormat: {
-    width: 75,
+    width: 85,
     textAlign: 'left',
   },
   thMatchName: {
@@ -1031,6 +1088,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     width: 38,
     textAlign: 'center',
+  },
+  tdCellWide: {
+    width: 82,
   },
   tdCellFaint: {
     ...typography.caption,

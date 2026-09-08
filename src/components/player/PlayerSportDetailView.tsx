@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { formatBornDate, formatDetailedAge } from '../../utils/date';
+import { abbreviateStatLabel } from '../../utils/statLabels';
 
 export interface DetailFieldItem {
   label: string;
@@ -21,6 +22,10 @@ export interface StatTableColumn {
   key: string;
   label: string;
   width?: number;
+  /** Shortens long Format/Category names (e.g. "Academy" -> "Aca") for this
+   * column's cells — display-only, set on the read-only career-stat column
+   * configs, never on the edit form's own field definitions. */
+  abbreviate?: boolean;
 }
 
 /** One stats table (Career Stats, Bowling, Recent Matches, ...) — its own
@@ -72,7 +77,33 @@ interface PlayerSportDetailViewProps {
   embedded?: boolean;
 }
 
+/** Rough glyph width for the table's ~13px cell text — used only to widen a
+ * column past its author-chosen default when actual data (a long career
+ * total, or a derived Ave/SR blown up by a lopsided ratio) needs more room
+ * than a typical 1-3 digit stat does. */
+const CELL_CHAR_WIDTH = 7.4;
+const CELL_PADDING = 14;
+
+function cellText(row: Record<string, unknown>, col: StatTableColumn): string {
+  const raw = row[col.key];
+  const text = raw === null || raw === undefined || raw === '' ? '-' : String(raw);
+  return col.abbreviate ? abbreviateStatLabel(text) : text;
+}
+
+/** A column's declared `width` is sized for the sport's typical values —
+ * fine for "Mat"/"Win"/"Ct" but too narrow for the rare oversized entry
+ * (see cricket's Runs/Ave/SR fix), which used to wrap onto a second line or
+ * get clipped. Grows the column to fit whatever's actually in it instead of
+ * needing every sport's column config hand-tuned. */
+function getColumnWidth(col: StatTableColumn, rows: Record<string, unknown>[]): number | undefined {
+  if (!col.width) return undefined;
+  const longest = rows.reduce((max, row) => Math.max(max, cellText(row, col).length), col.label.length);
+  return Math.max(col.width, Math.ceil(longest * CELL_CHAR_WIDTH) + CELL_PADDING);
+}
+
 function DataTable({ card }: { card: StatCardConfig }) {
+  const columnWidths = card.columns.map((col) => getColumnWidth(col, card.rows));
+
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View style={styles.tableContainer}>
@@ -80,7 +111,8 @@ function DataTable({ card }: { card: StatCardConfig }) {
           {card.columns.map((col, idx) => (
             <Text
               key={idx}
-              style={[styles.thCell, col.width ? { width: col.width } : { flex: 1 }, idx === 0 && { textAlign: 'left' }]}
+              numberOfLines={1}
+              style={[styles.thCell, columnWidths[idx] ? { width: columnWidths[idx] } : { flex: 1 }, idx === 0 && { textAlign: 'left' }]}
             >
               {col.label}
             </Text>
@@ -89,22 +121,19 @@ function DataTable({ card }: { card: StatCardConfig }) {
 
         {card.rows.map((row, rIdx) => (
           <View key={rIdx} style={[styles.tableDataRow, rIdx % 2 === 1 && styles.tableRowAlt]}>
-            {card.columns.map((col, cIdx) => {
-              const raw = row[col.key];
-              const val = raw === null || raw === undefined || raw === '' ? '-' : String(raw);
-              return (
-                <Text
-                  key={cIdx}
-                  style={[
-                    cIdx === 0 ? styles.tdCellBold : styles.tdCell,
-                    col.width ? { width: col.width } : { flex: 1 },
-                    cIdx === 0 && { textAlign: 'left' },
-                  ]}
-                >
-                  {val}
-                </Text>
-              );
-            })}
+            {card.columns.map((col, cIdx) => (
+              <Text
+                key={cIdx}
+                numberOfLines={1}
+                style={[
+                  cIdx === 0 ? styles.tdCellBold : styles.tdCell,
+                  columnWidths[cIdx] ? { width: columnWidths[cIdx] } : { flex: 1 },
+                  cIdx === 0 && { textAlign: 'left' },
+                ]}
+              >
+                {cellText(row, col)}
+              </Text>
+            ))}
           </View>
         ))}
       </View>
@@ -131,7 +160,7 @@ export function PlayerSportDetailView({
   onBackPress,
   embedded = false,
 }: PlayerSportDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches' | 'achievements'>('overview');
   const [expandedRecent, setExpandedRecent] = useState<Record<number, boolean>>({});
 
   const displayName = fullName || 'Player Name';
@@ -229,8 +258,14 @@ export function PlayerSportDetailView({
       </View>
       )}
 
-      {/* Navigation Tabs (Overview / Stats / Matches) */}
-      <View style={embedded ? styles.embeddedTabsRow : styles.tabsRow}>
+      {/* Navigation Tabs (Overview / Stats / Matches / Achievements) — a
+          horizontal scroller since a 4th tab can overflow narrower phones,
+          unlike the 3-tab row this started as. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={embedded ? styles.embeddedTabsRow : styles.tabsRow}
+      >
         <Pressable
           style={[
             embedded ? styles.embeddedTabButton : styles.tabButton,
@@ -308,7 +343,33 @@ export function PlayerSportDetailView({
           </Text>
           {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
         </Pressable>
-      </View>
+
+        <Pressable
+          style={[
+            embedded ? styles.embeddedTabButton : styles.tabButton,
+            embedded && activeTab === 'achievements' && styles.embeddedTabButtonActive,
+            !embedded && activeTab === 'achievements' && styles.tabButtonActive,
+          ]}
+          onPress={() => setActiveTab('achievements')}
+        >
+          <Ionicons
+            name="trophy-outline"
+            size={14}
+            color={activeTab === 'achievements' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={[
+              embedded ? styles.embeddedTabText : styles.tabText,
+              embedded && activeTab === 'achievements' && styles.embeddedTabTextActive,
+              !embedded && activeTab === 'achievements' && styles.tabTextActive,
+            ]}
+          >
+            Achievements
+          </Text>
+          {!embedded && activeTab === 'achievements' && <View style={styles.activeTabLine} />}
+        </Pressable>
+      </ScrollView>
 
       {/* Main Content */}
       <ScrollView
@@ -458,7 +519,7 @@ export function PlayerSportDetailView({
               )
             )}
           </>
-        ) : (
+        ) : activeTab === 'matches' ? (
           /* Matches Tab Content — full recent history, no slicing */
           <>
             {hasAnyRecent ? (
@@ -470,6 +531,19 @@ export function PlayerSportDetailView({
               </View>
             )}
           </>
+        ) : (
+          /* Achievements Tab Content — cricket-only for now (see
+             CricketMetricEvaluator on the backend), so every other sport
+             shows this instead of AchievementsTabPanel; that component
+             fetches the player's whole achievements list, which would
+             otherwise leak Cricket badges into a Badminton/Football/...
+             profile that had nothing to do with earning them. */
+          <View style={[styles.card, styles.emptyStatsCard]}>
+            <Ionicons name="trophy-outline" size={32} color={colors.textMuted} />
+            <Text style={styles.emptyStatsText}>
+              Achievements for {sportName} aren&rsquo;t available yet — check your Cricket profile to see badges you&rsquo;ve unlocked there.
+            </Text>
+          </View>
         )}
       </ScrollView>
     </View>

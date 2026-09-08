@@ -33,14 +33,35 @@ function leadingNumber(value: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-/** Keeps whichever of two "career-best" figures (HS, Best, BBI, BBM) is
- * higher, preserving the winner's original text (e.g. the "*" on a HS). */
+/** Keeps whichever of two "career-best" figures (HS, Best) is higher,
+ * preserving the winner's original text (e.g. the "*" on a HS). */
 function best(a: string, b: string): string {
   const an = leadingNumber(a);
   const bn = leadingNumber(b);
   if (an === null) return b ?? '';
   if (bn === null) return a ?? '';
   return bn > an ? b : a;
+}
+
+/** Parses a "W/R" bowling figure ("3/25") into wickets+runs, so BBI/BBM can
+ * be compared correctly — more wickets always wins; on an equal wicket
+ * count, fewer runs conceded wins (standard bowling-figures convention that
+ * a single leading-number comparison, like `best()` above uses for HS,
+ * can't express). */
+function parseBowlingFigures(value: string): { wickets: number; runs: number } | null {
+  const match = (value ?? '').match(/(\d+)\s*\/\s*(\d+)/);
+  if (!match) return null;
+  return { wickets: parseInt(match[1], 10), runs: parseInt(match[2], 10) };
+}
+
+/** Keeps whichever of two BBI/BBM figures is better by that convention. */
+function bestBowlingFigures(a: string, b: string): string {
+  const pa = parseBowlingFigures(a);
+  const pb = parseBowlingFigures(b);
+  if (!pa) return b ?? '';
+  if (!pb) return a ?? '';
+  if (pb.wickets !== pa.wickets) return pb.wickets > pa.wickets ? b : a;
+  return pb.runs < pa.runs ? b : a;
 }
 
 /** Prefers the newly-entered value, falling back to the existing one — used
@@ -114,7 +135,8 @@ export function mergeBattingRows(
 
 /**
  * Merges `incoming` into `existing` for Bowling Career Stats. Counts add up;
- * BBI/BBM take the better figure; Average, Economy and Strike Rate are all
+ * BBI/BBM take the better figure (more wickets, then fewer runs conceded on
+ * a tie — see bestBowlingFigures); Average, Economy and Strike Rate are all
  * recalculated from the merged Runs/Balls/Wickets rather than summed.
  */
 export function mergeBowlingRows(
@@ -137,8 +159,8 @@ export function mergeBowlingRows(
     no_balls: sum(existing.no_balls, incoming.no_balls),
     runs: sum(existing.runs, incoming.runs),
     wickets: sum(existing.wickets, incoming.wickets),
-    bbi: best(existing.bbi, incoming.bbi),
-    bbm: best(existing.bbm, incoming.bbm),
+    bbi: bestBowlingFigures(existing.bbi, incoming.bbi),
+    bbm: bestBowlingFigures(existing.bbm, incoming.bbm),
     four_w: sum(existing.four_w, incoming.four_w),
     five_w: sum(existing.five_w, incoming.five_w),
     ten_w: sum(existing.ten_w, incoming.ten_w),

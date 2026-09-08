@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,10 +13,7 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
-import { PhotoGalleryUpload } from '../../../src/components/player/PhotoGalleryUpload';
-import { CareerStatTable } from '../../../src/components/player/CareerStatTable';
-import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
-import { mergeBattingRows, mergeBowlingRows } from '../../../src/utils/statMerge';
+import { CricketMatchEntryCard } from '../../../src/components/player/CricketMatchEntryCard';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
@@ -30,8 +27,9 @@ import {
   BOWLING_STYLE_OPTIONS,
   PLAYING_ROLE_OPTIONS,
 } from '../../../src/constants/cricketOptions';
+import { CRICKET_CATEGORIES, CRICKET_FORMATS } from '../../../src/constants/cricketLookups';
 import { calculateAge, sortRecentMatchesNewestFirst } from '../../../src/utils/date';
-import { ApiError, CricketProfileFormValues, PickedImage, PlayerPhoto } from '../../../src/types';
+import { ApiError, CricketProfileFormValues, CricketRecentMatchRowForm, PickedImage } from '../../../src/types';
 
 const EMPTY_BATTING_ROW = {
   format_id: '', age_category_id: '', match_category_id: '', cricket_match_type_id: '', year: '',
@@ -47,9 +45,13 @@ const EMPTY_BOWLING_ROW = {
   four_w: '', five_w: '', ten_w: '',
 };
 
-const EMPTY_RECENT_MATCH_ROW = {
-  match_date: '', opponent: '', played_xi: false, runs: '', balls: '', fours: '', sixes: '',
-  overs: '', maidens: '', wickets: '', catches: '', stumpings: '',
+const EMPTY_RECENT_MATCH_ROW: CricketRecentMatchRowForm = {
+  age_category_id: '', format_id: '', match_date: '', opponent: '', ground: '',
+  year: String(new Date().getFullYear()), played_xi: false,
+  batting_innings: '', runs: '', balls: '', not_out: false, hs: '', fours: '', sixes: '',
+  hundreds: false, fifties: false, overs: '', maidens: '',
+  bowling_innings: '', bowling_balls: '', bowling_runs: '', wickets: '', bbi: '', bbm: '',
+  three_w: false, four_w: false, five_w: false, ten_w: false, catches: '', stumpings: '',
 };
 
 // Kept only for its keys (used by `mapRow` when loading an existing profile) —
@@ -97,21 +99,12 @@ export default function CricketProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // One Batting add/update, one Bowling add/update, and one new Recent
-  // Match per save — each table locks its own "Add" button the moment an
-  // entry goes in (tracked entirely inside RecentMatchTable/CareerStatTable
-  // themselves, so there's nothing here to fall out of sync with them).
-  // Bumping this after a successful save is this screen's only part in
-  // that: it tells all three tables their pending entry is now saved, so
-  // they forget it and unlock Add for a genuinely fresh session.
+  // One new match (Batting + Bowling + Fielding together, see
+  // CricketMatchEntryCard) per save — it locks its own "Add" button the
+  // moment a match goes in. Bumping this after a successful save tells it
+  // that match is now saved, so it forgets it and unlocks Add for a
+  // genuinely fresh session.
   const [savedVersion, setSavedVersion] = useState(0);
-
-  // Mirrors of each table's own "locked" state (see the tables' onLockChange)
-  // — the parent needs this one thing they otherwise keep private: whether a
-  // new match requires a Batting/Bowling stat alongside it before saving.
-  const [matchAdded, setMatchAdded] = useState(false);
-  const [battingAdded, setBattingAdded] = useState(false);
-  const [bowlingAdded, setBowlingAdded] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [country, setCountry] = useState('');
@@ -124,9 +117,6 @@ export default function CricketProfileScreen() {
   const [collegeLogoUrl, setCollegeLogoUrl] = useState<string | null>(null);
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
-  // Photo gallery (see PhotoGalleryUpload) — same "own endpoint, not part
-  // of Save" idea as team/college logos above.
-  const [photos, setPhotos] = useState<PlayerPhoto[]>([]);
 
   const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<CricketProfileFormValues>({
     defaultValues: EMPTY_FORM,
@@ -147,7 +137,6 @@ export default function CricketProfileScreen() {
         setCountry(profile.country ?? '');
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
-        setPhotos(profile.photos ?? []);
         setTeamLogos(
           Object.fromEntries((cricketProfile.team_logos ?? []).map((l) => [l.team_name, l.logo_url]))
         );
@@ -174,8 +163,20 @@ export default function CricketProfileScreen() {
           ) as unknown as CricketProfileFormValues['bowling'],
           recent_matches: sortRecentMatchesNewestFirst(
             cricketProfile.recent_matches.map((row) => ({
-              ...mapRow(row, ['match_date', 'opponent', 'runs', 'balls', 'fours', 'sixes', 'overs', 'maidens', 'wickets', 'catches', 'stumpings']),
+              ...mapRow(row, [
+                'age_category_id', 'format_id', 'match_date', 'opponent', 'ground', 'year',
+                'batting_innings', 'runs', 'balls', 'hs', 'fours', 'sixes', 'overs', 'maidens',
+                'bowling_innings', 'bowling_balls', 'bowling_runs', 'wickets', 'bbi', 'bbm',
+                'catches', 'stumpings',
+              ]),
               played_xi: Boolean(row.played_xi),
+              not_out: Boolean(row.not_out),
+              hundreds: Boolean(row.hundreds),
+              fifties: Boolean(row.fifties),
+              three_w: Boolean(row.three_w),
+              four_w: Boolean(row.four_w),
+              five_w: Boolean(row.five_w),
+              ten_w: Boolean(row.ten_w),
             })) as unknown as Record<string, unknown>[]
           ) as unknown as CricketProfileFormValues['recent_matches'],
           drop_catches: cricketProfile.drop_catches.map((row) =>
@@ -199,16 +200,6 @@ export default function CricketProfileScreen() {
       const computed = calculateAge(isoDate);
       if (computed !== null) setValue('age', String(computed));
     }
-  };
-
-  const handleUploadPhoto = async (image: PickedImage) => {
-    const uploaded = await playerService.uploadPlayerPhoto(image);
-    setPhotos((prev) => [...prev, uploaded]);
-  };
-
-  const handleRemovePhoto = async (photoId: number) => {
-    await playerService.removePlayerPhoto(photoId);
-    setPhotos((prev) => prev.filter((p) => p.id !== photoId));
   };
 
   const handleUploadCollegeLogo = async (image: PickedImage) => {
@@ -246,13 +237,6 @@ export default function CricketProfileScreen() {
   const onSubmit = async (values: CricketProfileFormValues) => {
     if (!fullName.trim()) {
       setError('Full name is required.');
-      return;
-    }
-    if (matchAdded && !battingAdded && !bowlingAdded) {
-      Alert.alert(
-        'Add a career stat',
-        'You added a Recent Match — add a Batting or Bowling stat for it before saving.'
-      );
       return;
     }
     setError(null);
@@ -312,12 +296,22 @@ export default function CricketProfileScreen() {
   }
 
 
-  // Cricket's own Category/Division lists for the Batting/Bowling "Add New
-  // Stat" flow — a fixed, curated set (see backend cricket_categories/
-  // cricket_divisions), separate from the shared age_categories/formats
-  // other sports use.
-  const careerCategoryOptions = lookups.cricket_categories.map((c) => ({ label: c.name, value: String(c.id) }));
-  const careerDivisionOptions = lookups.cricket_divisions.map((d) => ({ label: d.name, value: String(d.id) }));
+  // Cricket's own Format/Category lists for the Batting/Bowling "Add New
+  // Stat" flow — a fixed, curated set (see CRICKET_FORMATS/CRICKET_CATEGORIES),
+  // separate from the shared age_categories/formats other sports use.
+  // Filtered + reordered against that canonical list (rather than just
+  // mapping every `lookups.cricket_categories`/`cricket_divisions` row) so
+  // older values a stat row's foreign key still pins in the database never
+  // resurface here — the dropdown only ever shows this exact list, in this
+  // exact order.
+  const careerCategoryOptions = CRICKET_FORMATS.flatMap((name) => {
+    const match = lookups.cricket_categories.find((c) => c.name === name);
+    return match ? [{ label: match.name, value: String(match.id) }] : [];
+  });
+  const careerDivisionOptions = CRICKET_CATEGORIES.flatMap((name) => {
+    const match = lookups.cricket_divisions.find((d) => d.name === name);
+    return match ? [{ label: match.name, value: String(match.id) }] : [];
+  });
 
   return (
     <SportProfileLayout
@@ -332,14 +326,6 @@ export default function CricketProfileScreen() {
         <View style={sportStyles.avatarOverlay}>
           <AvatarPhotoUpload existingUrl={existingPhotoUrl} picked={avatarPicked} onPick={setAvatarPicked} />
         </View>
-      </View>
-
-      <View style={[sportStyles.sectionCard, shadows.sm]}>
-        <Text style={sportStyles.sectionTitle}>
-          <Ionicons name="images-outline" size={18} color={colors.primary} />
-          Photo Gallery
-        </Text>
-        <PhotoGalleryUpload photos={photos} onUpload={handleUploadPhoto} onRemove={handleRemovePhoto} />
       </View>
 
       <View style={[sportStyles.sectionCard, shadows.sm]}>
@@ -447,88 +433,14 @@ export default function CricketProfileScreen() {
         />
       </View>
 
-      <RecentMatchTable
-        title="Recent Matches"
-        addLabel="Add New Match"
+      <CricketMatchEntryCard
         control={control}
-        name="recent_matches"
-        emptyRow={EMPTY_RECENT_MATCH_ROW}
+        emptyMatchRow={EMPTY_RECENT_MATCH_ROW}
+        emptyBattingRow={EMPTY_BATTING_ROW}
+        emptyBowlingRow={EMPTY_BOWLING_ROW}
+        formats={careerCategoryOptions}
+        categories={careerDivisionOptions}
         resetSignal={savedVersion}
-        onLockChange={setMatchAdded}
-        columns={[
-          { key: 'match_date', label: 'Date', type: 'date' },
-          { key: 'opponent', label: 'Match vs', type: 'text' },
-          { key: 'played_xi', label: 'Played XI', type: 'boolean' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'balls', label: 'Balls', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
-          { key: 'sixes', label: '6s', type: 'number' },
-          { key: 'overs', label: 'Overs', type: 'text' },
-          { key: 'maidens', label: 'Maidens', type: 'number' },
-          { key: 'wickets', label: 'Wkts', type: 'number' },
-          { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
-        ]}
-      />
-
-      <CareerStatTable
-        title="Batting Career Stats"
-        addLabel="Add New Batting Stat"
-        control={control}
-        name="batting"
-        emptyRow={EMPTY_BATTING_ROW}
-        categories={careerCategoryOptions}
-        divisions={careerDivisionOptions}
-        mergeRows={mergeBattingRows as never}
-        resetSignal={savedVersion}
-        onLockChange={setBattingAdded}
-        detailColumns={[
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'won', label: 'Won', type: 'number' },
-          { key: 'lost', label: 'Lost', type: 'number' },
-          { key: 'innings', label: 'Innings', type: 'number' },
-          { key: 'not_out', label: 'Not Out', type: 'number' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'balls', label: 'Balls Faced', type: 'number' },
-          { key: 'hs', label: 'High Score', type: 'text' },
-          { key: 'average', label: 'Average', type: 'text', computed: true },
-          { key: 'best', label: 'Best', type: 'number' },
-          { key: 'sr', label: 'Strike Rate', type: 'text', computed: true },
-          { key: 'hundreds', label: '100s', type: 'number' },
-          { key: 'fifties', label: '50s', type: 'number' },
-          { key: 'fours', label: '4s', type: 'number' },
-          { key: 'sixes', label: '6s', type: 'number' },
-          { key: 'catches', label: 'Catches', type: 'number' },
-          { key: 'stumpings', label: 'Stumpings', type: 'number' },
-        ]}
-      />
-
-      <CareerStatTable
-        title="Bowling Career Stats"
-        addLabel="Add New Bowling Stat"
-        control={control}
-        name="bowling"
-        emptyRow={EMPTY_BOWLING_ROW}
-        categories={careerCategoryOptions}
-        divisions={careerDivisionOptions}
-        mergeRows={mergeBowlingRows as never}
-        resetSignal={savedVersion}
-        onLockChange={setBowlingAdded}
-        detailColumns={[
-          { key: 'matches', label: 'Matches', type: 'number' },
-          { key: 'innings', label: 'Innings', type: 'number' },
-          { key: 'balls', label: 'Balls', type: 'number' },
-          { key: 'runs', label: 'Runs', type: 'number' },
-          { key: 'wickets', label: 'Wickets', type: 'number' },
-          { key: 'bbi', label: 'BBI', type: 'text' },
-          { key: 'bbm', label: 'BBM', type: 'text' },
-          { key: 'average', label: 'Average', type: 'text', computed: true },
-          { key: 'economy', label: 'Economy', type: 'text', computed: true },
-          { key: 'sr', label: 'Strike Rate', type: 'text', computed: true },
-          { key: 'four_w', label: '4w', type: 'number' },
-          { key: 'five_w', label: '5w', type: 'number' },
-          { key: 'ten_w', label: '10w', type: 'number' },
-        ]}
       />
 
       {/*

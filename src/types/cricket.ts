@@ -79,17 +79,54 @@ export interface CricketDropCatchRowForm {
   drop_reason_id: string;
 }
 
+/**
+ * One match's complete Batting + Fielding + Bowling detail — the unified
+ * "Add New Match" form (see AddCricketMatchModal) replaces what used to be
+ * three separate flows (Batting Career Stat, Bowling Career Stat, Recent
+ * Match) with this single per-match entry. Saving it both appends here
+ * as its own row (Recent Matches stays a flat, unaggregated list capped at
+ * 10 on display — see sortRecentMatchesNewestFirst) and merges into the
+ * cumulative Batting/Bowling Career Stats rows (see statMerge.ts,
+ * unchanged) for the same Format+Category+Year.
+ */
 export interface CricketRecentMatchRowForm {
+  // "Format" (age_category_id) and "Category" (format_id) — same
+  // cricket_categories/cricket_divisions lookups the Career Stats tables
+  // use, so this match's contribution merges into the right aggregate row.
+  age_category_id: string;
+  format_id: string;
   match_date: string;
   opponent: string;
+  ground: string;
+  year: string;
   played_xi: boolean;
+  batting_innings: string;
   runs: string;
   balls: string;
+  not_out: boolean;
+  // Auto-filled from runs+not_out (e.g. "76*") — editable. Feeds the
+  // Career Stats HS "best of" comparison the same way a career row's own
+  // hs does (see statMerge.best()).
+  hs: string;
   fours: string;
   sixes: string;
+  hundreds: boolean;
+  fifties: boolean;
   overs: string;
   maidens: string;
+  bowling_innings: string;
+  bowling_balls: string;
+  bowling_runs: string;
   wickets: string;
+  // Auto-filled from wickets+bowling_runs (e.g. "3/25") — editable. A
+  // single match only ever has one bowling spell here, so BBI and BBM
+  // share the same computed value.
+  bbi: string;
+  bbm: string;
+  three_w: boolean;
+  four_w: boolean;
+  five_w: boolean;
+  ten_w: boolean;
   catches: string;
   stumpings: string;
 }

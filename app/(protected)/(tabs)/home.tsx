@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +26,10 @@ import { playerService } from '../../../src/services/playerService';
 import { resolveSportRoute } from '../../../src/utils/sportRoutes';
 import { sportIconFor } from '../../../src/constants/sportIcons';
 import { useSportAnalysis } from '../../../src/hooks/useSportAnalysis';
+import { useAchievements } from '../../../src/hooks/useAchievements';
+import { AchievementCelebrationModal } from '../../../src/components/achievements/AchievementCelebrationModal';
+import { AchievementsShowcase } from '../../../src/components/achievements/AchievementsShowcase';
+import { AchievementDetailModal } from '../../../src/components/achievements/AchievementDetailModal';
 import { PlayerProfile, PlayerSportEntry } from '../../../src/types';
 
 /**
@@ -46,6 +51,16 @@ export default function HomeScreen() {
   const [selectedAnalyticsSlug, setSelectedAnalyticsSlug] = useState<string | null>(null);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDisciplinePickerVisible, setIsDisciplinePickerVisible] = useState(false);
+  const {
+    pending: pendingAchievements,
+    posted: postedAchievements,
+    postAchievement,
+    celebration,
+    dismissCelebration,
+  } = useAchievements();
+  const [isPostingAchievement, setIsPostingAchievement] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] = useState<(typeof postedAchievements)[number] | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -189,7 +204,11 @@ export default function HomeScreen() {
             <Pressable
               style={styles.hudPod}
               onPress={() => {
-                if (sports.length > 0) openSport(sports[0]);
+                if (sports.length > 1) {
+                  setIsDisciplinePickerVisible(true);
+                } else if (sports.length === 1) {
+                  openSport(sports[0]);
+                }
               }}
             >
               <View style={styles.hudPodHeader}>
@@ -200,7 +219,7 @@ export default function HomeScreen() {
                 {sports.length} {sports.length === 1 ? 'Sport' : 'Sports'}
               </Text>
               <Text style={styles.hudPodSub} numberOfLines={1}>
-                {sports[0]?.sport.name || 'Set up'}
+                {sports.length > 1 ? sports.map((entry) => entry.sport.name).join(', ') : (sports[0]?.sport.name || 'Set up')}
               </Text>
             </Pressable>
 
@@ -314,6 +333,9 @@ export default function HomeScreen() {
         <>
           {/* 3. VIP ATHLETE PASS / SUBSCRIPTION BANNER */}
           <SubscriptionStatusCard status={subscriptionStatus} />
+
+          {/* 3b. ACHIEVEMENT UNLOCKED NOTIFICATION + POSTED BADGES */}
+          <AchievementsShowcase posted={postedAchievements} limit={6} onPressAchievement={setSelectedAchievement} />
 
           {/* 4. SECTION: MY DISCIPLINES (SPORTS) */}
           <View style={styles.sectionHeaderRow}>
@@ -589,6 +611,53 @@ export default function HomeScreen() {
 
       {/* Lightbox for Full-Res Avatar Inspection */}
       <ImageLightbox uri={lightboxUri} onClose={() => setLightboxUri(null)} />
+
+      <AchievementCelebrationModal
+        achievement={celebration}
+        queueCount={Math.max(0, pendingAchievements.length - 1)}
+        isPosting={isPostingAchievement}
+        onPost={async () => {
+          if (!celebration) return;
+          setIsPostingAchievement(true);
+          try {
+            await postAchievement(celebration.id);
+          } finally {
+            setIsPostingAchievement(false);
+          }
+        }}
+        onDismiss={dismissCelebration}
+      />
+      <AchievementDetailModal achievement={selectedAchievement} onClose={() => setSelectedAchievement(null)} />
+
+      {/* Discipline pod picker (2+ sports) — pick which sport's profile to view. */}
+      <Modal
+        visible={isDisciplinePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDisciplinePickerVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setIsDisciplinePickerVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>View which sport?</Text>
+            {sports.map((entry) => (
+              <Pressable
+                key={entry.id}
+                style={styles.modalRow}
+                onPress={() => {
+                  setIsDisciplinePickerVisible(false);
+                  openSport(entry);
+                }}
+              >
+                <View style={styles.modalIconCircle}>
+                  <Ionicons name={sportIconFor(entry.sport.slug)} size={18} color={colors.primary} />
+                </View>
+                <Text style={styles.modalRowText}>{entry.sport.name}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -1220,5 +1289,45 @@ const styles = StyleSheet.create({
   pressedOpacity: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
+  },
+
+  /* DISCIPLINE PICKER MODAL (2+ sports) */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    padding: spacing.lg,
+    paddingBottom: spacing['2xl'],
+  },
+  modalTitle: {
+    ...typography.h3,
+    marginBottom: spacing.md,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalRowText: {
+    flex: 1,
+    ...typography.body,
+    fontWeight: '700',
+    color: colors.text,
   },
 });

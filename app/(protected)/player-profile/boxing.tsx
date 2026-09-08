@@ -217,9 +217,9 @@ export default function BoxingProfileScreen() {
             header: 'Boxing Fight Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'weight_class_id', label: 'Weight Class', width: 90 },
               { key: 'win', label: 'Win', width: 50 },
               { key: 'lost', label: 'Lost', width: 50 },
