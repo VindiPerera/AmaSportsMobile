@@ -94,14 +94,16 @@ export default function BasketballProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: basketballProfile.born ?? '',
-          age: toFormString(basketballProfile.age),
-          height: basketballProfile.height ?? '',
-          dominant_hand: basketballProfile.dominant_hand ?? '',
+          born: basketballProfile.born || ov?.born || '',
+          age: toFormString(basketballProfile.age || ov?.age),
+          height: basketballProfile.height || ov?.height || '',
+          dominant_hand: basketballProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: basketballProfile.player_position ?? '',
-          college_university: basketballProfile.college_university ?? '',
-          teams: basketballProfile.teams ?? [],
+          college_university: basketballProfile.college_university || ov?.college_university || '',
+          teams: (basketballProfile.teams && basketballProfile.teams.length > 0) ? basketballProfile.teams : (ov?.teams ?? []),
           career_stats: basketballProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BasketballProfileFormValues['career_stats'],
@@ -208,9 +210,9 @@ export default function BasketballProfileScreen() {
             header: 'Basketball Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'matches', label: 'Mat', width: 45 },
               { key: 'win', label: 'Win', width: 45 },

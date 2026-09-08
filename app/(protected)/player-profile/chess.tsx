@@ -92,13 +92,15 @@ export default function ChessProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: chessProfile.born ?? '',
-          age: toFormString(chessProfile.age),
-          height: chessProfile.height ?? '',
+          born: chessProfile.born || ov?.born || '',
+          age: toFormString(chessProfile.age || ov?.age),
+          height: chessProfile.height || ov?.height || '',
           current_ranking: chessProfile.current_ranking ?? '',
-          college_university: chessProfile.college_university ?? '',
-          teams: chessProfile.teams ?? [],
+          college_university: chessProfile.college_university || ov?.college_university || '',
+          teams: (chessProfile.teams && chessProfile.teams.length > 0) ? chessProfile.teams : (ov?.teams ?? []),
           career_stats: chessProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as ChessProfileFormValues['career_stats'],
@@ -209,9 +211,9 @@ export default function ChessProfileScreen() {
             header: 'Chess Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'games', label: 'Games', width: 55 },
               { key: 'win', label: 'Win', width: 50 },
               { key: 'lost', label: 'Lost', width: 50 },

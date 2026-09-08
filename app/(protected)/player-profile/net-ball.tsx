@@ -94,14 +94,16 @@ export default function NetBallProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: netBallProfile.born ?? '',
-          age: toFormString(netBallProfile.age),
-          height: netBallProfile.height ?? '',
-          dominant_hand: netBallProfile.dominant_hand ?? '',
+          born: netBallProfile.born || ov?.born || '',
+          age: toFormString(netBallProfile.age || ov?.age),
+          height: netBallProfile.height || ov?.height || '',
+          dominant_hand: netBallProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: netBallProfile.player_position ?? '',
-          college_university: netBallProfile.college_university ?? '',
-          teams: netBallProfile.teams ?? [],
+          college_university: netBallProfile.college_university || ov?.college_university || '',
+          teams: (netBallProfile.teams && netBallProfile.teams.length > 0) ? netBallProfile.teams : (ov?.teams ?? []),
           career_stats: netBallProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as NetBallProfileFormValues['career_stats'],
@@ -215,9 +217,9 @@ export default function NetBallProfileScreen() {
             header: 'Netball Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'play_position', label: 'Play Position', width: 100 },
               { key: 'matches', label: 'Matches', width: 65 },
               { key: 'goals', label: 'Goals', width: 55 },

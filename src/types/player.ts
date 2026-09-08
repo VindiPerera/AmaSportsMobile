@@ -17,6 +17,16 @@ export interface PlayerPhoto {
   url: string;
 }
 
+export interface PlayerOverviewData {
+  born?: string | null;
+  age?: number | string | null;
+  height?: string | null;
+  weight?: string | null;
+  dominant_hand?: string | null;
+  college_university?: string | null;
+  teams?: string[];
+}
+
 export interface PlayerProfile {
   id: number;
   full_name: string | null;
@@ -24,6 +34,7 @@ export interface PlayerProfile {
   cover_photo_url: string | null;
   photo_url: string | null;
   photos: PlayerPhoto[];
+  overview?: PlayerOverviewData;
 }
 
 /** A picked image ready to attach to a multipart `FormData` upload. */

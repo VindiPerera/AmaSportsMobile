@@ -94,15 +94,17 @@ export default function KarateProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: karateProfile.born ?? '',
-          age: toFormString(karateProfile.age),
-          height: karateProfile.height ?? '',
-          weight: karateProfile.weight ?? '',
+          born: karateProfile.born || ov?.born || '',
+          age: toFormString(karateProfile.age || ov?.age),
+          height: karateProfile.height || ov?.height || '',
+          weight: karateProfile.weight || ov?.weight || '',
           player_style_id: toFormString(karateProfile.player_style_id),
           current_ranking: karateProfile.current_ranking ?? '',
-          college_university: karateProfile.college_university ?? '',
-          teams: karateProfile.teams ?? [],
+          college_university: karateProfile.college_university || ov?.college_university || '',
+          teams: (karateProfile.teams && karateProfile.teams.length > 0) ? karateProfile.teams : (ov?.teams ?? []),
           career_stats: karateProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as KarateProfileFormValues['career_stats'],
@@ -217,9 +219,9 @@ export default function KarateProfileScreen() {
             header: 'Karate Fight Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'style', label: 'Style', width: 85 },
               { key: 'fights', label: 'Total Fights', width: 80 },
               { key: 'win', label: 'Win', width: 45 },

@@ -94,14 +94,16 @@ export default function ElleProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: elleProfile.born ?? '',
-          age: toFormString(elleProfile.age),
-          height: elleProfile.height ?? '',
-          dominant_hand: elleProfile.dominant_hand ?? '',
+          born: elleProfile.born || ov?.born || '',
+          age: toFormString(elleProfile.age || ov?.age),
+          height: elleProfile.height || ov?.height || '',
+          dominant_hand: elleProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: elleProfile.player_position ?? '',
-          college_university: elleProfile.college_university ?? '',
-          teams: elleProfile.teams ?? [],
+          college_university: elleProfile.college_university || ov?.college_university || '',
+          teams: (elleProfile.teams && elleProfile.teams.length > 0) ? elleProfile.teams : (ov?.teams ?? []),
           career_stats: elleProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as ElleProfileFormValues['career_stats'],
@@ -213,9 +215,9 @@ export default function ElleProfileScreen() {
             header: 'Elle Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'matches', label: 'Total Matches', width: 90 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },

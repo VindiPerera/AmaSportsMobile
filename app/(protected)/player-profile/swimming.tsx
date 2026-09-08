@@ -94,13 +94,15 @@ export default function SwimmingProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: swimmingProfile.born ?? '',
-          age: toFormString(swimmingProfile.age),
-          height: swimmingProfile.height ?? '',
-          weight: swimmingProfile.weight ?? '',
-          college_university: swimmingProfile.college_university ?? '',
-          teams: swimmingProfile.teams ?? [],
+          born: swimmingProfile.born || ov?.born || '',
+          age: toFormString(swimmingProfile.age || ov?.age),
+          height: swimmingProfile.height || ov?.height || '',
+          weight: swimmingProfile.weight || ov?.weight || '',
+          college_university: swimmingProfile.college_university || ov?.college_university || '',
+          teams: (swimmingProfile.teams && swimmingProfile.teams.length > 0) ? swimmingProfile.teams : (ov?.teams ?? []),
           personal_bests: swimmingProfile.personal_bests.map((row) =>
             mapRow(row, ['swimming_event_id', 'personal_best'])
           ) as unknown as SwimmingProfileFormValues['personal_bests'],
@@ -224,9 +226,9 @@ export default function SwimmingProfileScreen() {
             header: 'Swimming Career Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'swimming_event_id', label: 'Event', width: 100 },
               { key: 'current_time', label: 'Current Best', width: 85 },
               { key: 'champion', label: 'Gold', width: 50 },
@@ -241,9 +243,9 @@ export default function SwimmingProfileScreen() {
             header: 'Recent Events',
             columns: [
               { key: 'event_date', label: 'Date', width: 85 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'swimming_event_id', label: 'Event', width: 100 },
               { key: 'performance_time', label: 'Performance', width: 85 },
               { key: 'place', label: 'Place', width: 55 },

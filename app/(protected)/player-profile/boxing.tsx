@@ -92,15 +92,17 @@ export default function BoxingProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: boxingProfile.born ?? '',
-          age: toFormString(boxingProfile.age),
-          height: boxingProfile.height ?? '',
-          weight: boxingProfile.weight ?? '',
+          born: boxingProfile.born || ov?.born || '',
+          age: toFormString(boxingProfile.age || ov?.age),
+          height: boxingProfile.height || ov?.height || '',
+          weight: boxingProfile.weight || ov?.weight || '',
           weight_class_id: toFormString(boxingProfile.weight_class_id),
           current_ranking: boxingProfile.current_ranking ?? '',
-          college_university: boxingProfile.college_university ?? '',
-          teams: boxingProfile.teams ?? [],
+          college_university: boxingProfile.college_university || ov?.college_university || '',
+          teams: (boxingProfile.teams && boxingProfile.teams.length > 0) ? boxingProfile.teams : (ov?.teams ?? []),
           career_stats: boxingProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BoxingProfileFormValues['career_stats'],
@@ -215,9 +217,9 @@ export default function BoxingProfileScreen() {
             header: 'Boxing Fight Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'weight_class_id', label: 'Weight Class', width: 90 },
               { key: 'win', label: 'Win', width: 50 },
               { key: 'lost', label: 'Lost', width: 50 },

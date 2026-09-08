@@ -982,7 +982,17 @@ export function buildRacketSportConfig(sportName: string, sportId: number): Spor
   ];
   return {
     sportName,
-    fetchProfile: () => racketSportService.fetchProfile(sportId),
+    fetchProfile: async () => {
+      const p = await racketSportService.fetchProfile(sportId);
+      const careerStats = p.career_stats || [];
+      return {
+        ...p,
+        career_stats: careerStats,
+        single_stats: careerStats.filter((r) => r.category === 'single'),
+        double_stats: careerStats.filter((r) => r.category === 'double'),
+        mix_double_stats: careerStats.filter((r) => r.category === 'mix_double'),
+      };
+    },
     overviewFields: [
       { key: 'born', label: 'Born' },
       { key: 'age', label: 'Age' },
@@ -1015,3 +1025,137 @@ export function buildRacketSportConfig(sportName: string, sportId: number): Spor
     ],
   };
 }
+
+/**
+ * Dynamically computes high-octane stat pod metrics (GAMES and sport-specific
+ * primary metric like WINS, GOALS, POINTS, TRIES, HITS, etc.) for any sport profile.
+ */
+export function computeSportHeroMetrics(
+  slug: string,
+  profile: Record<string, unknown>
+): {
+  heroMatches: string;
+  heroPrimaryLabel: string;
+  heroPrimaryValue: string;
+} {
+  // Collect all career rows
+  let careerRows: Array<Record<string, unknown>> = [];
+  if (Array.isArray(profile.career_stats) && profile.career_stats.length > 0) {
+    careerRows = profile.career_stats as Array<Record<string, unknown>>;
+  } else {
+    const single = Array.isArray(profile.single_stats) ? (profile.single_stats as Array<Record<string, unknown>>) : [];
+    const double = Array.isArray(profile.double_stats) ? (profile.double_stats as Array<Record<string, unknown>>) : [];
+    const mix = Array.isArray(profile.mix_double_stats) ? (profile.mix_double_stats as Array<Record<string, unknown>>) : [];
+    const batting = Array.isArray(profile.batting) ? (profile.batting as Array<Record<string, unknown>>) : [];
+    const bowling = Array.isArray(profile.bowling) ? (profile.bowling as Array<Record<string, unknown>>) : [];
+    careerRows = [...single, ...double, ...mix, ...batting, ...bowling];
+  }
+
+  const recentRows: Array<Record<string, unknown>> = Array.isArray(profile.recent_matches)
+    ? (profile.recent_matches as Array<Record<string, unknown>>)
+    : Array.isArray(profile.recent_events)
+    ? (profile.recent_events as Array<Record<string, unknown>>)
+    : Array.isArray(profile.recent_fights)
+    ? (profile.recent_fights as Array<Record<string, unknown>>)
+    : [];
+
+  // 1. Calculate Matches / Games
+  let totalMatches = 0;
+  careerRows.forEach((r) => {
+    const m = Number(r.matches ?? r.total_matches ?? r.games ?? r.fights ?? 0);
+    if (!isNaN(m) && m > 0) totalMatches += m;
+  });
+  if (totalMatches === 0 && careerRows.length > 0) {
+    totalMatches = careerRows.length;
+  }
+  if (totalMatches === 0 && recentRows.length > 0) {
+    totalMatches = recentRows.length;
+  }
+
+  const heroMatches = totalMatches > 0 ? String(totalMatches) : '--';
+
+  // 2. Calculate Primary Metric (Label & Value)
+  let heroPrimaryLabel = 'Wins';
+  let heroPrimaryValue = '--';
+
+  if (['badminton', 'tennis', 'table-tennis'].includes(slug)) {
+    heroPrimaryLabel = 'Wins';
+    let wins = 0;
+    careerRows.forEach((r) => {
+      const w = Number(r.win ?? 0);
+      if (!isNaN(w) && w > 0) wins += w;
+    });
+    if (wins === 0 && recentRows.length > 0) {
+      wins = recentRows.filter((r) => Boolean(r.win)).length;
+    }
+    heroPrimaryValue = wins > 0 ? String(wins) : (totalMatches > 0 ? '0' : '--');
+  } else if (['football', 'hockey', 'netball'].includes(slug)) {
+    heroPrimaryLabel = 'Goals';
+    let goals = 0;
+    careerRows.forEach((r) => {
+      const g = Number(r.goals ?? 0);
+      if (!isNaN(g) && g > 0) goals += g;
+    });
+    if (goals === 0 && recentRows.length > 0) {
+      recentRows.forEach((r) => {
+        const g = Number(r.goals ?? 0);
+        if (!isNaN(g) && g > 0) goals += g;
+      });
+    }
+    heroPrimaryValue = goals > 0 ? String(goals) : (totalMatches > 0 ? '0' : '--');
+  } else if (slug === 'rugby') {
+    heroPrimaryLabel = 'Tries';
+    let tries = 0;
+    careerRows.forEach((r) => {
+      const t = Number(r.tries ?? 0);
+      if (!isNaN(t) && t > 0) tries += t;
+    });
+    heroPrimaryValue = tries > 0 ? String(tries) : (totalMatches > 0 ? '0' : '--');
+  } else if (slug === 'basketball') {
+    heroPrimaryLabel = 'Points';
+    let pts = 0;
+    careerRows.forEach((r) => {
+      const p = Number(r.points ?? 0);
+      if (!isNaN(p) && p > 0) pts += p;
+    });
+    heroPrimaryValue = pts > 0 ? String(pts) : (totalMatches > 0 ? '0' : '--');
+  } else if (slug === 'base-ball') {
+    heroPrimaryLabel = 'Hits';
+    let hits = 0;
+    careerRows.forEach((r) => {
+      const h = Number(r.hits ?? 0);
+      if (!isNaN(h) && h > 0) hits += h;
+    });
+    heroPrimaryValue = hits > 0 ? String(hits) : (totalMatches > 0 ? '0' : '--');
+  } else if (['swimming', 'athletics'].includes(slug)) {
+    heroPrimaryLabel = 'Medals';
+    let medals = 0;
+    careerRows.forEach((r) => {
+      const m = Number(r.champion ?? 0) + Number(r.second_place ?? 0) + Number(r.third_place ?? 0);
+      if (!isNaN(m) && m > 0) medals += m;
+    });
+    heroPrimaryValue = medals > 0 ? String(medals) : (totalMatches > 0 ? '0' : '--');
+  } else if (slug === 'soft-ball-cricket') {
+    heroPrimaryLabel = 'Runs';
+    let runs = 0;
+    careerRows.forEach((r) => {
+      const ru = Number(r.runs ?? 0);
+      if (!isNaN(ru) && ru > 0) runs += ru;
+    });
+    heroPrimaryValue = runs > 0 ? String(runs) : (totalMatches > 0 ? '0' : '--');
+  } else {
+    heroPrimaryLabel = 'Wins';
+    let wins = 0;
+    careerRows.forEach((r) => {
+      const w = Number(r.win ?? r.won ?? 0);
+      if (!isNaN(w) && w > 0) wins += w;
+    });
+    if (wins === 0 && recentRows.length > 0) {
+      wins = recentRows.filter((r) => Boolean(r.win || r.won)).length;
+    }
+    heroPrimaryValue = wins > 0 ? String(wins) : (totalMatches > 0 ? '0' : '--');
+  }
+
+  return { heroMatches, heroPrimaryLabel, heroPrimaryValue };
+}
+

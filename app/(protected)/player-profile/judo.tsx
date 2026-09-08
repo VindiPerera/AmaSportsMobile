@@ -93,16 +93,18 @@ export default function JudoProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: judoProfile.born ?? '',
-          age: toFormString(judoProfile.age),
-          height: judoProfile.height ?? '',
-          weight: judoProfile.weight ?? '',
+          born: judoProfile.born || ov?.born || '',
+          age: toFormString(judoProfile.age || ov?.age),
+          height: judoProfile.height || ov?.height || '',
+          weight: judoProfile.weight || ov?.weight || '',
           weight_position_id: toFormString(judoProfile.weight_position_id),
           competition_level_id: toFormString(judoProfile.competition_level_id),
-          college_university: judoProfile.college_university ?? '',
+          college_university: judoProfile.college_university || ov?.college_university || '',
           current_ranking: judoProfile.current_ranking ?? '',
-          teams: judoProfile.teams ?? [],
+          teams: (judoProfile.teams && judoProfile.teams.length > 0) ? judoProfile.teams : (ov?.teams ?? []),
           career_stats: judoProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as JudoProfileFormValues['career_stats'],
@@ -222,9 +224,9 @@ export default function JudoProfileScreen() {
             header: 'Judo Fight Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'weight_position_id', label: 'Weight', width: 70 },
               { key: 'competition_level_id', label: 'Level', width: 90 },
               { key: 'matches', label: 'Fights', width: 55 },

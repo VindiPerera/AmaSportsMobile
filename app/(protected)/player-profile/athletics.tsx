@@ -94,13 +94,15 @@ export default function AthleticsProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: athleticsProfile.born ?? '',
-          age: toFormString(athleticsProfile.age),
-          height: athleticsProfile.height ?? '',
-          weight: athleticsProfile.weight ?? '',
-          college_university: athleticsProfile.college_university ?? '',
-          teams: athleticsProfile.teams ?? [],
+          born: athleticsProfile.born || ov?.born || '',
+          age: toFormString(athleticsProfile.age || ov?.age),
+          height: athleticsProfile.height || ov?.height || '',
+          weight: athleticsProfile.weight || ov?.weight || '',
+          college_university: athleticsProfile.college_university || ov?.college_university || '',
+          teams: (athleticsProfile.teams && athleticsProfile.teams.length > 0) ? athleticsProfile.teams : (ov?.teams ?? []),
           personal_bests: athleticsProfile.personal_bests.map((row) =>
             mapRow(row, ['athletics_event_id', 'personal_best'])
           ) as unknown as AthleticsProfileFormValues['personal_bests'],
@@ -224,9 +226,9 @@ export default function AthleticsProfileScreen() {
             header: 'Athletics Career Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'athletics_event_id', label: 'Event', width: 100 },
               { key: 'personal_best', label: 'Personal Best', width: 95 },
               { key: 'champion', label: 'Gold', width: 50 },
@@ -241,9 +243,9 @@ export default function AthleticsProfileScreen() {
             header: 'Recent Events',
             columns: [
               { key: 'event_date', label: 'Date', width: 85 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'athletics_event_id', label: 'Event', width: 100 },
               { key: 'personal_best', label: 'Personal Best', width: 95 },
               { key: 'place', label: 'Place', width: 55 },

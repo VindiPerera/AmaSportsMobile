@@ -47,7 +47,7 @@ export function SportProfileLayout({
         </Text>
       </LinearGradient>
 
-      <ErrorBanner message={error} />
+      <ErrorBanner message={error ?? null} />
 
       <View style={styles.content}>
         {children}

@@ -94,14 +94,16 @@ export default function BaseBallProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: baseBallProfile.born ?? '',
-          age: toFormString(baseBallProfile.age),
-          height: baseBallProfile.height ?? '',
-          dominant_hand: baseBallProfile.dominant_hand ?? '',
+          born: baseBallProfile.born || ov?.born || '',
+          age: toFormString(baseBallProfile.age || ov?.age),
+          height: baseBallProfile.height || ov?.height || '',
+          dominant_hand: baseBallProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: baseBallProfile.player_position ?? '',
-          college_university: baseBallProfile.college_university ?? '',
-          teams: baseBallProfile.teams ?? [],
+          college_university: baseBallProfile.college_university || ov?.college_university || '',
+          teams: (baseBallProfile.teams && baseBallProfile.teams.length > 0) ? baseBallProfile.teams : (ov?.teams ?? []),
           career_stats: baseBallProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as BaseBallProfileFormValues['career_stats'],
@@ -213,9 +215,9 @@ export default function BaseBallProfileScreen() {
             header: 'Baseball Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'total_matches', label: 'Total Matches', width: 90 },
               { key: 'at_bats', label: 'At Bats', width: 60 },
               { key: 'runs', label: 'Runs', width: 55 },

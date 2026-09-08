@@ -120,14 +120,16 @@ export default function KabadiProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: kabadiProfile.born ?? '',
-          age: toFormString(kabadiProfile.age),
-          height: kabadiProfile.height ?? '',
-          weight: kabadiProfile.weight ?? '',
+          born: kabadiProfile.born || ov?.born || '',
+          age: toFormString(kabadiProfile.age || ov?.age),
+          height: kabadiProfile.height || ov?.height || '',
+          weight: kabadiProfile.weight || ov?.weight || '',
           player_position: kabadiProfile.player_position ?? '',
-          college_university: kabadiProfile.college_university ?? '',
-          teams: kabadiProfile.teams ?? [],
+          college_university: kabadiProfile.college_university || ov?.college_university || '',
+          teams: (kabadiProfile.teams && kabadiProfile.teams.length > 0) ? kabadiProfile.teams : (ov?.teams ?? []),
           career_stats: kabadiProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as KabadiProfileFormValues['career_stats'],
@@ -240,9 +242,9 @@ export default function KabadiProfileScreen() {
             header: 'Kabaddi Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'matches', label: 'Mat', width: 45 },
               { key: 'win', label: 'Win', width: 45 },
               { key: 'lost', label: 'Lost', width: 45 },

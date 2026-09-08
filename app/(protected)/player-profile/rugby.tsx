@@ -93,14 +93,16 @@ export default function RugbyProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: rugbyProfile.born ?? '',
-          age: toFormString(rugbyProfile.age),
-          height: rugbyProfile.height ?? '',
-          weight: rugbyProfile.weight ?? '',
+          born: rugbyProfile.born || ov?.born || '',
+          age: toFormString(rugbyProfile.age || ov?.age),
+          height: rugbyProfile.height || ov?.height || '',
+          weight: rugbyProfile.weight || ov?.weight || '',
           player_position: rugbyProfile.player_position ?? '',
-          college_university: rugbyProfile.college_university ?? '',
-          teams: rugbyProfile.teams ?? [],
+          college_university: rugbyProfile.college_university || ov?.college_university || '',
+          teams: (rugbyProfile.teams && rugbyProfile.teams.length > 0) ? rugbyProfile.teams : (ov?.teams ?? []),
           career_stats: rugbyProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as RugbyProfileFormValues['career_stats'],
@@ -212,9 +214,9 @@ export default function RugbyProfileScreen() {
             header: 'Rugby Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90 },
+              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90 },
+              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
               { key: 'play_position', label: 'Play Position', width: 95 },
               { key: 'matches', label: 'Mat', width: 45 },
               { key: 'win', label: 'Win', width: 45 },

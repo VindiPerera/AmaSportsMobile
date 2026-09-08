@@ -101,15 +101,17 @@ export default function SoftBallCricketProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        const ov = profile.overview;
+
         reset({
-          born: sbcProfile.born ?? '',
-          age: toFormString(sbcProfile.age),
+          born: sbcProfile.born || ov?.born || '',
+          age: toFormString(sbcProfile.age || ov?.age),
           batting_style: sbcProfile.batting_style ?? '',
           bowling_style: sbcProfile.bowling_style ?? '',
           playing_role: sbcProfile.playing_role ?? '',
-          height: sbcProfile.height ?? '',
-          college_university: sbcProfile.college_university ?? '',
-          teams: sbcProfile.teams ?? [],
+          height: sbcProfile.height || ov?.height || '',
+          college_university: sbcProfile.college_university || ov?.college_university || '',
+          teams: (sbcProfile.teams && sbcProfile.teams.length > 0) ? sbcProfile.teams : (ov?.teams ?? []),
           batting: sbcProfile.batting.map((row) =>
             mapRow(row, Object.keys(EMPTY_BATTING_ROW))
           ) as unknown as SoftBallCricketProfileFormValues['batting'],
