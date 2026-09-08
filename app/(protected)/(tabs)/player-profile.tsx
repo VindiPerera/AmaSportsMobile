@@ -364,6 +364,11 @@ export default function PlayerProfileHubScreen() {
     heroAge = p.age ? String(p.age) : (p.born ? String(calculateAge(String(p.born)) || '--') : '--');
     heroRole = String(p.position || p.playing_role || `${activeSportEntry?.sport.name || 'SPORT'} ATHLETE`).toUpperCase();
     primaryTeam = Array.isArray(p.teams) && p.teams.length > 0 ? String(p.teams[0]) : null;
+    const rawLogos = p.team_logos;
+    if (primaryTeam && Array.isArray(rawLogos)) {
+      const match = rawLogos.find((l: any) => l.team_name === primaryTeam);
+      if (match) primaryTeamLogo = match.logo_url;
+    }
     const metrics = computeSportHeroMetrics(activeSlug, p);
     heroMatches = metrics.heroMatches;
     heroPrimaryLabel = metrics.heroPrimaryLabel;
@@ -874,7 +879,6 @@ export default function PlayerProfileHubScreen() {
               sportName={sportDetail.config.sportName}
               fullName={player?.full_name || user?.name || 'Athlete'}
               country={player?.country || ''}
-              collegeLogoUrl={(player as any)?.college_logo_url || null}
               {...buildSportDetailProps(sportDetail.config, sportDetail.profile, lookups)}
             />
           )}

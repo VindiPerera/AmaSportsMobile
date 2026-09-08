@@ -13,6 +13,7 @@ import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
 import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
+import { useSportLogos } from '../../../src/hooks/useSportLogos';
 import { CricketMatchEntryCard } from '../../../src/components/player/CricketMatchEntryCard';
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
@@ -110,11 +111,15 @@ export default function CricketProfileScreen() {
   const [country, setCountry] = useState('');
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
-  // Team logos (see TeamsInput) — keyed by team name, managed via their own
-  // upload endpoint rather than as part of the form's Save button.
-  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
-  // College/University logo — same "own endpoint, not part of Save" idea.
-  const [collegeLogoUrl, setCollegeLogoUrl] = useState<string | null>(null);
+  const {
+    teamLogos,
+    collegeLogoUrl,
+    initLogos,
+    handleUploadCollegeLogo,
+    handleRemoveCollegeLogo,
+    handleUploadTeamLogo,
+    handleRemoveTeamLogo,
+  } = useSportLogos('cricket');
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
@@ -137,10 +142,7 @@ export default function CricketProfileScreen() {
         setCountry(profile.country ?? '');
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
-        setTeamLogos(
-          Object.fromEntries((cricketProfile.team_logos ?? []).map((l) => [l.team_name, l.logo_url]))
-        );
-        setCollegeLogoUrl(cricketProfile.college_logo_url ?? null);
+        initLogos(cricketProfile.team_logos, cricketProfile.college_logo_url);
 
         const ov = profile.overview;
 
@@ -154,7 +156,7 @@ export default function CricketProfileScreen() {
           college_university: cricketProfile.college_university || ov?.college_university || '',
           pitching_line_breakdown: breakdownToFormValues(cricketProfile.pitching_line_breakdown),
           ball_type_breakdown: breakdownToFormValues(cricketProfile.ball_type_breakdown),
-          teams: (cricketProfile.teams && cricketProfile.teams.length > 0) ? cricketProfile.teams : (ov?.teams ?? []),
+          teams: cricketProfile.teams ?? [],
           batting: cricketProfile.batting.map((row) =>
             mapRow(row, Object.keys(EMPTY_BATTING_ROW))
           ) as unknown as CricketProfileFormValues['batting'],
@@ -202,37 +204,6 @@ export default function CricketProfileScreen() {
     }
   };
 
-  const handleUploadCollegeLogo = async (image: PickedImage) => {
-    const uploaded = await playerService.uploadCollegeLogo(image);
-    setCollegeLogoUrl(uploaded.college_logo_url);
-  };
-
-  const handleRemoveCollegeLogo = async () => {
-    setCollegeLogoUrl(null);
-    try {
-      await playerService.removeCollegeLogo();
-    } catch {
-      // Swallow — worst case the logo silently comes back on next load.
-    }
-  };
-
-  const handleUploadTeamLogo = async (teamName: string, image: PickedImage) => {
-    const uploaded = await playerService.uploadTeamLogo(teamName, image);
-    setTeamLogos((prev) => ({ ...prev, [uploaded.team_name]: uploaded.logo_url }));
-  };
-
-  const handleRemoveTeamLogo = async (teamName: string) => {
-    setTeamLogos((prev) => {
-      const next = { ...prev };
-      delete next[teamName];
-      return next;
-    });
-    try {
-      await playerService.removeTeamLogo(teamName);
-    } catch {
-      // Swallow — worst case the logo silently comes back on next load.
-    }
-  };
 
   const onSubmit = async (values: CricketProfileFormValues) => {
     if (!fullName.trim()) {

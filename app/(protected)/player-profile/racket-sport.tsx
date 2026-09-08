@@ -18,6 +18,8 @@ import { RecentMatchTable } from '../../../src/components/player/RecentMatchTabl
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
+import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
+import { useSportLogos } from '../../../src/hooks/useSportLogos';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -82,8 +84,18 @@ export default function RacketSportProfileScreen() {
   const [country, setCountry] = useState('');
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
-  const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
+  const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
+
+  const {
+    teamLogos,
+    collegeLogoUrl,
+    initLogos,
+    handleUploadCollegeLogo,
+    handleRemoveCollegeLogo,
+    handleUploadTeamLogo,
+    handleRemoveTeamLogo,
+  } = useSportLogos(sportSlug || 'badminton');
 
   const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<RacketSportProfileFormValues>({
     defaultValues: EMPTY_FORM,
@@ -124,6 +136,11 @@ export default function RacketSportProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        initLogos(
+          (racketProfile as any).team_logos,
+          (racketProfile as any).college_logo_url
+        );
+
         const singleStats = racketProfile.career_stats.filter((row) => row.category === 'single');
         const doubleStats = racketProfile.career_stats.filter((row) => row.category === 'double');
         const mixDoubleStats = racketProfile.career_stats.filter((row) => row.category === 'mix_double');
@@ -138,7 +155,7 @@ export default function RacketSportProfileScreen() {
           weight: racketProfile.weight || ov?.weight || '',
           current_ranking: racketProfile.current_ranking ?? '',
           college_university: racketProfile.college_university || ov?.college_university || '',
-          teams: (racketProfile.teams && racketProfile.teams.length > 0) ? racketProfile.teams : (ov?.teams ?? []),
+          teams: racketProfile.teams ?? [],
           single_stats: singleStats.map((row) => mapRow(row, CAREER_ROW_KEYS)) as unknown as RacketSportProfileFormValues['single_stats'],
           double_stats: doubleStats.map((row) => mapRow(row, CAREER_ROW_KEYS)) as unknown as RacketSportProfileFormValues['double_stats'],
           mix_double_stats: mixDoubleStats.map((row) => mapRow(row, CAREER_ROW_KEYS)) as unknown as RacketSportProfileFormValues['mix_double_stats'],
@@ -265,6 +282,8 @@ export default function RacketSportProfileScreen() {
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
+        collegeLogoUrl={collegeLogoUrl}
+        teamLogos={teamLogos}
         fields={fields}
         statCards={[
           { header: `${sportLabel} Stats — Single`, columns: careerColumns, rows: mapCareerRows(formValues.single_stats || []) },
@@ -402,13 +421,30 @@ export default function RacketSportProfileScreen() {
         control={control}
         name="college_university"
         render={({ field: { value, onChange } }) => (
-          <TextField label="College/University" value={value} onChangeText={onChange} />
+          <View style={sportStyles.collegeRow}>
+            <View style={sportStyles.collegeInputWrapper}>
+              <TextField label="College/University" value={value} onChangeText={onChange} placeholder="School or University" />
+            </View>
+            <CollegeLogoUpload
+              logoUrl={collegeLogoUrl}
+              onUpload={handleUploadCollegeLogo}
+              onRemove={handleRemoveCollegeLogo}
+            />
+          </View>
         )}
       />
       <Controller
         control={control}
         name="teams"
-        render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+        render={({ field: { value, onChange } }) => (
+          <TeamsInput
+            value={value}
+            onChange={onChange}
+            logos={teamLogos}
+            onUploadLogo={handleUploadTeamLogo}
+            onRemoveLogo={handleRemoveTeamLogo}
+          />
+        )}
       />
       </View>
 

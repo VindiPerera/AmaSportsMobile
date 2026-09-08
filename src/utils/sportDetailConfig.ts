@@ -137,6 +137,8 @@ export function buildSportDetailProps(
   personalBests: PersonalBestItem[];
   statCards: StatCardConfig[];
   recentCards: StatCardConfig[];
+  collegeLogoUrl: string | null;
+  teamLogos: Record<string, string>;
 } {
   const fields: DetailFieldItem[] = config.overviewFields
     .filter((f) => f.key !== 'born' && f.key !== 'age')
@@ -154,6 +156,16 @@ export function buildSportDetailProps(
       }))
     : [];
 
+  const rawTeamLogos = profile.team_logos;
+  let teamLogos: Record<string, string> = {};
+  if (Array.isArray(rawTeamLogos)) {
+    teamLogos = Object.fromEntries(rawTeamLogos.map((l: any) => [l.team_name, l.logo_url]));
+  } else if (rawTeamLogos && typeof rawTeamLogos === 'object') {
+    teamLogos = rawTeamLogos as Record<string, string>;
+  }
+
+  const collegeLogoUrl = (profile.college_logo_url as string | null | undefined) ?? null;
+
   return {
     born: (profile.born as string | null) ?? null,
     age: (profile.age as string | number | null) ?? null,
@@ -162,6 +174,8 @@ export function buildSportDetailProps(
     personalBests,
     statCards: buildStatCards(profile, config.statTables, lookups),
     recentCards: buildStatCards(profile, config.recentTables, lookups),
+    collegeLogoUrl,
+    teamLogos,
   };
 }
 

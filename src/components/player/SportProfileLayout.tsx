@@ -85,6 +85,14 @@ export const sportStyles = StyleSheet.create({
     right: spacing.md,
     zIndex: 10,
   },
+  collegeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
+  collegeInputWrapper: {
+    flex: 1,
+  },
 });
 
 const styles = StyleSheet.create({

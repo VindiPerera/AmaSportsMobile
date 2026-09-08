@@ -17,6 +17,8 @@ import { RecentMatchTable } from '../../../src/components/player/RecentMatchTabl
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
+import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
+import { useSportLogos } from '../../../src/hooks/useSportLogos';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -72,8 +74,18 @@ export default function HockeyProfileScreen() {
   const [country, setCountry] = useState('');
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
-  const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
+  const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
+
+  const {
+    teamLogos,
+    collegeLogoUrl,
+    initLogos,
+    handleUploadCollegeLogo,
+    handleRemoveCollegeLogo,
+    handleUploadTeamLogo,
+    handleRemoveTeamLogo,
+  } = useSportLogos('hockey');
 
   const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<HockeyProfileFormValues>({
     defaultValues: EMPTY_FORM,
@@ -95,6 +107,11 @@ export default function HockeyProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        initLogos(
+          (hockeyProfile as any).team_logos,
+          (hockeyProfile as any).college_logo_url
+        );
+
         const ov = profile.overview;
 
         reset({
@@ -104,7 +121,7 @@ export default function HockeyProfileScreen() {
           dominant_hand: hockeyProfile.dominant_hand || ov?.dominant_hand || '',
           player_position: hockeyProfile.player_position ?? '',
           college_university: hockeyProfile.college_university || ov?.college_university || '',
-          teams: (hockeyProfile.teams && hockeyProfile.teams.length > 0) ? hockeyProfile.teams : (ov?.teams ?? []),
+          teams: hockeyProfile.teams ?? [],
           career_stats: hockeyProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as HockeyProfileFormValues['career_stats'],
@@ -211,6 +228,8 @@ export default function HockeyProfileScreen() {
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
+        collegeLogoUrl={collegeLogoUrl}
+        teamLogos={teamLogos}
         fields={fields}
         statCards={[
           {
@@ -339,13 +358,30 @@ export default function HockeyProfileScreen() {
         control={control}
         name="college_university"
         render={({ field: { value, onChange } }) => (
-          <TextField label="College/University" value={value} onChangeText={onChange} />
+          <View style={sportStyles.collegeRow}>
+            <View style={sportStyles.collegeInputWrapper}>
+              <TextField label="College/University" value={value} onChangeText={onChange} placeholder="School or University" />
+            </View>
+            <CollegeLogoUpload
+              logoUrl={collegeLogoUrl}
+              onUpload={handleUploadCollegeLogo}
+              onRemove={handleRemoveCollegeLogo}
+            />
+          </View>
         )}
       />
         <Controller
           control={control}
           name="teams"
-          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+          render={({ field: { value, onChange } }) => (
+            <TeamsInput
+              value={value}
+              onChange={onChange}
+              logos={teamLogos}
+              onUploadLogo={handleUploadTeamLogo}
+              onRemoveLogo={handleRemoveTeamLogo}
+            />
+          )}
         />
       </View>
 
