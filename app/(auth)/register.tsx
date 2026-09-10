@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { TextField } from '../../src/components/ui/TextField';
 import { Button } from '../../src/components/ui/Button';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { colors, radius, spacing, typography } from '../../src/theme';
+import { PRIVACY_POLICY_URL } from '../../src/constants/config';
 import { useAuthStore } from '../../src/store/authStore';
 import { validateRegisterForm, RegisterFormErrors } from '../../src/utils/validation';
 import { resolvePostAuthRoute } from '../../src/utils/postAuthRoute';
@@ -147,7 +148,16 @@ export default function RegisterScreen() {
             <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
               {agreedToTerms ? <Ionicons name="checkmark" size={12} color={colors.navy} /> : null}
             </View>
-            <Text style={styles.termsText}>I agree to the Terms of Service and Privacy Policy.</Text>
+            <Text style={styles.termsText}>
+              I agree to the Terms of Service and{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+              >
+                Privacy Policy
+              </Text>
+              .
+            </Text>
           </Pressable>
           {showTermsError ? (
             <Text style={styles.termsErrorText}>Please agree to the terms to continue.</Text>
@@ -241,6 +251,11 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.textMuted,
     lineHeight: 18,
+  },
+  termsLink: {
+    color: colors.navy,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   termsErrorText: {
     ...typography.caption,
