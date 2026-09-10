@@ -49,7 +49,7 @@ const OFFICES: OfficeInfo[] = [
     ],
     fullAddress: 'AmaX, Sutton Indoor Cricket Center, 29 Maitland Place, Colombo 07, Sri Lanka',
     phone: '+94 75 220 6006',
-    email: 'support@amaxsports.com',
+    email: 'alex@amaxlk.com',
     hours: 'Mon – Sat · 9:00 AM – 6:00 PM',
   },
   {
@@ -67,7 +67,7 @@ const OFFICES: OfficeInfo[] = [
     ],
     fullAddress: 'AmaX, Modern Public School, Delhi Road, Near Circuit House, Moradabad 244001, India',
     phone: '+91 95289 43413',
-    email: 'support@amaxsports.com',
+    email: 'alex@amaxlk.com',
     hours: 'Mon – Sat · 9:00 AM – 6:00 PM',
   },
 ];
@@ -203,7 +203,7 @@ export default function ContactUsScreen() {
               <Ionicons name="mail-outline" size={18} color={colors.primary} />
             </View>
             <Text style={styles.tileTitle}>Email Us</Text>
-            <Text style={styles.tileSub}>support@amaxsports.com</Text>
+            <Text style={styles.tileSub}>alex@amaxlk.com</Text>
           </Pressable>
 
           <Pressable

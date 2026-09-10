@@ -8,7 +8,7 @@ import { TextField } from '../../src/components/ui/TextField';
 import { Button } from '../../src/components/ui/Button';
 import { ErrorBanner } from '../../src/components/ui/ErrorBanner';
 import { colors, radius, spacing, typography } from '../../src/theme';
-import { PRIVACY_POLICY_URL } from '../../src/constants/config';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '../../src/constants/config';
 import { useAuthStore } from '../../src/store/authStore';
 import { validateRegisterForm, RegisterFormErrors } from '../../src/utils/validation';
 import { resolvePostAuthRoute } from '../../src/utils/postAuthRoute';
@@ -149,7 +149,14 @@ export default function RegisterScreen() {
               {agreedToTerms ? <Ionicons name="checkmark" size={12} color={colors.navy} /> : null}
             </View>
             <Text style={styles.termsText}>
-              I agree to the Terms of Service and{' '}
+              I agree to the{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => Linking.openURL(TERMS_URL)}
+              >
+                Terms of Service
+              </Text>
+              {' '}and{' '}
               <Text
                 style={styles.termsLink}
                 onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}

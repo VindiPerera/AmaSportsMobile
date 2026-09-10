@@ -41,6 +41,8 @@ export const WEB_URL = API_URL.replace(/\/api\/?$/, '');
 
 export const PRIVACY_POLICY_URL = `${WEB_URL}/privacy-policy`;
 
+export const TERMS_URL = `${WEB_URL}/terms`;
+
 export const API_TIMEOUT_MS = 15000;
 
 export const STORAGE_KEYS = {
