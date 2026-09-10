@@ -33,6 +33,14 @@ function getApiUrl(): string {
 
 export const API_URL = getApiUrl();
 
+// The Laravel backend's web root (API_URL minus the trailing /api), used to
+// link out to server-rendered pages like the public Privacy Policy that
+// live outside the /api surface — see routes/web.php's `privacy-policy`
+// route.
+export const WEB_URL = API_URL.replace(/\/api\/?$/, '');
+
+export const PRIVACY_POLICY_URL = `${WEB_URL}/privacy-policy`;
+
 export const API_TIMEOUT_MS = 15000;
 
 export const STORAGE_KEYS = {
