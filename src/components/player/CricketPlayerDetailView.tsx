@@ -9,12 +9,23 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, shadows, spacing, typography } from '../../theme';
+import { colors, getSportTheme, radius, shadows, spacing, typography } from '../../theme';
 import { CricketProfileFormValues, Lookups } from '../../types';
 import { formatBornDate, formatDetailedAge, formatShortMatchDate, sortCareerStatsNewestFirst, sortRecentMatchesNewestFirst } from '../../utils/date';
 import { abbreviateStatLabel } from '../../utils/statLabels';
 import { ImageLightbox } from '../ui/ImageLightbox';
 import { AchievementsTabPanel } from '../achievements/AchievementsTabPanel';
+
+const CRICKET_TAB_ITEMS: {
+  key: 'overview' | 'stats' | 'matches' | 'achievements';
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { key: 'overview', label: 'Overview', icon: 'person-outline' },
+  { key: 'stats', label: 'Stats', icon: 'stats-chart-outline' },
+  { key: 'matches', label: 'Matches', icon: 'calendar-outline' },
+  { key: 'achievements', label: 'Achievements', icon: 'trophy-outline' },
+];
 
 interface CricketPlayerDetailViewProps {
   fullName: string;
@@ -102,26 +113,33 @@ export function CricketPlayerDetailView({
   // Debut & Last Matches (not supported yet)
   const debutLastData: any[] = [];
 
+  const sportTheme = getSportTheme('cricket');
+
   return (
     <View style={embedded ? styles.embeddedContainer : styles.container}>
-      {/* Dark Navy Header Banner — skipped when embedded (the Player
-          Profile tab's own photo carousel + edit/logout icons stand in
-          for it instead). */}
+      {/* Dark Navy Header Banner — skipped when embedded */}
       {!embedded && (
-      <View style={styles.headerBanner}>
+      <View style={[styles.headerBanner, { backgroundColor: sportTheme.primaryDark }]}>
         {coverUrl ? (
           <Pressable onPress={() => setLightboxUri(coverUrl)} style={StyleSheet.absoluteFill}>
-            <Image source={{ uri: coverUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.85 }]} resizeMode="cover" />
+            <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            <LinearGradient
+              colors={['rgba(11, 27, 61, 0.45)', sportTheme.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
           </Pressable>
-        ) : null}
-        {/* Rich cinematic gradient overlay for high contrast and readability */}
-        <LinearGradient
-          colors={coverUrl ? ['rgba(17, 24, 39, 0.4)', 'rgba(17, 24, 39, 0.85)'] : colors.gradientHero}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
+        ) : (
+          <LinearGradient
+            colors={sportTheme.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        )}
 
         {/* Navigation Bar */}
         <View style={styles.navBar}>
@@ -131,7 +149,7 @@ export function CricketPlayerDetailView({
 
           <View style={styles.navActionsRight}>
             {onEditPress && (
-              <Pressable onPress={onEditPress} style={styles.editBadgeButton}>
+              <Pressable onPress={onEditPress} style={[styles.editBadgeButton, { backgroundColor: sportTheme.primary }]}>
                 <Ionicons name="create-outline" size={14} color={colors.white} />
                 <Text style={styles.editBadgeText}>Edit Profile</Text>
               </Pressable>
@@ -149,18 +167,24 @@ export function CricketPlayerDetailView({
               {shortName}
             </Text>
             <View style={styles.countryRow}>
-              <Ionicons name="location-outline" size={14} color={colors.energy} />
-              <Text style={styles.headerCountry}>{country || 'Sri Lanka'}</Text>
+              <Ionicons name={sportTheme.icon} size={14} color={sportTheme.accent} />
+              <Text style={styles.headerSportTag}>CRICKET</Text>
+              {!!country && (
+                <>
+                  <Text style={styles.headerDot}>•</Text>
+                  <Text style={styles.headerCountry}>{country}</Text>
+                </>
+              )}
             </View>
           </View>
 
-          <View style={styles.avatarContainer}>
+          <View style={[styles.avatarContainer, { borderColor: sportTheme.accent }]}>
             {photoUrl ? (
               <Pressable onPress={() => setLightboxUri(photoUrl)} style={styles.avatarPressable}>
                 <Image source={{ uri: photoUrl }} style={styles.avatarImg} />
               </Pressable>
             ) : (
-              <View style={styles.avatarFallback}>
+              <View style={[styles.avatarFallback, { backgroundColor: sportTheme.primaryDark }]}>
                 <Text style={styles.avatarInitials}>
                   {displayName.substring(0, 2).toUpperCase()}
                 </Text>
@@ -171,118 +195,107 @@ export function CricketPlayerDetailView({
       </View>
       )}
 
-      {/* Navigation Tabs (Overview / Stats / Matches / Achievements) — a
-          horizontal scroller since a 4th tab can overflow narrower phones,
-          unlike the 3-tab row this started as. */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={embedded ? styles.embeddedTabsRow : styles.tabsRow}
-      >
-        <Pressable
-          style={[
-            embedded ? styles.embeddedTabButton : styles.tabButton,
-            embedded && activeTab === 'overview' && styles.embeddedTabButtonActive,
-            !embedded && activeTab === 'overview' && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab('overview')}
-        >
-          <Ionicons
-            name="person-outline"
-            size={14}
-            color={activeTab === 'overview' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
-            style={{ marginRight: 5 }}
-          />
-          <Text
-            style={[
-              embedded ? styles.embeddedTabText : styles.tabText,
-              embedded && activeTab === 'overview' && styles.embeddedTabTextActive,
-              !embedded && activeTab === 'overview' && styles.tabTextActive,
-            ]}
+      {/* Navigation Tabs (Overview / Stats / Matches / Achievements) —
+          Dedicated sport-themed rail with zero clipping and high-contrast styling */}
+      {!embedded ? (
+        <View style={[styles.tabsBarWrapper, { backgroundColor: sportTheme.tabBg }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsScrollView}
+            contentContainerStyle={styles.tabsRow}
           >
-            Overview
-          </Text>
-          {!embedded && activeTab === 'overview' && <View style={styles.activeTabLine} />}
-        </Pressable>
-
-        <Pressable
-          style={[
-            embedded ? styles.embeddedTabButton : styles.tabButton,
-            embedded && activeTab === 'stats' && styles.embeddedTabButtonActive,
-            !embedded && activeTab === 'stats' && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab('stats')}
-        >
-          <Ionicons
-            name="stats-chart-outline"
-            size={14}
-            color={activeTab === 'stats' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
-            style={{ marginRight: 5 }}
-          />
-          <Text
-            style={[
-              embedded ? styles.embeddedTabText : styles.tabText,
-              embedded && activeTab === 'stats' && styles.embeddedTabTextActive,
-              !embedded && activeTab === 'stats' && styles.tabTextActive,
-            ]}
+            {CRICKET_TAB_ITEMS.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  style={[
+                    styles.tabButton,
+                    isActive && [
+                      styles.tabButtonActive,
+                      {
+                        backgroundColor: sportTheme.tabActiveBg,
+                        borderColor: sportTheme.tabActiveBorder,
+                      },
+                    ],
+                  ]}
+                  onPress={() => setActiveTab(tab.key)}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={15}
+                    color={isActive ? sportTheme.accent : 'rgba(255, 255, 255, 0.65)'}
+                    style={styles.tabIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.tabText,
+                      isActive && [styles.tabTextActive, { color: sportTheme.accent }],
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {isActive && (
+                    <View
+                      style={[
+                        styles.activeTabIndicator,
+                        { backgroundColor: sportTheme.accent },
+                      ]}
+                    />
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : (
+        <View style={styles.embeddedTabsWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.embeddedTabsScrollView}
+            contentContainerStyle={styles.embeddedTabsRow}
           >
-            Stats
-          </Text>
-          {!embedded && activeTab === 'stats' && <View style={styles.activeTabLine} />}
-        </Pressable>
-
-        <Pressable
-          style={[
-            embedded ? styles.embeddedTabButton : styles.tabButton,
-            embedded && activeTab === 'matches' && styles.embeddedTabButtonActive,
-            !embedded && activeTab === 'matches' && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab('matches')}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={14}
-            color={activeTab === 'matches' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
-            style={{ marginRight: 5 }}
-          />
-          <Text
-            style={[
-              embedded ? styles.embeddedTabText : styles.tabText,
-              embedded && activeTab === 'matches' && styles.embeddedTabTextActive,
-              !embedded && activeTab === 'matches' && styles.tabTextActive,
-            ]}
-          >
-            Matches
-          </Text>
-          {!embedded && activeTab === 'matches' && <View style={styles.activeTabLine} />}
-        </Pressable>
-
-        <Pressable
-          style={[
-            embedded ? styles.embeddedTabButton : styles.tabButton,
-            embedded && activeTab === 'achievements' && styles.embeddedTabButtonActive,
-            !embedded && activeTab === 'achievements' && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab('achievements')}
-        >
-          <Ionicons
-            name="trophy-outline"
-            size={14}
-            color={activeTab === 'achievements' ? colors.white : (embedded ? colors.textMuted : 'rgba(255, 255, 255, 0.7)')}
-            style={{ marginRight: 5 }}
-          />
-          <Text
-            style={[
-              embedded ? styles.embeddedTabText : styles.tabText,
-              embedded && activeTab === 'achievements' && styles.embeddedTabTextActive,
-              !embedded && activeTab === 'achievements' && styles.tabTextActive,
-            ]}
-          >
-          Achievements
-          </Text>
-          {!embedded && activeTab === 'achievements' && <View style={styles.activeTabLine} />}
-        </Pressable>
-      </ScrollView>
+            {CRICKET_TAB_ITEMS.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  style={[
+                    styles.embeddedTabButton,
+                    isActive && [
+                      styles.embeddedTabButtonActive,
+                      {
+                        backgroundColor: sportTheme.primary,
+                        borderColor: sportTheme.primary,
+                      },
+                    ],
+                  ]}
+                  onPress={() => setActiveTab(tab.key)}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={14}
+                    color={isActive ? colors.white : colors.textMuted}
+                    style={styles.tabIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.embeddedTabText,
+                      isActive && styles.embeddedTabTextActive,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Main Tab Content */}
       <ScrollView
@@ -721,9 +734,7 @@ const styles = StyleSheet.create({
   headerBanner: {
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.md,
-    paddingBottom: 0,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
+    paddingBottom: spacing.sm,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -765,7 +776,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
   playerInfoCol: {
     flex: 1,
@@ -781,8 +792,18 @@ const styles = StyleSheet.create({
   countryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginTop: 4,
+  },
+  headerSportTag: {
+    ...typography.caption,
+    color: colors.energy,
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.8,
+  },
+  headerDot: {
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   headerCountry: {
     ...typography.body,
@@ -821,43 +842,84 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
   },
+  // Dedicated sport-themed tabs navigation rail
+  tabsBarWrapper: {
+    minHeight: 52,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 10,
+    paddingVertical: 6,
+  },
+  tabsScrollView: {
+    flexGrow: 0,
+  },
   tabsRow: {
     flexDirection: 'row',
-    marginTop: spacing.xs,
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    gap: 8,
   },
   tabButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: 'transparent',
     position: 'relative',
   },
-  tabButtonActive: {},
+  tabButtonActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabIcon: {
+    marginRight: 6,
+  },
   tabText: {
-    ...typography.subtitle,
+    ...typography.caption,
     color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   tabTextActive: {
-    color: colors.white,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  activeTabLine: {
+  activeTabIndicator: {
     position: 'absolute',
-    bottom: 0,
-    left: spacing.lg,
-    right: spacing.lg,
+    bottom: -3,
+    left: '20%',
+    right: '20%',
     height: 3,
-    backgroundColor: colors.energy,
     borderRadius: radius.full,
   },
   embeddedContainer: {
     backgroundColor: colors.background,
   },
+  embeddedTabsWrapper: {
+    marginBottom: spacing.sm,
+  },
+  embeddedTabsScrollView: {
+    flexGrow: 0,
+  },
   embeddedTabsRow: {
     flexDirection: 'row',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
+    alignItems: 'center',
   },
   embeddedTabButton: {
     flexDirection: 'row',
@@ -883,6 +945,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: spacing['3xl'],
   },
   card: {

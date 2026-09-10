@@ -132,8 +132,13 @@ function AddCricketMatchModalBody({
 
   const hasExistingEntry = (formatId: string, categoryId: string, year: string) =>
     existingEntries.some((e) => e.age_category_id === formatId && e.format_id === categoryId && e.year === year);
-  const identitySatisfied = !!row.age_category_id && !!row.format_id && row.year.trim() !== '';
-  const alreadyExists = identitySatisfied && hasExistingEntry(row.age_category_id, row.format_id, row.year);
+  // A brand-new entry is always tagged with the current year — recomputed on
+  // every render (not read from `row.year`) so it can't go stale if the app
+  // is left open across a year boundary, and never free-typed since it's
+  // shown read-only in the 'select' step below.
+  const currentYear = String(new Date().getFullYear());
+  const identitySatisfied = !!row.age_category_id && !!row.format_id;
+  const alreadyExists = identitySatisfied && hasExistingEntry(row.age_category_id, row.format_id, currentYear);
 
   const pickExisting = (entry: ExistingCricketEntry) => {
     setRow((prev) => ({ ...prev, age_category_id: entry.age_category_id, format_id: entry.format_id, year: entry.year }));
@@ -241,26 +246,33 @@ function AddCricketMatchModalBody({
 
             <Dropdown label="Format" value={row.age_category_id} onChange={(v) => update('age_category_id', v)} options={formats} placeholder="Select format" />
             <Dropdown label="Category" value={row.format_id} onChange={(v) => update('format_id', v)} options={categories} placeholder="Select category" />
-            <StatCell column={{ key: 'year', label: 'Year', type: 'number' }} value={row.year} onChange={(v) => update('year', v as string)} />
+            <View style={styles.fieldWrapper}>
+              <Text style={styles.fieldLabel} numberOfLines={1}>Year</Text>
+              <View style={styles.yearLockedBox}>
+                <Text style={styles.yearLockedText}>{currentYear}</Text>
+                <Ionicons name="lock-closed-outline" size={14} color={colors.textFaint} />
+              </View>
+              <Text style={styles.fieldHint}>A new entry is always logged under the current year.</Text>
+            </View>
 
             {identitySatisfied ? (
               alreadyExists ? (
                 <View style={[styles.hintCard, styles.hintCardError]}>
                   <Ionicons name="alert-circle-outline" size={16} color={colors.live} />
                   <Text style={styles.hintText}>
-                    {`You already have a ${row.year} entry for ${entryLabel}. Go back and choose "Update an Existing Entry" to add this match's stats to it — a new entry can only be a Format + Category + Year you haven't used before.`}
+                    {`You already have a ${currentYear} entry for ${entryLabel}. Go back and choose "Update an Existing Entry" to add this match's stats to it — a new entry can only be a Format + Category + Year you haven't used before.`}
                   </Text>
                 </View>
               ) : (
                 <View style={[styles.hintCard, styles.hintCardNew]}>
                   <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-                  <Text style={styles.hintText}>This will create a new entry for {entryLabel} · {row.year}.</Text>
+                  <Text style={styles.hintText}>This will create a new entry for {entryLabel} · {currentYear}.</Text>
                 </View>
               )
             ) : null}
 
             <Pressable
-              onPress={() => { setOrigin('select'); setStep('detail'); }}
+              onPress={() => { update('year', currentYear); setOrigin('select'); setStep('detail'); }}
               disabled={!identitySatisfied || alreadyExists}
               style={[styles.nextButton, (!identitySatisfied || alreadyExists) && styles.nextButtonDisabled]}
               accessibilityRole="button"
@@ -482,6 +494,22 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     marginBottom: spacing.lg,
+  },
+  yearLockedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    backgroundColor: colors.cardSubtle,
+    height: 50,
+    paddingHorizontal: spacing.sm,
+  },
+  yearLockedText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '700',
   },
   identityChip: {
     ...typography.caption,

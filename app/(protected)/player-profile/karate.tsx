@@ -18,6 +18,8 @@ import { RecentMatchTable } from '../../../src/components/player/RecentMatchTabl
 import { ViewOnlyBanner } from '../../../src/components/player/ViewOnlyBanner';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
 import { SportProfileLayout, sportStyles } from '../../../src/components/player/SportProfileLayout';
+import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
+import { useSportLogos } from '../../../src/hooks/useSportLogos';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { useAuthStore } from '../../../src/store/authStore';
@@ -74,6 +76,16 @@ export default function KarateProfileScreen() {
   const [coverPicked, setCoverPicked] = useState<PickedImage | null>(null);
   const [avatarPicked, setAvatarPicked] = useState<PickedImage | null>(null);
 
+  const {
+    teamLogos,
+    collegeLogoUrl,
+    initLogos,
+    handleUploadCollegeLogo,
+    handleRemoveCollegeLogo,
+    handleUploadTeamLogo,
+    handleRemoveTeamLogo,
+  } = useSportLogos('karate');
+
   const { control, handleSubmit, reset, setValue, getValues, watch } = useForm<KarateProfileFormValues>({
     defaultValues: EMPTY_FORM,
   });
@@ -94,6 +106,11 @@ export default function KarateProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        initLogos(
+          (karateProfile as any).team_logos,
+          (karateProfile as any).college_logo_url
+        );
+
         const ov = profile.overview;
 
         reset({
@@ -104,7 +121,7 @@ export default function KarateProfileScreen() {
           player_style_id: toFormString(karateProfile.player_style_id),
           current_ranking: karateProfile.current_ranking ?? '',
           college_university: karateProfile.college_university || ov?.college_university || '',
-          teams: (karateProfile.teams && karateProfile.teams.length > 0) ? karateProfile.teams : (ov?.teams ?? []),
+          teams: karateProfile.teams ?? [],
           career_stats: karateProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as KarateProfileFormValues['career_stats'],
@@ -213,6 +230,8 @@ export default function KarateProfileScreen() {
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
+        collegeLogoUrl={collegeLogoUrl}
+        teamLogos={teamLogos}
         fields={fields}
         statCards={[
           {
@@ -352,14 +371,31 @@ export default function KarateProfileScreen() {
           control={control}
           name="college_university"
           render={({ field: { value, onChange } }) => (
-            <TextField label="College / University" value={value} onChangeText={onChange} placeholder="University name" />
+            <View style={sportStyles.collegeRow}>
+              <View style={sportStyles.collegeInputWrapper}>
+                <TextField label="College / University" value={value} onChangeText={onChange} placeholder="University name" />
+              </View>
+              <CollegeLogoUpload
+                logoUrl={collegeLogoUrl}
+                onUpload={handleUploadCollegeLogo}
+                onRemove={handleRemoveCollegeLogo}
+              />
+            </View>
           )}
         />
 
         <Controller
           control={control}
           name="teams"
-          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
+          render={({ field: { value, onChange } }) => (
+            <TeamsInput
+              value={value}
+              onChange={onChange}
+              logos={teamLogos}
+              onUploadLogo={handleUploadTeamLogo}
+              onRemoveLogo={handleRemoveTeamLogo}
+            />
+          )}
         />
       </View>
 

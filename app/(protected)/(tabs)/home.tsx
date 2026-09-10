@@ -113,9 +113,9 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer
-      edges={['top', 'bottom']}
+      edges={['top']}
       scroll
-      style={styles.screen}
+      contentContainerStyle={styles.scrollContent}
       backgroundColor={colors.background}
     >
       {/* 1. ATHLETE HUD HERO SECTION */}
@@ -663,8 +663,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    paddingBottom: spacing.xl,
+  scrollContent: {
+    paddingBottom: spacing['2xl'],
   },
   heroWrapper: {
     marginBottom: spacing.md,

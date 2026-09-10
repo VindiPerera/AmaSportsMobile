@@ -272,11 +272,12 @@ export const playerService = {
   },
 
   /** Uploads (or replaces) the logo for one of the free-text team names on
-   * the Cricket form's Teams field — immediate, not part of
-   * saveCricketProfile's bulk save (see TeamsInput). */
-  async uploadTeamLogo(teamName: string, logo: PickedImage) {
+   * a sport's Teams field — immediate, not part of
+   * bulk save (see TeamsInput). */
+  async uploadTeamLogo(teamName: string, logo: PickedImage, sport?: string) {
     const formData = new FormData();
     formData.append('team_name', teamName);
+    if (sport) formData.append('sport', sport);
     appendPickedImage(formData, 'logo', logo);
     const { data } = await apiClient.post<ApiSuccessResponse<{ team_name: string; logo_url: string }>>(
       '/player/team-logo',
@@ -286,25 +287,28 @@ export const playerService = {
   },
 
   /** Removes a previously uploaded team logo — the team name itself is untouched. */
-  async removeTeamLogo(teamName: string) {
-    await apiClient.delete('/player/team-logo', { data: { team_name: teamName } });
+  async removeTeamLogo(teamName: string, sport?: string) {
+    await apiClient.delete('/player/team-logo', { data: { team_name: teamName, ...(sport ? { sport } : {}) } });
   },
 
   /** Uploads (or replaces) the College/University logo — immediate, not
-   * part of saveCricketProfile's bulk save. */
-  async uploadCollegeLogo(logo: PickedImage) {
+   * part of profile's bulk save. */
+  async uploadCollegeLogo(logo: PickedImage, sport?: string) {
     const formData = new FormData();
     appendPickedImage(formData, 'logo', logo);
+    if (sport) formData.append('sport', sport);
+    const endpoint = sport && sport !== 'cricket' ? '/player/college-logo' : '/player/cricket-profile/college-logo';
     const { data } = await apiClient.post<ApiSuccessResponse<{ college_logo_url: string }>>(
-      '/player/cricket-profile/college-logo',
+      endpoint,
       formData
     );
     return data.data;
   },
 
   /** Removes the College/University logo — the name itself is untouched. */
-  async removeCollegeLogo() {
-    await apiClient.delete('/player/cricket-profile/college-logo');
+  async removeCollegeLogo(sport?: string) {
+    const endpoint = sport && sport !== 'cricket' ? '/player/college-logo' : '/player/cricket-profile/college-logo';
+    await apiClient.delete(endpoint, { data: sport ? { sport } : undefined });
   },
 
   /** Adds one photo to the player's gallery (up to 10 — see PlayerPhoto.

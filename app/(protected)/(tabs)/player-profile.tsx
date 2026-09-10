@@ -23,7 +23,7 @@ import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ImageLightbox } from '../../../src/components/ui/ImageLightbox';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
-import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
+import { colors, getSportTheme, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useLookupStore } from '../../../src/store/lookupStore';
 import { playerService } from '../../../src/services/playerService';
@@ -364,6 +364,11 @@ export default function PlayerProfileHubScreen() {
     heroAge = p.age ? String(p.age) : (p.born ? String(calculateAge(String(p.born)) || '--') : '--');
     heroRole = String(p.position || p.playing_role || `${activeSportEntry?.sport.name || 'SPORT'} ATHLETE`).toUpperCase();
     primaryTeam = Array.isArray(p.teams) && p.teams.length > 0 ? String(p.teams[0]) : null;
+    const rawLogos = p.team_logos;
+    if (primaryTeam && Array.isArray(rawLogos)) {
+      const match = rawLogos.find((l: any) => l.team_name === primaryTeam);
+      if (match) primaryTeamLogo = match.logo_url;
+    }
     const metrics = computeSportHeroMetrics(activeSlug, p);
     heroMatches = metrics.heroMatches;
     heroPrimaryLabel = metrics.heroPrimaryLabel;
@@ -733,18 +738,33 @@ export default function PlayerProfileHubScreen() {
           >
             {sports.map((entry) => {
               const active = entry.sport.slug === activeSlug;
+              const entryTheme = getSportTheme(entry.sport.slug);
               return (
                 <Pressable
                   key={entry.id}
-                  style={[styles.sportPill, active && styles.sportPillActive]}
+                  style={[
+                    styles.sportPill,
+                    active && [
+                      styles.sportPillActive,
+                      {
+                        backgroundColor: entryTheme.primaryDark,
+                        borderColor: entryTheme.accent,
+                      },
+                    ],
+                  ]}
                   onPress={() => setActiveSlug(entry.sport.slug)}
                 >
                   <Ionicons
-                    name={sportIconFor(entry.sport.slug)}
+                    name={entryTheme.icon}
                     size={16}
-                    color={active ? colors.energy : colors.textMuted}
+                    color={active ? entryTheme.accent : colors.textMuted}
                   />
-                  <Text style={[styles.sportPillText, active && styles.sportPillTextActive]}>
+                  <Text
+                    style={[
+                      styles.sportPillText,
+                      active && [styles.sportPillTextActive, { color: entryTheme.accent }],
+                    ]}
+                  >
                     {entry.sport.name}
                   </Text>
                 </Pressable>
@@ -874,7 +894,6 @@ export default function PlayerProfileHubScreen() {
               sportName={sportDetail.config.sportName}
               fullName={player?.full_name || user?.name || 'Athlete'}
               country={player?.country || ''}
-              collegeLogoUrl={(player as any)?.college_logo_url || null}
               {...buildSportDetailProps(sportDetail.config, sportDetail.profile, lookups)}
             />
           )}

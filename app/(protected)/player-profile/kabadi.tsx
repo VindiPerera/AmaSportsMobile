@@ -12,6 +12,8 @@ import { AvatarPhotoUpload } from '../../../src/components/player/AvatarPhotoUpl
 import { Dropdown } from '../../../src/components/player/Dropdown';
 import { DateField } from '../../../src/components/player/DateField';
 import { TeamsInput } from '../../../src/components/player/TeamsInput';
+import { CollegeLogoUpload } from '../../../src/components/player/CollegeLogoUpload';
+import { useSportLogos } from '../../../src/hooks/useSportLogos';
 import { StatColumn } from '../../../src/components/player/StatTable';
 import { StatSectionWizard } from '../../../src/components/player/StatSectionWizard';
 import { RecentMatchTable } from '../../../src/components/player/RecentMatchTable';
@@ -87,6 +89,16 @@ export default function KabadiProfileScreen() {
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
 
+  const {
+    teamLogos,
+    collegeLogoUrl,
+    initLogos,
+    handleUploadCollegeLogo,
+    handleRemoveCollegeLogo,
+    handleUploadTeamLogo,
+    handleRemoveTeamLogo,
+  } = useSportLogos('kabadi');
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +132,7 @@ export default function KabadiProfileScreen() {
         setExistingCoverUrl(profile.cover_photo_url);
         setExistingPhotoUrl(profile.photo_url);
 
+        initLogos((kabadiProfile as any).team_logos, (kabadiProfile as any).college_logo_url);
         const ov = profile.overview;
 
         reset({
@@ -129,7 +142,7 @@ export default function KabadiProfileScreen() {
           weight: kabadiProfile.weight || ov?.weight || '',
           player_position: kabadiProfile.player_position ?? '',
           college_university: kabadiProfile.college_university || ov?.college_university || '',
-          teams: (kabadiProfile.teams && kabadiProfile.teams.length > 0) ? kabadiProfile.teams : (ov?.teams ?? []),
+          teams: kabadiProfile.teams ?? [],
           career_stats: kabadiProfile.career_stats.map((row) =>
             mapRow(row, Object.keys(EMPTY_CAREER_ROW))
           ) as unknown as KabadiProfileFormValues['career_stats'],
@@ -236,6 +249,8 @@ export default function KabadiProfileScreen() {
         born={formValues.born}
         age={formValues.age}
         teams={formValues.teams}
+        collegeLogoUrl={collegeLogoUrl}
+        teamLogos={teamLogos}
         fields={fields}
         statCards={[
           {
@@ -352,14 +367,31 @@ export default function KabadiProfileScreen() {
         control={control}
         name="college_university"
         render={({ field: { value, onChange } }) => (
-          <TextField label="College/University" value={value} onChangeText={onChange} />
+          <View style={sportStyles.collegeRow}>
+            <View style={sportStyles.collegeInputWrapper}>
+              <TextField label="College/University" value={value} onChangeText={onChange} />
+            </View>
+            <CollegeLogoUpload
+              logoUrl={collegeLogoUrl}
+              onUpload={handleUploadCollegeLogo}
+              onRemove={handleRemoveCollegeLogo}
+            />
+          </View>
         )}
       />
-        <Controller
-          control={control}
-          name="teams"
-          render={({ field: { value, onChange } }) => <TeamsInput value={value} onChange={onChange} />}
-        />
+      <Controller
+        control={control}
+        name="teams"
+        render={({ field: { value, onChange } }) => (
+          <TeamsInput
+            value={value}
+            onChange={onChange}
+            logos={teamLogos}
+            onUploadLogo={handleUploadTeamLogo}
+            onRemoveLogo={handleRemoveTeamLogo}
+          />
+        )}
+      />
       </View>
 
       <GlossaryDisclosure items={KABADI_GLOSSARY} />
