@@ -226,9 +226,9 @@ export default function ChessProfileScreen() {
             header: 'Chess Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
+              { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
+              { key: 'match_category_id', label: 'Category', width: 90 },
               { key: 'games', label: 'Games', width: 55 },
               { key: 'win', label: 'Win', width: 50 },
               { key: 'lost', label: 'Lost', width: 50 },

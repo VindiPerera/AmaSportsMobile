@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, getSportTheme, radius, shadows, spacing, typography } from '../../theme';
 import { CricketProfileFormValues, Lookups } from '../../types';
 import { formatBornDate, formatDetailedAge, formatShortMatchDate, sortCareerStatsNewestFirst, sortRecentMatchesNewestFirst } from '../../utils/date';
-import { abbreviateStatLabel } from '../../utils/statLabels';
 import { ImageLightbox } from '../ui/ImageLightbox';
 import { AchievementsTabPanel } from '../achievements/AchievementsTabPanel';
 
@@ -85,7 +84,7 @@ export function CricketPlayerDetailView({
   // `age_categories` table other sports use), shown under the "Format" header.
   const getAgeCategoryName = (ageCategoryId: string): string => {
     const found = lookups.cricket_categories.find((a) => String(a.id) === String(ageCategoryId));
-    return found ? abbreviateStatLabel(found.name) : '-';
+    return found ? found.name : '-';
   };
 
   // Process Batting Rows — newest Year first
@@ -679,10 +678,13 @@ export function CricketPlayerDetailView({
 
 /**
  * Every field entered on the Recent Matches form — Date, Match, Played XI,
- * Runs, Balls, 4s, 6s, Overs, Maidens, Wkts, Catches, Stumpings — not just a
- * Bat/Bowl summary, so nothing entered on the form goes missing in the
- * read-only view. Wide by design (12 columns), so it scrolls horizontally
- * like the Batting/Bowling tables above it.
+ * Runs, Balls (batting), 4s, 6s, Maidens, Wkts, Catches, Stumpings — not
+ * just a Bat/Bowl summary, so nothing entered on the form goes missing in
+ * the read-only view. Bowling balls bowled isn't shown here (product
+ * decision: one "Balls" column only, for batting) — it still lives in the
+ * form and feeds Bowling Career Stats/Economy as normal, just isn't
+ * duplicated in this table. Wide by design (11 columns), so it scrolls
+ * horizontally like the Batting/Bowling tables above it.
  */
 function RecentMatchesTable({ matches }: { matches: CricketProfileFormValues['recent_matches'] }) {
   return (
@@ -696,7 +698,6 @@ function RecentMatchesTable({ matches }: { matches: CricketProfileFormValues['re
           <Text style={styles.thCell}>Balls</Text>
           <Text style={styles.thCell}>4s</Text>
           <Text style={styles.thCell}>6s</Text>
-          <Text style={styles.thCell}>Overs</Text>
           <Text style={styles.thCell}>Mdns</Text>
           <Text style={styles.thCell}>Wkts</Text>
           <Text style={styles.thCell}>Ct</Text>
@@ -714,7 +715,6 @@ function RecentMatchesTable({ matches }: { matches: CricketProfileFormValues['re
             <Text style={styles.tdCell}>{m.balls || '-'}</Text>
             <Text style={styles.tdCell}>{m.fours || '0'}</Text>
             <Text style={styles.tdCell}>{m.sixes || '0'}</Text>
-            <Text style={styles.tdCell}>{m.overs || '-'}</Text>
             <Text style={styles.tdCell}>{m.maidens || '0'}</Text>
             <Text style={styles.tdCell}>{m.wickets || '-'}</Text>
             <Text style={styles.tdCell}>{m.catches || '0'}</Text>

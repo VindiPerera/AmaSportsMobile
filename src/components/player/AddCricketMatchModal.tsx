@@ -23,6 +23,68 @@ function computeBowlingFigures(wickets: string, runsConceded: string): string {
   return `${wickets || '0'}/${runsConceded || '0'}`;
 }
 
+/** One batting innings entered this match — only Runs/Balls/Not Out are
+ * tracked per innings (see below); 4s/6s/Ct/St stay match-level totals. */
+interface BattingInningsEntry {
+  runs: string;
+  balls: string;
+  not_out: boolean;
+}
+
+const EMPTY_INNINGS_ENTRY: BattingInningsEntry = { runs: '', balls: '', not_out: false };
+
+/** Seeds the per-innings rows from `row.batting_innings` (clamped 1–10).
+ * Older/existing rows only ever stored one combined Runs/Balls/Not-Out
+ * figure (there was no per-innings breakdown before this), so on edit only
+ * the first innings is pre-filled from that — the rest start blank for the
+ * player to re-enter if this match really covers more than one innings. */
+function initBattingInningsRows(row: CricketRecentMatchRowForm): BattingInningsEntry[] {
+  const count = Math.max(1, Math.min(10, parseInt(row.batting_innings || '1', 10) || 1));
+  const rows: BattingInningsEntry[] = Array.from({ length: count }, () => ({ ...EMPTY_INNINGS_ENTRY }));
+  rows[0] = { runs: row.runs || '', balls: row.balls || '', not_out: !!row.not_out };
+  return rows;
+}
+
+/** Sums Runs/Balls across every innings entered, and picks the Highest
+ * Score: the innings with the most runs, ties going to whichever of those
+ * was not out (matches statMerge's own HS-comparison convention). */
+function aggregateBattingInnings(rows: BattingInningsEntry[]): {
+  runs: string;
+  balls: string;
+  hs: string;
+  not_out: boolean;
+} {
+  let totalRuns = 0;
+  let totalBalls = 0;
+  let anyRuns = false;
+  let anyBalls = false;
+  let bestRow: BattingInningsEntry | null = null;
+
+  rows.forEach((entry) => {
+    if (entry.runs.trim() !== '') {
+      anyRuns = true;
+      totalRuns += parseInt(entry.runs, 10) || 0;
+    }
+    if (entry.balls.trim() !== '') {
+      anyBalls = true;
+      totalBalls += parseInt(entry.balls, 10) || 0;
+    }
+    if (!entry.runs.trim()) return;
+    const runsNum = parseInt(entry.runs, 10) || 0;
+    const bestRuns = bestRow ? parseInt(bestRow.runs, 10) || 0 : -1;
+    if (!bestRow || runsNum > bestRuns || (runsNum === bestRuns && entry.not_out && !bestRow.not_out)) {
+      bestRow = entry;
+    }
+  });
+
+  return {
+    runs: anyRuns ? String(totalRuns) : '',
+    balls: anyBalls ? String(totalBalls) : '',
+    hs: bestRow ? computeHs((bestRow as BattingInningsEntry).runs, (bestRow as BattingInningsEntry).not_out) : '',
+    not_out: bestRow ? (bestRow as BattingInningsEntry).not_out : false,
+  };
+}
+
 /** One Format+Category+Year combination the player already has a Career
  * Stats entry for — offered in the "Which Entry?" list so picking one
  * updates it instead of starting a new one. */
@@ -101,17 +163,41 @@ function AddCricketMatchModalBody({
   const [step, setStep] = useState<Step>(isEditing ? 'detail' : hasEntries ? 'choice' : 'select');
   const [origin, setOrigin] = useState<'select' | 'existing'>('select');
   const [row, setRow] = useState<CricketRecentMatchRowForm>(() => ({ ...(initialRow ?? emptyRow) }));
+  // Per-innings batting breakdown driving Runs/Balls/HS on `row` (see
+  // aggregateBattingInnings) — one card per innings once "Inns" is 2 or
+  // more, so the player enters each innings separately and the highest one
+  // is picked for HS automatically instead of being typed in by hand.
+  const [battingInningsRows, setBattingInningsRows] = useState<BattingInningsEntry[]>(() =>
+    initBattingInningsRows(initialRow ?? emptyRow)
+  );
 
   const update = <K extends keyof CricketRecentMatchRowForm>(key: K, value: CricketRecentMatchRowForm[K]) => {
     setRow((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateRuns = (value: string) => {
-    setRow((prev) => ({ ...prev, runs: value, hs: computeHs(value, prev.not_out) }));
+  /** "Inns" changed — resize the per-innings rows to match (trimming from
+   * the end, or padding with blank innings), then re-derive Runs/Balls/HS. */
+  const updateBattingInningsCount = (value: string) => {
+    update('batting_innings', value);
+    const count = Math.max(1, Math.min(10, parseInt(value || '1', 10) || 1));
+    setBattingInningsRows((prev) => {
+      const next = prev.slice(0, count);
+      while (next.length < count) next.push({ ...EMPTY_INNINGS_ENTRY });
+      const aggregate = aggregateBattingInnings(next);
+      setRow((row) => ({ ...row, ...aggregate }));
+      return next;
+    });
   };
-  const updateNotOut = (value: boolean) => {
-    setRow((prev) => ({ ...prev, not_out: value, hs: computeHs(prev.runs, value) }));
+
+  const updateBattingInningsField = (index: number, patch: Partial<BattingInningsEntry>) => {
+    setBattingInningsRows((prev) => {
+      const next = prev.map((entry, i) => (i === index ? { ...entry, ...patch } : entry));
+      const aggregate = aggregateBattingInnings(next);
+      setRow((row) => ({ ...row, ...aggregate }));
+      return next;
+    });
   };
+
   const updateWickets = (value: string) => {
     setRow((prev) => {
       const figures = computeBowlingFigures(value, prev.bowling_runs);
@@ -301,18 +387,46 @@ function AddCricketMatchModalBody({
             <Text style={styles.sectionTitle}>Batting & Fielding</Text>
             <View style={styles.grid}>
               <Field label="Inns">
-                <StatCell column={{ key: 'batting_innings', label: 'Inns', type: 'number' }} value={row.batting_innings} onChange={(v) => update('batting_innings', v as string)} />
+                <StatCell column={{ key: 'batting_innings', label: 'Inns', type: 'number' }} value={row.batting_innings} onChange={(v) => updateBattingInningsCount(v as string)} />
               </Field>
-              <Field label="Not Out">
-                <StatCell column={{ key: 'not_out', label: 'Not Out', type: 'boolean' }} value={row.not_out} onChange={(v) => updateNotOut(v as boolean)} />
-              </Field>
-              <Field label="Balls">
-                <StatCell column={{ key: 'balls', label: 'Balls', type: 'number' }} value={row.balls} onChange={(v) => update('balls', v as string)} />
-              </Field>
-              <Field label="Runs">
-                <StatCell column={{ key: 'runs', label: 'Runs', type: 'number' }} value={row.runs} onChange={(v) => updateRuns(v as string)} />
-              </Field>
-              <Field label="HS" hint="Auto-filled from Runs">
+            </View>
+
+            {/* One card per innings — added/removed automatically as "Inns"
+                above changes. Runs/Balls/Not Out are entered here per innings;
+                everything else stays a single match-level total below. */}
+            {battingInningsRows.map((innings, index) => (
+              <View key={index} style={styles.inningsCard}>
+                {battingInningsRows.length > 1 ? (
+                  <Text style={styles.inningsLabel}>Innings {index + 1}</Text>
+                ) : null}
+                <View style={styles.grid}>
+                  <Field label="Runs">
+                    <StatCell
+                      column={{ key: `innings_${index}_runs`, label: 'Runs', type: 'number' }}
+                      value={innings.runs}
+                      onChange={(v) => updateBattingInningsField(index, { runs: v as string })}
+                    />
+                  </Field>
+                  <Field label="Balls">
+                    <StatCell
+                      column={{ key: `innings_${index}_balls`, label: 'Balls', type: 'number' }}
+                      value={innings.balls}
+                      onChange={(v) => updateBattingInningsField(index, { balls: v as string })}
+                    />
+                  </Field>
+                  <Field label="Not Out">
+                    <StatCell
+                      column={{ key: `innings_${index}_not_out`, label: 'Not Out', type: 'boolean' }}
+                      value={innings.not_out}
+                      onChange={(v) => updateBattingInningsField(index, { not_out: v as boolean })}
+                    />
+                  </Field>
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.grid}>
+              <Field label="HS" hint="Auto-filled — highest score across innings">
                 <StatCell column={{ key: 'hs', label: 'HS', type: 'text' }} value={row.hs} onChange={(v) => update('hs', v as string)} />
               </Field>
               <Field label="4s">
@@ -597,6 +711,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
+  },
+  inningsCard: {
+    backgroundColor: colors.cardSubtle,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  inningsLabel: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: spacing.xs,
   },
   grid: {
     flexDirection: 'row',

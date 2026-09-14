@@ -245,9 +245,9 @@ export default function AthleticsProfileScreen() {
             header: 'Athletics Career Stats',
             columns: [
               { key: 'year', label: 'Year', width: 55 },
-              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
+              { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
+              { key: 'match_category_id', label: 'Category', width: 90 },
               { key: 'athletics_event_id', label: 'Event', width: 100 },
               { key: 'personal_best', label: 'Personal Best', width: 95 },
               { key: 'champion', label: 'Gold', width: 50 },
@@ -262,9 +262,9 @@ export default function AthleticsProfileScreen() {
             header: 'Recent Events',
             columns: [
               { key: 'event_date', label: 'Date', width: 85 },
-              { key: 'format_id', label: 'Format', width: 90, abbreviate: true },
+              { key: 'format_id', label: 'Format', width: 90 },
               { key: 'age_category_id', label: 'Age', width: 70 },
-              { key: 'match_category_id', label: 'Category', width: 90, abbreviate: true },
+              { key: 'match_category_id', label: 'Category', width: 90 },
               { key: 'athletics_event_id', label: 'Event', width: 100 },
               { key: 'personal_best', label: 'Personal Best', width: 95 },
               { key: 'place', label: 'Place', width: 55 },

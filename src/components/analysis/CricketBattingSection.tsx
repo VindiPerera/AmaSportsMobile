@@ -127,20 +127,25 @@ export function CricketBattingSection({ batting, boundaries, recentForm }: Crick
       <View style={styles.splitRow}>
         <ChartBlock title="4s vs 6s" style={styles.halfBlock}>
           <View style={styles.donutRow}>
-            <ChartErrorBoundary>
-              <PieChart
-                data={boundaryData}
-                donut
-                radius={54}
-                innerRadius={36}
-                innerCircleColor={colors.card}
-                centerLabelComponent={() =>
-                  hasBoundaries ? (
-                    <Text style={styles.donutCenter}>{boundaries.fours + boundaries.sixes}</Text>
-                  ) : null
-                }
-              />
-            </ChartErrorBoundary>
+            {/* Fixed, non-shrinking box around the chart itself — the
+                legend beside it is the one allowed to give way (wrap/
+                truncate) on a narrow half, never the other way round. */}
+            <View style={styles.donutChartWrap}>
+              <ChartErrorBoundary>
+                <PieChart
+                  data={boundaryData}
+                  donut
+                  radius={54}
+                  innerRadius={36}
+                  innerCircleColor={colors.card}
+                  centerLabelComponent={() =>
+                    hasBoundaries ? (
+                      <Text style={styles.donutCenter}>{boundaries.fours + boundaries.sixes}</Text>
+                    ) : null
+                  }
+                />
+              </ChartErrorBoundary>
+            </View>
             <View style={styles.legend}>
               <LegendRow color={colors.primary} label="4s" value={boundaries.fours} />
               <LegendRow color={colors.energy} label="6s" value={boundaries.sixes} />
@@ -189,8 +194,8 @@ function LegendRow({ color, label, value }: { color: string; label: string; valu
   return (
     <View style={styles.legendRow}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={styles.legendLabel}>{label}</Text>
-      <Text style={styles.legendValue}>{value}</Text>
+      <Text style={styles.legendLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.legendValue} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
@@ -211,8 +216,8 @@ function MilestoneBadge({
       <View style={[styles.milestoneIcon, { backgroundColor: `${tone}1A` }]}>
         <Ionicons name={icon} size={16} color={tone} />
       </View>
-      <Text style={styles.milestoneCount}>{count}</Text>
-      <Text style={styles.milestoneLabel}>{label}</Text>
+      <Text style={styles.milestoneCount} numberOfLines={1}>{count}</Text>
+      <Text style={styles.milestoneLabel} numberOfLines={1} ellipsizeMode="tail">{label}</Text>
     </View>
   );
 }
@@ -255,16 +260,30 @@ const styles = StyleSheet.create({
   },
   splitRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
   halfBlock: {
     flex: 1,
+    // Without this, a RN flex child measures at its content's natural
+    // width before shrinking — a long label/number in either half could
+    // render wider than the 50/50 split and spill into (paint over) its
+    // sibling. `minWidth: 0` lets it actually shrink to the split;
+    // `overflow: hidden` is the hard backstop so nothing ever bleeds past
+    // this half's own box regardless.
+    minWidth: 0,
+    overflow: 'hidden',
     marginBottom: 0,
   },
   donutRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  // Locks the donut to its own footprint — it's the legend beside it that
+  // gives way on a narrow half, never the chart.
+  donutChartWrap: {
+    flexShrink: 0,
   },
   donutCenter: {
     ...typography.caption,
@@ -273,6 +292,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   legend: {
+    flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   legendRow: {
@@ -284,19 +305,24 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: radius.full,
+    flexShrink: 0,
   },
   legendLabel: {
     ...typography.caption,
     color: colors.textMuted,
     fontWeight: '600',
+    flexShrink: 1,
   },
   legendValue: {
     ...typography.caption,
     color: colors.text,
     fontWeight: '800',
+    flexShrink: 0,
+    marginLeft: 'auto',
   },
   badgeColumn: {
     gap: spacing.sm,
+    minWidth: 0,
   },
   milestoneBadge: {
     flexDirection: 'row',
@@ -306,6 +332,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
+    minWidth: 0,
   },
   milestoneIcon: {
     width: 26,
@@ -313,15 +340,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   milestoneCount: {
     ...typography.body,
     fontWeight: '800',
     color: colors.text,
+    flexShrink: 0,
   },
   milestoneLabel: {
     ...typography.caption,
     color: colors.textMuted,
     fontWeight: '600',
+    flexShrink: 1,
   },
 });

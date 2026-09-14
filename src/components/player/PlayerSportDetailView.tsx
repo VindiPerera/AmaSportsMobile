@@ -11,7 +11,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, getSportTheme, radius, shadows, spacing, typography } from '../../theme';
 import { formatBornDate, formatDetailedAge } from '../../utils/date';
-import { abbreviateStatLabel } from '../../utils/statLabels';
 import { ImageLightbox } from '../ui/ImageLightbox';
 
 export interface DetailFieldItem {
@@ -23,10 +22,6 @@ export interface StatTableColumn {
   key: string;
   label: string;
   width?: number;
-  /** Shortens long Format/Category names (e.g. "Academy" -> "Aca") for this
-   * column's cells — display-only, set on the read-only career-stat column
-   * configs, never on the edit form's own field definitions. */
-  abbreviate?: boolean;
 }
 
 /** One stats table (Career Stats, Bowling, Recent Matches, ...) — its own
@@ -98,8 +93,7 @@ const CELL_PADDING = 14;
 
 function cellText(row: Record<string, unknown>, col: StatTableColumn): string {
   const raw = row[col.key];
-  const text = raw === null || raw === undefined || raw === '' ? '-' : String(raw);
-  return col.abbreviate ? abbreviateStatLabel(text) : text;
+  return raw === null || raw === undefined || raw === '' ? '-' : String(raw);
 }
 
 /** A column's declared `width` is sized for the sport's typical values —
