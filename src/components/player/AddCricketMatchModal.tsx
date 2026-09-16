@@ -16,8 +16,7 @@ function computeHs(runs: string, notOut: boolean): string {
   return notOut ? `${runs}*` : runs;
 }
 
-/** "3/25" — a single match only ever has one bowling spell here, so BBI and
- * BBM (best-in-innings / best-in-match) are always the same figure. */
+/** "3/25" figures for a single wickets/runs pair. */
 function computeBowlingFigures(wickets: string, runsConceded: string): string {
   if (!wickets.trim() && !runsConceded.trim()) return '';
   return `${wickets || '0'}/${runsConceded || '0'}`;
@@ -82,6 +81,82 @@ function aggregateBattingInnings(rows: BattingInningsEntry[]): {
     balls: anyBalls ? String(totalBalls) : '',
     hs: bestRow ? computeHs((bestRow as BattingInningsEntry).runs, (bestRow as BattingInningsEntry).not_out) : '',
     not_out: bestRow ? (bestRow as BattingInningsEntry).not_out : false,
+  };
+}
+
+/** One bowling spell entered this match — only Balls/Runs/Wkts are tracked
+ * per innings (mirrors BattingInningsEntry above). BBI is derived as the
+ * innings with the most wickets (ties going to fewer runs conceded); BBM is
+ * the summed match figures — the real BBI/BBM distinction, which a single
+ * combined figure couldn't express once a match can have more than one
+ * bowling innings. */
+interface BowlingInningsEntry {
+  balls: string;
+  runs: string;
+  wickets: string;
+}
+
+const EMPTY_BOWLING_INNINGS_ENTRY: BowlingInningsEntry = { balls: '', runs: '', wickets: '' };
+
+/** Seeds the per-innings bowling rows from `row.bowling_innings` (clamped
+ * 1–10). Older/existing rows only ever stored one combined Balls/Runs/Wkts
+ * figure, so on edit only the first innings is pre-filled from that — the
+ * rest start blank for the player to re-enter if this match really covers
+ * more than one bowling innings. */
+function initBowlingInningsRows(row: CricketRecentMatchRowForm): BowlingInningsEntry[] {
+  const count = Math.max(1, Math.min(10, parseInt(row.bowling_innings || '1', 10) || 1));
+  const rows: BowlingInningsEntry[] = Array.from({ length: count }, () => ({ ...EMPTY_BOWLING_INNINGS_ENTRY }));
+  rows[0] = { balls: row.bowling_balls || '', runs: row.bowling_runs || '', wickets: row.wickets || '' };
+  return rows;
+}
+
+/** Sums Balls/Runs/Wkts across every innings bowled, and derives BBI (best
+ * figures in a single innings — most wickets, ties going to fewer runs) and
+ * BBM (combined figures across the whole match). */
+function aggregateBowlingInnings(rows: BowlingInningsEntry[]): {
+  bowling_balls: string;
+  bowling_runs: string;
+  wickets: string;
+  bbi: string;
+  bbm: string;
+} {
+  let totalBalls = 0;
+  let totalRuns = 0;
+  let totalWickets = 0;
+  let anyBalls = false;
+  let anyRuns = false;
+  let anyWickets = false;
+  let bestRow: BowlingInningsEntry | null = null;
+
+  rows.forEach((entry) => {
+    if (entry.balls.trim() !== '') {
+      anyBalls = true;
+      totalBalls += parseInt(entry.balls, 10) || 0;
+    }
+    if (entry.runs.trim() !== '') {
+      anyRuns = true;
+      totalRuns += parseInt(entry.runs, 10) || 0;
+    }
+    if (entry.wickets.trim() !== '') {
+      anyWickets = true;
+      totalWickets += parseInt(entry.wickets, 10) || 0;
+    }
+    if (!entry.wickets.trim() && !entry.runs.trim()) return;
+    const wicketsNum = parseInt(entry.wickets, 10) || 0;
+    const runsNum = parseInt(entry.runs, 10) || 0;
+    const bestWickets = bestRow ? parseInt(bestRow.wickets, 10) || 0 : -1;
+    const bestRuns = bestRow ? parseInt(bestRow.runs, 10) || 0 : Infinity;
+    if (!bestRow || wicketsNum > bestWickets || (wicketsNum === bestWickets && runsNum < bestRuns)) {
+      bestRow = entry;
+    }
+  });
+
+  return {
+    bowling_balls: anyBalls ? String(totalBalls) : '',
+    bowling_runs: anyRuns ? String(totalRuns) : '',
+    wickets: anyWickets ? String(totalWickets) : '',
+    bbi: bestRow ? computeBowlingFigures((bestRow as BowlingInningsEntry).wickets, (bestRow as BowlingInningsEntry).runs) : '',
+    bbm: anyRuns || anyWickets ? computeBowlingFigures(String(totalWickets), String(totalRuns)) : '',
   };
 }
 
@@ -170,6 +245,11 @@ function AddCricketMatchModalBody({
   const [battingInningsRows, setBattingInningsRows] = useState<BattingInningsEntry[]>(() =>
     initBattingInningsRows(initialRow ?? emptyRow)
   );
+  // Per-innings bowling breakdown driving Balls/Runs/Wkts/BBI/BBM on `row`
+  // (see aggregateBowlingInnings) — same "Inns" driven behaviour as batting.
+  const [bowlingInningsRows, setBowlingInningsRows] = useState<BowlingInningsEntry[]>(() =>
+    initBowlingInningsRows(initialRow ?? emptyRow)
+  );
 
   const update = <K extends keyof CricketRecentMatchRowForm>(key: K, value: CricketRecentMatchRowForm[K]) => {
     setRow((prev) => ({ ...prev, [key]: value }));
@@ -198,16 +278,27 @@ function AddCricketMatchModalBody({
     });
   };
 
-  const updateWickets = (value: string) => {
-    setRow((prev) => {
-      const figures = computeBowlingFigures(value, prev.bowling_runs);
-      return { ...prev, wickets: value, bbi: figures, bbm: figures };
+  /** "Inns" changed — resize the per-innings bowling rows to match (trimming
+   * from the end, or padding with blank innings), then re-derive
+   * Balls/Runs/Wkts/BBI/BBM. */
+  const updateBowlingInningsCount = (value: string) => {
+    update('bowling_innings', value);
+    const count = Math.max(1, Math.min(10, parseInt(value || '1', 10) || 1));
+    setBowlingInningsRows((prev) => {
+      const next = prev.slice(0, count);
+      while (next.length < count) next.push({ ...EMPTY_BOWLING_INNINGS_ENTRY });
+      const aggregate = aggregateBowlingInnings(next);
+      setRow((row) => ({ ...row, ...aggregate }));
+      return next;
     });
   };
-  const updateBowlingRuns = (value: string) => {
-    setRow((prev) => {
-      const figures = computeBowlingFigures(prev.wickets, value);
-      return { ...prev, bowling_runs: value, bbi: figures, bbm: figures };
+
+  const updateBowlingInningsField = (index: number, patch: Partial<BowlingInningsEntry>) => {
+    setBowlingInningsRows((prev) => {
+      const next = prev.map((entry, i) => (i === index ? { ...entry, ...patch } : entry));
+      const aggregate = aggregateBowlingInnings(next);
+      setRow((row) => ({ ...row, ...aggregate }));
+      return next;
     });
   };
 
@@ -452,21 +543,48 @@ function AddCricketMatchModalBody({
             <Text style={styles.sectionTitle}>Bowling</Text>
             <View style={styles.grid}>
               <Field label="Inns">
-                <StatCell column={{ key: 'bowling_innings', label: 'Inns', type: 'number' }} value={row.bowling_innings} onChange={(v) => update('bowling_innings', v as string)} />
+                <StatCell column={{ key: 'bowling_innings', label: 'Inns', type: 'number' }} value={row.bowling_innings} onChange={(v) => updateBowlingInningsCount(v as string)} />
               </Field>
-              <Field label="Balls">
-                <StatCell column={{ key: 'bowling_balls', label: 'Balls', type: 'number' }} value={row.bowling_balls} onChange={(v) => update('bowling_balls', v as string)} />
-              </Field>
-              <Field label="Runs">
-                <StatCell column={{ key: 'bowling_runs', label: 'Runs', type: 'number' }} value={row.bowling_runs} onChange={(v) => updateBowlingRuns(v as string)} />
-              </Field>
-              <Field label="Wkts">
-                <StatCell column={{ key: 'wickets', label: 'Wkts', type: 'number' }} value={row.wickets} onChange={(v) => updateWickets(v as string)} />
-              </Field>
-              <Field label="BBI" hint="Auto-filled from Wkts/Runs">
+            </View>
+
+            {/* One card per innings bowled — added/removed automatically as
+                "Inns" above changes, same as the Batting & Fielding section. */}
+            {bowlingInningsRows.map((innings, index) => (
+              <View key={index} style={styles.inningsCard}>
+                {bowlingInningsRows.length > 1 ? (
+                  <Text style={styles.inningsLabel}>Innings {index + 1}</Text>
+                ) : null}
+                <View style={styles.grid}>
+                  <Field label="Balls">
+                    <StatCell
+                      column={{ key: `bowling_innings_${index}_balls`, label: 'Balls', type: 'number' }}
+                      value={innings.balls}
+                      onChange={(v) => updateBowlingInningsField(index, { balls: v as string })}
+                    />
+                  </Field>
+                  <Field label="Runs">
+                    <StatCell
+                      column={{ key: `bowling_innings_${index}_runs`, label: 'Runs', type: 'number' }}
+                      value={innings.runs}
+                      onChange={(v) => updateBowlingInningsField(index, { runs: v as string })}
+                    />
+                  </Field>
+                  <Field label="Wkts">
+                    <StatCell
+                      column={{ key: `bowling_innings_${index}_wickets`, label: 'Wkts', type: 'number' }}
+                      value={innings.wickets}
+                      onChange={(v) => updateBowlingInningsField(index, { wickets: v as string })}
+                    />
+                  </Field>
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.grid}>
+              <Field label="BBI" hint="Auto-filled — best figures in an innings">
                 <StatCell column={{ key: 'bbi', label: 'BBI', type: 'text' }} value={row.bbi} onChange={(v) => update('bbi', v as string)} />
               </Field>
-              <Field label="BBM" hint="Auto-filled from Wkts/Runs">
+              <Field label="BBM" hint="Auto-filled — combined match figures">
                 <StatCell column={{ key: 'bbm', label: 'BBM', type: 'text' }} value={row.bbm} onChange={(v) => update('bbm', v as string)} />
               </Field>
               <Field label="3W">
