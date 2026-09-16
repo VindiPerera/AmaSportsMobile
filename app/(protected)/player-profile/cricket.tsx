@@ -53,6 +53,7 @@ const EMPTY_RECENT_MATCH_ROW: CricketRecentMatchRowForm = {
   hundreds: false, fifties: false, overs: '', maidens: '',
   bowling_innings: '', bowling_balls: '', bowling_runs: '', wickets: '', bbi: '', bbm: '',
   three_w: false, four_w: false, five_w: false, ten_w: false, catches: '', stumpings: '',
+  score_sheet_url: '',
 };
 
 // Kept only for its keys (used by `mapRow` when loading an existing profile) —
@@ -169,7 +170,7 @@ export default function CricketProfileScreen() {
                 'age_category_id', 'format_id', 'match_date', 'opponent', 'ground', 'year',
                 'batting_innings', 'runs', 'balls', 'hs', 'fours', 'sixes', 'overs', 'maidens',
                 'bowling_innings', 'bowling_balls', 'bowling_runs', 'wickets', 'bbi', 'bbm',
-                'catches', 'stumpings',
+                'catches', 'stumpings', 'score_sheet_url',
               ]),
               played_xi: Boolean(row.played_xi),
               not_out: Boolean(row.not_out),
@@ -194,6 +195,15 @@ export default function CricketProfileScreen() {
       }
     })();
   }, [ensureLoaded, reset]);
+
+  /** Uploads a match's scoresheet photo immediately (see
+   * AddCricketMatchModal) and hands back the URL to store on that match's
+   * `score_sheet_url` field — kept on file only, nothing in the app
+   * displays it back. */
+  const handleUploadScoreSheet = async (image: PickedImage) => {
+    const result = await playerService.uploadCricketScoreSheet(image);
+    return result.score_sheet_url;
+  };
 
   /** Auto-fills Age from Born, but only while the player hasn't typed an age of their own. */
   const handleBornChange = (isoDate: string, onChange: (value: string) => void) => {
@@ -412,6 +422,7 @@ export default function CricketProfileScreen() {
         formats={careerCategoryOptions}
         categories={careerDivisionOptions}
         resetSignal={savedVersion}
+        onUploadScoreSheet={handleUploadScoreSheet}
       />
 
       {/*

@@ -13,6 +13,7 @@ import {
   CricketBowlingRowForm,
   CricketProfileFormValues,
   CricketRecentMatchRowForm,
+  PickedImage,
 } from '../../types';
 
 const SESSION_COLUMNS: StatColumn[] = [
@@ -59,6 +60,7 @@ interface CricketMatchEntryCardProps {
   formats: DropdownOption[];
   categories: DropdownOption[];
   resetSignal: number;
+  onUploadScoreSheet: (image: PickedImage) => Promise<string>;
 }
 
 /**
@@ -81,6 +83,7 @@ export function CricketMatchEntryCard({
   formats,
   categories,
   resetSignal,
+  onUploadScoreSheet,
 }: CricketMatchEntryCardProps) {
   const { fields: matchFields, replace: replaceMatches } = useFieldArray({ control, name: 'recent_matches' });
   const { fields: battingFields, replace: replaceBatting } = useFieldArray({ control, name: 'batting' });
@@ -246,6 +249,7 @@ export function CricketMatchEntryCard({
         formats={formats}
         categories={categories}
         existingEntries={existingEntries}
+        onUploadScoreSheet={onUploadScoreSheet}
       />
     </View>
   );

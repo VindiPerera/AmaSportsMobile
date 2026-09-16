@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { StatCell, StatColumn } from './StatTable';
 import { Dropdown, DropdownOption } from './Dropdown';
-import { CricketRecentMatchRowForm } from '../../types';
+import { CricketRecentMatchRowForm, PickedImage } from '../../types';
 
 /** "76*" when not out, otherwise a plain "76" — mirrors how a career row's
  * own `hs` carries the not-out marker (see statMerge.best()), so this
@@ -193,6 +194,11 @@ interface AddCricketMatchModalProps {
    * would mean re-deciding which aggregate row this merges into. */
   initialRow?: CricketRecentMatchRowForm;
   saveLabel?: string;
+  /** Uploads a picked scoresheet photo immediately (the match row this
+   * modal builds doesn't exist in the database until the whole Cricket
+   * profile form is submitted, so there's nothing yet to attach a file to)
+   * and resolves to the URL to store on `score_sheet_url`. */
+  onUploadScoreSheet: (image: PickedImage) => Promise<string>;
 }
 
 /**
@@ -232,6 +238,7 @@ function AddCricketMatchModalBody({
   existingEntries,
   initialRow,
   saveLabel = 'Add Match',
+  onUploadScoreSheet,
 }: AddCricketMatchModalProps) {
   const isEditing = !!initialRow;
   const hasEntries = existingEntries.length > 0;
@@ -250,9 +257,43 @@ function AddCricketMatchModalBody({
   const [bowlingInningsRows, setBowlingInningsRows] = useState<BowlingInningsEntry[]>(() =>
     initBowlingInningsRows(initialRow ?? emptyRow)
   );
+  const [isUploadingScoreSheet, setIsUploadingScoreSheet] = useState(false);
 
   const update = <K extends keyof CricketRecentMatchRowForm>(key: K, value: CricketRecentMatchRowForm[K]) => {
     setRow((prev) => ({ ...prev, [key]: value }));
+  };
+
+  /** Picks a photo of the scoresheet and uploads it right away — see
+   * `onUploadScoreSheet` on this modal's props for why it can't wait for the
+   * bulk save like the rest of the form. */
+  const pickScoreSheet = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to upload the scoresheet.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setIsUploadingScoreSheet(true);
+    try {
+      const url = await onUploadScoreSheet({
+        uri: asset.uri,
+        name: asset.fileName ?? 'score-sheet.jpg',
+        type: asset.mimeType ?? 'image/jpeg',
+        file: asset.file,
+      });
+      update('score_sheet_url', url);
+    } catch {
+      Alert.alert('Upload failed', 'Could not upload the scoresheet. Please try again.');
+    } finally {
+      setIsUploadingScoreSheet(false);
+    }
   };
 
   /** "Inns" changed — resize the per-innings rows to match (trimming from
@@ -601,7 +642,42 @@ function AddCricketMatchModalBody({
               </Field>
             </View>
 
-            <Pressable onPress={() => setStep('preview')} style={styles.nextButton} accessibilityRole="button">
+            <Text style={styles.sectionTitle}>Score Sheet *</Text>
+            <Pressable
+              onPress={pickScoreSheet}
+              style={[styles.scoreSheetBox, shadows.sm, !row.score_sheet_url && styles.scoreSheetBoxRequired]}
+              accessibilityRole="button"
+              accessibilityLabel={row.score_sheet_url ? 'Scoresheet photo — tap to replace' : 'Upload a photo of the scoresheet (required)'}
+            >
+              {isUploadingScoreSheet ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : row.score_sheet_url ? (
+                <Image source={{ uri: row.score_sheet_url }} style={styles.scoreSheetImage} resizeMode="cover" />
+              ) : (
+                <>
+                  <Ionicons name="camera-outline" size={22} color={colors.primary} />
+                  <Text style={styles.scoreSheetText}>Upload Score Sheet</Text>
+                </>
+              )}
+            </Pressable>
+            {row.score_sheet_url && !isUploadingScoreSheet ? (
+              <Pressable onPress={pickScoreSheet} style={styles.addToggle} accessibilityRole="button">
+                <Ionicons name="camera-reverse-outline" size={15} color={colors.primary} />
+                <Text style={styles.addToggleText}>Replace photo</Text>
+              </Pressable>
+            ) : null}
+            <Text style={styles.fieldHint}>
+              {row.score_sheet_url
+                ? 'Kept on file for the record — not shown anywhere else in the app.'
+                : 'Required — a photo of the scoresheet must be attached before this match can be saved.'}
+            </Text>
+
+            <Pressable
+              onPress={() => setStep('preview')}
+              disabled={!row.score_sheet_url || isUploadingScoreSheet}
+              style={[styles.nextButton, (!row.score_sheet_url || isUploadingScoreSheet) && styles.nextButtonDisabled]}
+              accessibilityRole="button"
+            >
               <Text style={styles.nextButtonText}>Preview</Text>
               <Ionicons name="arrow-forward" size={16} color={colors.white} />
             </Pressable>
@@ -644,6 +720,7 @@ function AddCricketMatchModalBody({
                 label="3W / 4W / 5W / 10W"
                 value={`${row.three_w ? 'Yes' : 'No'} / ${row.four_w ? 'Yes' : 'No'} / ${row.five_w ? 'Yes' : 'No'} / ${row.ten_w ? 'Yes' : 'No'}`}
               />
+              <PreviewRow label="Score Sheet" value={row.score_sheet_url ? 'Attached' : '—'} />
             </PreviewSection>
 
             <View style={styles.previewActionsRow}>
@@ -846,6 +923,31 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: spacing.xs,
+  },
+  scoreSheetBox: {
+    height: 140,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
+  },
+  scoreSheetBoxRequired: {
+    borderColor: colors.live,
+  },
+  scoreSheetImage: {
+    width: '100%',
+    height: '100%',
+  },
+  scoreSheetText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
   },
   grid: {
     flexDirection: 'row',

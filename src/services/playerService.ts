@@ -153,6 +153,7 @@ function cricketFormToPayload(values: CricketProfileFormValues) {
         ten_w: row.ten_w,
         catches: idOrNull(row.catches),
         stumpings: idOrNull(row.stumpings),
+        score_sheet_url: row.score_sheet_url || null,
       })),
     drop_catches: values.drop_catches
       .filter((row) => !isBlankRow(row as unknown as Record<string, string>))
@@ -309,6 +310,22 @@ export const playerService = {
   async removeCollegeLogo(sport?: string) {
     const endpoint = sport && sport !== 'cricket' ? '/player/college-logo' : '/player/cricket-profile/college-logo';
     await apiClient.delete(endpoint, { data: sport ? { sport } : undefined });
+  },
+
+  /** Uploads a photo of one match's physical/official scoresheet —
+   * immediate, same "own endpoint" pattern as the logo uploads above, since
+   * the Recent Match row it belongs to doesn't exist until the whole Cricket
+   * profile form is submitted. The caller stores the returned URL on that
+   * match's `score_sheet_url` field, which then rides along on the next
+   * saveCricketProfile call like any other form value. */
+  async uploadCricketScoreSheet(image: PickedImage) {
+    const formData = new FormData();
+    appendPickedImage(formData, 'image', image);
+    const { data } = await apiClient.post<ApiSuccessResponse<{ score_sheet_url: string }>>(
+      '/player/cricket-profile/score-sheet',
+      formData
+    );
+    return data.data;
   },
 
   /** Adds one photo to the player's gallery (up to 10 — see PlayerPhoto.

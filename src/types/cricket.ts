@@ -118,9 +118,9 @@ export interface CricketRecentMatchRowForm {
   bowling_balls: string;
   bowling_runs: string;
   wickets: string;
-  // Auto-filled from wickets+bowling_runs (e.g. "3/25") — editable. A
-  // single match only ever has one bowling spell here, so BBI and BBM
-  // share the same computed value.
+  // Auto-filled — BBI is the best figures in a single bowling innings, BBM
+  // the combined figures across the whole match (see aggregateBowlingInnings
+  // in AddCricketMatchModal). Both editable.
   bbi: string;
   bbm: string;
   three_w: boolean;
@@ -129,6 +129,11 @@ export interface CricketRecentMatchRowForm {
   ten_w: boolean;
   catches: string;
   stumpings: string;
+  // Photo of the physical/official scoresheet for this match — uploaded
+  // immediately (see playerService.uploadCricketScoreSheet), then this URL
+  // rides along with the rest of the row on the normal bulk save. Saved for
+  // the record only; nothing in the app displays it back.
+  score_sheet_url: string;
 }
 
 /** Repeatable "Reason for Matches Missed / Dropped" row — client-side only
