@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://amasports.jaan.lk/api"
+        "EXPO_PUBLIC_API_URL": "http://www.amaxsport.com/api"
       }
     },
     "production": {

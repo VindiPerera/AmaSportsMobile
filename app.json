@@ -54,7 +54,7 @@
       "expo-web-browser"
     ],
     "extra": {
-      "apiUrl": "https://amasports.jaan.lk/api",
+      "apiUrl": "http://www.amaxsport.com/api",
       "router": {},
       "eas": {
         "projectId": "fe907456-8db7-4fef-b91c-64896217452e"
