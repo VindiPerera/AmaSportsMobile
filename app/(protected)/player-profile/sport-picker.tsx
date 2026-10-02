@@ -91,22 +91,22 @@ export default function SportPickerScreen() {
             {subscriptionStatus.has_subscribed 
               ? 'Subscription expired' 
               : subscriptionStatus.trial_eligible
-                ? 'Start your free 10-day trial'
+                ? 'Choose your plan'
                 : 'Subscribe to add a sport'}
           </Text>
           <Text style={styles.emptyText}>
             {subscriptionStatus.has_subscribed
-              ? 'Your AmaX subscription has expired. Renew for $10/year to add new sports again.'
+              ? 'Your AmaX subscription has expired. Renew your yearly plan to add new sports again.'
               : subscriptionStatus.trial_eligible
-                ? 'Start your free trial to add every sport you play and unlock full analytics — no payment needed.'
-                : 'A $10/year AmaX subscription unlocks adding sports and the Analysis tab.'}
+                ? 'Start a free 10-day trial or get the 1-year plan to add every sport you play and unlock full analytics.'
+                : 'A yearly AmaX subscription unlocks adding sports and the Analysis tab.'}
           </Text>
           <Button
             label={
               subscriptionStatus.has_subscribed 
                 ? 'Renew Subscription' 
                 : subscriptionStatus.trial_eligible
-                  ? 'Start Free Trial'
+                  ? 'See Plans'
                   : 'Subscribe Now'
             }
             onPress={() => router.push('/(protected)/subscription/paywall')}

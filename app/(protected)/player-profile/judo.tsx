@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
 import { router, useLocalSearchParams } from 'expo-router';
+import { requireActivePlan } from '../../../src/store/subscriptionStore';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { TextField } from '../../../src/components/ui/TextField';
 import { Button } from '../../../src/components/ui/Button';
@@ -268,7 +269,7 @@ export default function JudoProfileScreen() {
             rows: recentRows,
           },
         ]}
-        onEditPress={() => setIsViewing(false)}
+        onEditPress={() => requireActivePlan(() => setIsViewing(false))}
         onBackPress={() => router.back()}
       />
     );
