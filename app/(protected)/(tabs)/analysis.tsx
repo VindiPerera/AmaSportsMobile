@@ -99,11 +99,17 @@ export default function AnalysisScreen() {
           </Text>
           <Text style={styles.centerText}>
             {subscriptionStatus.has_subscribed
-              ? 'Renew your $10/year AmaX subscription to keep viewing performance analytics.'
-              : 'A $10/year AmaX subscription unlocks the Analysis tab and adding new sports.'}
+              ? 'Renew your yearly AmaX subscription to keep viewing performance analytics.'
+              : 'A yearly AmaX subscription unlocks the Analysis tab and adding new sports.'}
           </Text>
           <Button
-            label={subscriptionStatus.has_subscribed ? 'Renew Subscription' : 'Subscribe Now'}
+            label={
+              subscriptionStatus.has_subscribed
+                ? 'Renew Subscription'
+                : subscriptionStatus.trial_eligible
+                  ? 'See Plans'
+                  : 'Subscribe Now'
+            }
             onPress={() => router.push('/(protected)/subscription/paywall')}
             fullWidth={false}
             style={styles.subscribeCta}

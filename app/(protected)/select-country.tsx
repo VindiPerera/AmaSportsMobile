@@ -11,6 +11,7 @@ import { COUNTRY_OPTIONS } from '../../src/constants/countries';
 import { playerService } from '../../src/services/playerService';
 import { subscriptionService } from '../../src/services/subscriptionService';
 import { ApiError, SubscriptionPrices } from '../../src/types';
+import { formatPrice } from '../../src/utils/price';
 
 /**
  * One-time onboarding gate shown after login/registration when the player
@@ -77,7 +78,7 @@ export default function SelectCountryScreen() {
               <Text style={styles.priceLabel}>Your subscription price</Text>
               {previewAmount !== undefined ? (
                 <Text style={styles.priceValue}>
-                  ${previewAmount.toFixed(2)} <Text style={styles.priceUnit}>/ year</Text>
+                  {formatPrice(previewAmount, prices?.currency)} <Text style={styles.priceUnit}>/ year</Text>
                 </Text>
               ) : (
                 <ActivityIndicator color={colors.primary} style={styles.priceLoading} />

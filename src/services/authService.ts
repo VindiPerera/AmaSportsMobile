@@ -47,6 +47,11 @@ export const authService = {
     return data.message;
   },
 
+  /** Permanently deletes the account and all player data (Google Play account-deletion requirement). */
+  async deleteAccount(password: string) {
+    await apiClient.delete('/user', { data: { password } });
+  },
+
   async fetchProfile() {
     const { data } = await apiClient.get<ApiSuccessResponse<User>>('/user');
     return data.data;

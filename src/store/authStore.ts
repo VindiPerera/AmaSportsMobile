@@ -28,6 +28,7 @@ interface AuthState {
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<string>;
   resetPassword: (payload: ResetPasswordPayload) => Promise<string>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   clearError: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -133,6 +134,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       useSubscriptionStore.getState().reset();
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  /** Throws on a wrong password (ApiError 422) so the caller can show it; only clears the session once the server has deleted the account. */
+  deleteAccount: async (password) => {
+    await authService.deleteAccount(password);
+    await clearSession();
+    useSubscriptionStore.getState().reset();
+    set({ user: null, token: null, isAuthenticated: false });
   },
 
   clearError: () => set({ error: null }),

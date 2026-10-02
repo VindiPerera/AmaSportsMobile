@@ -15,8 +15,13 @@ export interface SubscriptionStatus {
   days_remaining: number | null;
   /** `is_active` and `days_remaining <= 30`. */
   expiring_soon: boolean;
+  /** What the reported subscription row was charged — 0 for the free trial. */
   amount: number;
   currency: string;
+  /** What the 1-year plan costs this player right now (their country's price) — use this for any price shown on a buy/upgrade/renew button. */
+  plan_amount: number;
+  /** Whether the 1-year plan can be bought now: nothing active, on the free trial (upgrade), or a paid year in its last 30 days (renew early). */
+  can_purchase: boolean;
 }
 
 /** POST /subscriptions/create-order response. */

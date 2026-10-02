@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 import { SubscriptionStatus } from '../../types';
 import { formatBornDate } from '../../utils/date';
+import { formatPrice } from '../../utils/price';
 
 interface Props {
   status: SubscriptionStatus | null;
@@ -106,7 +107,7 @@ export function SubscriptionStatusCard({ status }: Props) {
 
           <View style={styles.actionBtn}>
             <Text style={styles.actionBtnText}>
-              {expiringSoon ? 'Upgrade' : 'Manage'}
+              {isTrial ? 'Upgrade' : expiringSoon ? 'Renew' : 'Manage'}
             </Text>
             <Ionicons name="arrow-forward" size={12} color={colors.white} />
           </View>
@@ -143,7 +144,7 @@ export function SubscriptionStatusCard({ status }: Props) {
           <Text style={styles.text}>
             {hasLapsed
               ? 'Renew today to manage sports and unlock deep analytics.'
-              : `Subscribe for $${status.amount.toFixed(0)}/year to unlock all sports & analysis.`}
+              : `Subscribe for ${formatPrice(status.plan_amount ?? status.amount, status.currency, 0)}/year to unlock all sports & analysis.`}
           </Text>
         </View>
 

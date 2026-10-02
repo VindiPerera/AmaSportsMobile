@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, Modal, SafeAreaView } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { router, useFocusEffect } from 'expo-router';
@@ -7,12 +7,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { Button } from '../../../src/components/ui/Button';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
+import { PlanOption } from '../../../src/components/subscription/PlanOption';
 import { colors, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { subscriptionService } from '../../../src/services/subscriptionService';
 import { lookupService } from '../../../src/services/lookupService';
 import { sportIconFor } from '../../../src/constants/sportIcons';
 import { formatBornDate } from '../../../src/utils/date';
+import { formatPrice } from '../../../src/utils/price';
 import { ApiError, SportOption } from '../../../src/types';
 
 const BENEFITS = [
@@ -34,13 +36,14 @@ const BENEFITS = [
   {
     icon: 'calendar-outline' as const,
     title: 'One price, a full year',
-    text: 'Your subscription price covers everything above for 12 months from the day you subscribe — no extra or per-sport charges until it’s time to renew.',
+    text: 'Your subscription price covers everything above for a full 12 months — no extra or per-sport charges until it’s time to renew for the next year.',
   },
 ];
 
 /** How many times to poll subscription-status after the in-app browser closes, before giving up and asking the player to check manually. */
-const POLL_ATTEMPTS = 5;
-const POLL_DELAY_MS = 2000;
+// PayHere's notify_url usually lands within a few seconds of payment, but can lag.
+const POLL_ATTEMPTS = 8;
+const POLL_DELAY_MS = 2500;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -49,9 +52,10 @@ function sleep(ms: number) {
 /**
  * Subscribe/renew paywall (Phase 6 revision 2) — reached from Add Sport,
  * Analysis, a lapsed write (see apiClient's 402 handler), or Profile's
- * "Manage Subscription". Never trusts the PayPal redirect landing on the
- * backend's return page by itself: once the in-app browser is dismissed for
- * any reason, it polls subscription-status itself.
+ * "Manage Subscription". Never trusts the PayHere redirect landing on the
+ * backend's return page by itself: once the checkout view is dismissed for
+ * any reason, it polls subscription-status itself (activation happens
+ * server-side when PayHere calls the backend's notify_url).
  */
 export default function SubscriptionPaywallScreen() {
   const status = useSubscriptionStore((s) => s.status);
@@ -63,6 +67,10 @@ export default function SubscriptionPaywallScreen() {
   const [error, setError] = useState<string | null>(null);
   const [sports, setSports] = useState<SportOption[]>([]);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'trial' | 'yearly'>('trial');
+  // expires_at as it was when checkout opened — an upgrade/early renewal is
+  // already `is_active`, so payment is confirmed by expires_at moving instead.
+  const expiresBeforeCheckout = useRef<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,19 +90,29 @@ export default function SubscriptionPaywallScreen() {
       .catch(() => undefined);
   }, []);
 
-  const isRenewal = status?.has_subscribed && !status?.is_active;
-  // First-time player who hasn't started (or used up) their one free 10-day trial
-  // (Phase 8) — show the trial CTA instead of the $10/year flow. Once
+  const isActive = !!status?.is_active;
+  const isRenewal = status?.has_subscribed && !isActive;
+  // First-time player who hasn't started (or used up) their one free 10-day
+  // trial (Phase 8) picks a plan: Free (10 days) or the 1-year plan. Once
   // trial_eligible flips to false (trial started, or a lapsed trial was
   // used up), this always falls through to the normal subscribe/renew flow
   // below, even if `isRenewal` is also true.
-  const isTrialOffer = !status?.is_active && status?.trial_eligible;
+  const canPickTrial = !isActive && !!status?.trial_eligible;
+  const isTrialOffer = canPickTrial && selectedPlan === 'trial';
+  // Already unlocked, but the year can still be bought — on the free trial
+  // (upgrade) or in a paid year's last 30 days (renew early). Either way the
+  // backend starts the new year when the current period ends.
+  const isUpgrade = isActive && !!status?.is_trial && !!status?.can_purchase;
+  const isEarlyRenewal = isActive && !status?.is_trial && !!status?.can_purchase;
+  // plan_amount, not amount — amount is what the current row cost, 0 for the trial.
+  const price = formatPrice(status?.plan_amount ?? status?.amount ?? 10, status?.currency);
+  const currentEndsOn = status?.expires_at ? formatBornDate(status.expires_at) : 'N/A';
 
   const handleStartTrial = async () => {
     setError(null);
     setIsProcessing(true);
     try {
-      // No PayPal step at all — the backend unlocks access immediately and
+      // No PayHere step at all — the backend unlocks access immediately and
       // returns the updated status directly, so there's nothing to poll for.
       await subscriptionService.startTrial();
       await refresh();
@@ -106,10 +124,17 @@ export default function SubscriptionPaywallScreen() {
     }
   };
 
+  /** True once the paid year has landed — for an upgrade/early renewal the player was already active, so look for expires_at moving. */
+  const isPaymentApplied = () => {
+    const latest = useSubscriptionStore.getState().status;
+    return !!latest?.is_active && latest.expires_at !== expiresBeforeCheckout.current;
+  };
+
   const handleSubscribe = async () => {
     setError(null);
     setIsProcessing(true);
     setPollState('idle');
+    expiresBeforeCheckout.current = status?.expires_at ?? null;
     try {
       const order = await subscriptionService.createOrder();
       setCheckoutUrl(order.approve_url);
@@ -127,7 +152,7 @@ export default function SubscriptionPaywallScreen() {
     for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
       await sleep(POLL_DELAY_MS);
       await refresh();
-      if (useSubscriptionStore.getState().status?.is_active) {
+      if (isPaymentApplied()) {
         setPollState('idle');
         setIsProcessing(false);
         router.back();
@@ -139,17 +164,32 @@ export default function SubscriptionPaywallScreen() {
   };
 
   const handleWebViewNavigation = (navState: WebViewNavigation) => {
-    // If PayPal redirects back to our return URL or cancellation URL
-    if (navState.url.includes('payment-return') || navState.url.includes('cancel')) {
+    // Our backend's return/cancel pages (PayHere redirects there), or the
+    // app deep link those pages bounce to — never PayHere's own pages.
+    const url = navState.url;
+    if (
+      url.includes('payment-return') ||
+      url.includes('/payments/subscriptions/return') ||
+      url.includes('/payments/subscriptions/cancel')
+    ) {
       startPollingStatus();
     }
+  };
+
+  // Cancel on the checkout sheet — re-enable the button (it stayed in its
+  // loading state before) and quietly re-check status in case they had
+  // already paid before closing.
+  const handleCloseCheckout = () => {
+    setCheckoutUrl(null);
+    setIsProcessing(false);
+    refresh();
   };
 
   const handleCheckAgain = async () => {
     setIsProcessing(true);
     await refresh();
     setIsProcessing(false);
-    if (useSubscriptionStore.getState().status?.is_active) {
+    if (isPaymentApplied()) {
       router.back();
     }
   };
@@ -166,17 +206,29 @@ export default function SubscriptionPaywallScreen() {
           <Ionicons name="ribbon" size={28} color={colors.energy} />
         </View>
         <Text style={styles.heroTitle}>
-          {isTrialOffer ? 'Your first 10 days are free' : isRenewal ? 'Renew your subscription' : 'Unlock AmaX'}
+          {canPickTrial
+            ? 'Choose your plan'
+            : isUpgrade
+              ? 'Upgrade to 1 year'
+              : isEarlyRenewal
+                ? 'Renew your plan early'
+                : isRenewal
+                  ? 'Renew your subscription'
+                  : 'Unlock AmaX'}
         </Text>
         <Text style={styles.heroSubtitle}>
-          {isTrialOffer
-            ? 'Start your free trial to add every sport you play and unlock full performance analytics — no payment needed.'
-            : isRenewal
-              ? 'Your subscription has expired. Renew to keep adding sports, editing your stats, and viewing Analysis.'
-              : 'One subscription unlocks every sport you want to play and your full performance analytics.'}
+          {canPickTrial
+            ? 'Try AmaX free for 10 days, or get the full year right away. Both unlock every sport you play and full performance analytics.'
+            : isUpgrade
+              ? `You’re on the free trial until ${currentEndsOn}. Upgrade now and your year starts when the trial ends — you keep every free day.`
+              : isEarlyRenewal
+                ? `Your plan runs until ${currentEndsOn}. Renew now and the next year is added on top — no gap in access.`
+                : isRenewal
+                  ? 'Your subscription has expired. Renew to keep adding sports, editing your stats, and viewing Analysis.'
+                  : 'One subscription unlocks every sport you want to play and your full performance analytics.'}
         </Text>
         <View style={styles.priceRow}>
-          {isTrialOffer ? (
+          {canPickTrial ? (
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
                 <Text style={styles.priceValue}>Free</Text>
@@ -188,14 +240,14 @@ export default function SubscriptionPaywallScreen() {
                 </Text>
                 <View style={{ backgroundColor: colors.energy, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 }}>
                   <Text style={{ ...typography.body, color: colors.navy, fontWeight: '800' }}>
-                    ${(status?.amount ?? 10).toFixed(2)} / year
+                    {price} / year
                   </Text>
                 </View>
               </View>
             </View>
           ) : (
             <>
-              <Text style={styles.priceValue}>${(status?.amount ?? 10).toFixed(2)}</Text>
+              <Text style={styles.priceValue}>{price}</Text>
               <Text style={styles.priceUnit}>/ year</Text>
             </>
           )}
@@ -206,7 +258,7 @@ export default function SubscriptionPaywallScreen() {
 
       {isCheckingStatus ? (
         <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />
-      ) : status?.is_active ? (
+      ) : isActive && !status?.can_purchase ? (
         <View style={styles.activeCard}>
           <Ionicons name="checkmark-circle" size={28} color={colors.success} />
           <Text style={styles.activeTitle}>You&rsquo;re already subscribed</Text>
@@ -245,6 +297,31 @@ export default function SubscriptionPaywallScreen() {
             </View>
           )}
 
+          {canPickTrial && (
+            <View style={styles.planList} accessibilityRole="radiogroup">
+              <Text style={styles.planListTitle}>Pick a plan</Text>
+              <PlanOption
+                title="Free trial"
+                price="Free"
+                priceUnit="10 days"
+                description="Full access for 10 days. No payment needed."
+                icon="gift-outline"
+                selected={selectedPlan === 'trial'}
+                onPress={() => setSelectedPlan('trial')}
+              />
+              <PlanOption
+                title="1 Year plan"
+                price={price}
+                priceUnit="/ year"
+                description="Full access for 12 months. Renew each year."
+                badge="BEST VALUE"
+                icon="calendar-outline"
+                selected={selectedPlan === 'yearly'}
+                onPress={() => setSelectedPlan('yearly')}
+              />
+            </View>
+          )}
+
           {isTrialOffer ? (
             <>
               <Button
@@ -255,8 +332,8 @@ export default function SubscriptionPaywallScreen() {
                 style={styles.subscribeButton}
               />
               <Text style={styles.disclaimer}>
-                Your trial lasts 10 days from the moment you start it — no PayPal, no charge. After that, keeping
-                your sports and Analysis unlocked requires the ${(status?.amount ?? 10).toFixed(2)}/year subscription;
+                Your trial lasts 10 days from the moment you start it — no payment, no charge. After that, keeping
+                your sports and Analysis unlocked requires the {price}/year subscription;
                 we&rsquo;ll remind you before it ends.
               </Text>
             </>
@@ -265,7 +342,7 @@ export default function SubscriptionPaywallScreen() {
               {pollState === 'polling' ? (
                 <View style={styles.pollingCard}>
                   <ActivityIndicator color={colors.primary} />
-                  <Text style={styles.pollingText}>Confirming your payment with PayPal…</Text>
+                  <Text style={styles.pollingText}>Confirming your payment with PayHere…</Text>
                 </View>
               ) : pollState === 'timed-out' ? (
                 <View style={styles.pollingCard}>
@@ -280,28 +357,40 @@ export default function SubscriptionPaywallScreen() {
               ) : null}
 
               <Button
-                label={`${isRenewal ? 'Renew Now' : 'Subscribe Now'} — $${(status?.amount ?? 10).toFixed(2)}/year`}
+                label={
+                  isUpgrade
+                    ? `Upgrade to 1 Year — ${price}`
+                    : isEarlyRenewal
+                      ? `Renew Early — ${price}/year`
+                      : `${isRenewal ? 'Renew Now' : 'Subscribe Now'} — ${price}/year`
+                }
                 onPress={handleSubscribe}
                 loading={isProcessing}
                 disabled={isProcessing}
                 style={styles.subscribeButton}
               />
+              {(isUpgrade || isEarlyRenewal) && (
+                <Text style={styles.disclaimer}>
+                  Your new year starts on {currentEndsOn}, when your current {isUpgrade ? 'free trial' : 'plan'} ends,
+                  and runs for 12 months from then.
+                </Text>
+              )}
               <Text style={styles.disclaimer}>
-                Payment is handled entirely by PayPal{Platform.OS !== 'web' ? " in an in-app browser" : ''}. AmaX never sees or stores your card details.
+                Payment is handled securely by PayHere{Platform.OS !== 'web' ? " in an in-app browser" : ''}. AmaX never sees or stores your card details.
               </Text>
             </>
           )}
           <Text style={styles.disclaimer}>
-            This doesn&rsquo;t include VIP live-stream access, which is unlocked separately per match for $5.
+            This doesn&rsquo;t include VIP live-stream access, which is unlocked separately per match.
           </Text>
         </>
       )}
 
-      {/* Embedded PayPal WebView */}
+      {/* Embedded PayHere checkout WebView */}
       <Modal visible={!!checkoutUrl} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={styles.webViewHeader}>
-            <Pressable onPress={() => setCheckoutUrl(null)} style={styles.webViewClose}>
+            <Pressable onPress={handleCloseCheckout} style={styles.webViewClose}>
               <Ionicons name="close" size={24} color={colors.text} />
               <Text style={styles.webViewCloseText}>Cancel</Text>
             </Pressable>
@@ -391,6 +480,14 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     marginTop: spacing.md,
+  },
+  planList: {
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  planListTitle: {
+    ...typography.subtitle,
+    marginBottom: spacing.xs,
   },
   benefitsCard: {
     backgroundColor: colors.card,
