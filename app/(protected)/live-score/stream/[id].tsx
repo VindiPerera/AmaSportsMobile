@@ -13,11 +13,13 @@ import { colors, radius, shadows, spacing, typography } from '../../../../src/th
 import { matchService } from '../../../../src/services/matchService';
 import { streamAccessService } from '../../../../src/services/streamAccessService';
 import { extractYouTubeId } from '../../../../src/utils/youtube';
+import { formatPrice } from '../../../../src/utils/price';
 import { ApiError, MatchSummary } from '../../../../src/types';
 
 /** How many times to poll the match after the in-app browser closes, before giving up and asking the viewer to check manually. */
-const POLL_ATTEMPTS = 5;
-const POLL_DELAY_MS = 2000;
+// PayHere's notify_url usually lands within a few seconds of payment, but can lag.
+const POLL_ATTEMPTS = 8;
+const POLL_DELAY_MS = 2500;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -157,14 +159,14 @@ export default function LiveStreamScreen() {
               Unlock this match's live stream for every viewer — one payment covers everyone watching.
             </Text>
             <Text style={styles.vipPrice}>
-              ${(match?.stream_access_amount ?? 5).toFixed(0)}
+              {formatPrice(match?.stream_access_amount ?? 5, match?.stream_access_currency, 0)}
               <Text style={styles.vipPriceUnit}> / match</Text>
             </Text>
 
             {pollState === 'polling' ? (
               <View style={styles.pollingCard}>
                 <ActivityIndicator color={colors.white} />
-                <Text style={styles.pollingText}>Confirming your payment with PayPal…</Text>
+                <Text style={styles.pollingText}>Confirming your payment with PayHere…</Text>
               </View>
             ) : pollState === 'timed-out' ? (
               <View style={styles.pollingCard}>
@@ -192,7 +194,7 @@ export default function LiveStreamScreen() {
               />
             )}
             <Text style={styles.disclaimer}>
-              Payment is handled entirely by PayPal
+              Payment is handled securely by PayHere
               {Platform.OS !== 'web' ? ' in an in-app browser' : ''}. AmaX never sees or stores your card details.
             </Text>
           </LinearGradient>
