@@ -22,8 +22,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
       ]
     },
     "web": {
@@ -48,13 +51,14 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow AmaX to access your photos to set your cover and profile picture.",
-          "cameraPermission": "Allow AmaX to use the camera to take your cover and profile picture."
+          "cameraPermission": "Allow AmaX to use the camera to take your cover and profile picture.",
+          "microphonePermission": false
         }
       ],
       "expo-web-browser"
     ],
     "extra": {
-      "apiUrl": "http://www.amaxsport.com/api",
+      "apiUrl": "https://www.amaxsport.com/api",
       "router": {},
       "eas": {
         "projectId": "fe907456-8db7-4fef-b91c-64896217452e"

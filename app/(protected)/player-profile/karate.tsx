@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { router, useLocalSearchParams } from 'expo-router';
+import { requireActivePlan } from '../../../src/store/subscriptionStore';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -269,7 +270,7 @@ export default function KarateProfileScreen() {
             rows: recentRows,
           },
         ]}
-        onEditPress={() => setIsViewing(false)}
+        onEditPress={() => requireActivePlan(() => setIsViewing(false))}
         onBackPress={() => router.back()}
       />
     );

@@ -21,7 +21,7 @@ import { useOnboardingStore } from '../src/store/onboardingStore';
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 // Ensures that if the app is opened via a deep link while the in-app browser is active,
-// the browser sheet is dismissed automatically (e.g. after PayPal checkout).
+// the browser sheet is dismissed automatically (e.g. after PayHere checkout).
 WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
