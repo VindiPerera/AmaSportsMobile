@@ -19,7 +19,7 @@ export const subscriptionService = {
     return data.data;
   },
 
-  /** Starts (or renews) the $10/year subscription — open `approve_url` in an in-app browser. */
+  /** Starts (or renews) the $10/year subscription — open `approve_url` (our PayHere checkout page) in-app. */
   async createOrder() {
     const { data } = await apiClient.post<ApiSuccessResponse<SubscriptionOrder>>(
       '/subscriptions/create-order'
@@ -28,7 +28,7 @@ export const subscriptionService = {
   },
 
   /**
-   * Starts the one-time free trial (Phase 8) — no PayPal step, unlocks
+   * Starts the one-time free trial (Phase 8) — no PayHere step, unlocks
    * immediately. Only reachable when `status.trial_eligible` is true; the
    * backend re-enforces eligibility regardless.
    */
