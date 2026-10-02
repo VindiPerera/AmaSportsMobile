@@ -38,6 +38,26 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   reset: () => set({ status: null, isLoading: false, error: null }),
 }));
 
+/**
+ * Runs `onAllowed` only when the player has an active plan (free trial or
+ * paid year); otherwise opens the plans screen instead. Used by every sport
+ * profile's "Edit Profile" button so the read-only view can't be flipped
+ * into an editable form without a plan. The backend still enforces this on
+ * every save (402 -> paywall), so if status can't be loaded at all it lets
+ * the action through rather than blocking someone who is subscribed.
+ */
+export async function requireActivePlan(onAllowed: () => void) {
+  const store = useSubscriptionStore.getState();
+  if (!store.status) await store.refresh();
+
+  const status = useSubscriptionStore.getState().status;
+  if (status && !status.is_active) {
+    router.push('/(protected)/subscription/paywall');
+    return;
+  }
+  onAllowed();
+}
+
 // A stale cached "active" status shouldn't keep gating screens open after the
 // backend has rejected a write as needing a subscription — force a re-fetch so
 // the paywall (which reads status.has_subscribed itself to tell "never

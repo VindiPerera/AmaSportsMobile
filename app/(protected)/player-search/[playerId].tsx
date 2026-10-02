@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorBanner } from '../../../src/components/ui/ErrorBanner';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
 import { colors } from '../../../src/theme';
 import { useLookupStore } from '../../../src/store/lookupStore';
+import { useAuthStore } from '../../../src/store/authStore';
+import { contactService } from '../../../src/services/contactService';
 import { playerService } from '../../../src/services/playerService';
 import { CricketProfileFormValues } from '../../../src/types';
 
@@ -59,6 +61,7 @@ export default function PublicCricketProfileScreen() {
   const { playerId } = useLocalSearchParams<{ playerId: string }>();
   const lookups = useLookupStore((s) => s.lookups);
   const ensureLoaded = useLookupStore((s) => s.ensureLoaded);
+  const user = useAuthStore((s) => s.user);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +125,30 @@ export default function PublicCricketProfileScreen() {
     })();
   }, [playerId, ensureLoaded]);
 
+  // Reports land in the admin panel's Contact Messages inbox (Google Play UGC
+  // policy: users must be able to flag other users' content for moderation).
+  const submitReport = async (reason: string) => {
+    try {
+      await contactService.submit({
+        name: user?.name ?? 'AmaX player',
+        email: user?.email ?? '',
+        message: `[REPORT] Player #${playerId} (${fullName || 'unnamed'}) — ${reason}`,
+      });
+      Alert.alert('Report sent', 'Thanks — our team will review this profile.');
+    } catch {
+      Alert.alert('Could not send report', 'Please try again, or use the Contact Us tab.');
+    }
+  };
+
+  const handleReport = () => {
+    Alert.alert('Report this player', 'Why are you reporting this profile?', [
+      { text: 'Inappropriate photo', onPress: () => submitReport('Inappropriate photo') },
+      { text: 'Fake or impersonating', onPress: () => submitReport('Fake or impersonating someone') },
+      { text: 'Offensive content', onPress: () => submitReport('Offensive content') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   if (isLoading || !lookups) {
     return (
       <ScreenContainer edges={['bottom']}>
@@ -149,6 +176,7 @@ export default function PublicCricketProfileScreen() {
       teamLogos={teamLogos}
       collegeLogoUrl={collegeLogoUrl}
       onBackPress={() => router.back()}
+      onReportPress={handleReport}
     />
   );
 }

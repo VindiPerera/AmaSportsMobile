@@ -23,6 +23,7 @@ import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ImageLightbox } from '../../../src/components/ui/ImageLightbox';
 import { CricketPlayerDetailView } from '../../../src/components/player/CricketPlayerDetailView';
 import { PlayerSportDetailView } from '../../../src/components/player/PlayerSportDetailView';
+import { AccountSettingsSection } from '../../../src/components/player/AccountSettingsSection';
 import { colors, getSportTheme, radius, shadows, spacing, typography } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useLookupStore } from '../../../src/store/lookupStore';
@@ -899,6 +900,8 @@ export default function PlayerProfileHubScreen() {
           )}
         </View>
       )}
+
+      <AccountSettingsSection />
 
       {isLoggingOut && <ActivityIndicator color={colors.primary} style={styles.loadingIndicator} />}
 

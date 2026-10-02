@@ -40,6 +40,9 @@ interface CricketPlayerDetailViewProps {
   collegeLogoUrl?: string | null;
   onEditPress?: () => void;
   onBackPress?: () => void;
+  /** Shown on someone else's profile (Player Search) — Google Play's UGC
+   * policy requires a way to report other users' content. */
+  onReportPress?: () => void;
   /** True when embedded inline in another screen that already provides its
    * own header/photo/edit affordance (see the Player Profile tab) — skips
    * this component's own cover-photo/nav-bar/identity header and dark tab
@@ -61,6 +64,7 @@ export function CricketPlayerDetailView({
   collegeLogoUrl,
   onEditPress,
   onBackPress,
+  onReportPress,
   embedded = false,
 }: CricketPlayerDetailViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'stats' | 'matches' | 'achievements'>('overview');
@@ -151,6 +155,11 @@ export function CricketPlayerDetailView({
               <Pressable onPress={onEditPress} style={[styles.editBadgeButton, { backgroundColor: sportTheme.primary }]}>
                 <Ionicons name="create-outline" size={14} color={colors.white} />
                 <Text style={styles.editBadgeText}>Edit Profile</Text>
+              </Pressable>
+            )}
+            {onReportPress && (
+              <Pressable onPress={onReportPress} style={styles.navIconButton} hitSlop={8} accessibilityLabel="Report player">
+                <Ionicons name="flag-outline" size={20} color={colors.white} />
               </Pressable>
             )}
             <Pressable style={styles.navIconButton} hitSlop={8}>
