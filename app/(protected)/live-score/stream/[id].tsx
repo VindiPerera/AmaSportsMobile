@@ -14,6 +14,7 @@ import { matchService } from '../../../../src/services/matchService';
 import { streamAccessService } from '../../../../src/services/streamAccessService';
 import { extractYouTubeId } from '../../../../src/utils/youtube';
 import { formatPrice } from '../../../../src/utils/price';
+import { IN_APP_PAYMENTS_ENABLED } from '../../../../src/constants/config';
 import { ApiError, MatchSummary } from '../../../../src/types';
 
 /** How many times to poll the match after the in-app browser closes, before giving up and asking the viewer to check manually. */
@@ -154,16 +155,22 @@ export default function LiveStreamScreen() {
             <View style={styles.vipIconCircle}>
               <Ionicons name="star" size={26} color={colors.white} />
             </View>
-            <Text style={styles.vipTitle}>VIP Access</Text>
+            <Text style={styles.vipTitle}>
+              {IN_APP_PAYMENTS_ENABLED ? 'VIP Access' : 'Live stream unavailable'}
+            </Text>
             <Text style={styles.vipSubtitle}>
-              Unlock this match's live stream for every viewer — one payment covers everyone watching.
+              {IN_APP_PAYMENTS_ENABLED
+                ? "Unlock this match's live stream for every viewer — one payment covers everyone watching."
+                : "This match's live stream isn't available to watch in the Android app right now."}
             </Text>
-            <Text style={styles.vipPrice}>
-              {formatPrice(match?.stream_access_amount ?? 5, match?.stream_access_currency, 0)}
-              <Text style={styles.vipPriceUnit}> / match</Text>
-            </Text>
+            {IN_APP_PAYMENTS_ENABLED && (
+              <Text style={styles.vipPrice}>
+                {formatPrice(match?.stream_access_amount ?? 5, match?.stream_access_currency, 0)}
+                <Text style={styles.vipPriceUnit}> / match</Text>
+              </Text>
+            )}
 
-            {pollState === 'polling' ? (
+            {!IN_APP_PAYMENTS_ENABLED ? null : pollState === 'polling' ? (
               <View style={styles.pollingCard}>
                 <ActivityIndicator color={colors.white} />
                 <Text style={styles.pollingText}>Confirming your payment with PayHere…</Text>
@@ -193,10 +200,12 @@ export default function LiveStreamScreen() {
                 style={styles.unlockButton}
               />
             )}
-            <Text style={styles.disclaimer}>
-              Payment is handled securely by PayHere
-              {Platform.OS !== 'web' ? ' in an in-app browser' : ''}. AmaX never sees or stores your card details.
-            </Text>
+            {IN_APP_PAYMENTS_ENABLED && (
+              <Text style={styles.disclaimer}>
+                Payment is handled securely by PayHere
+                {Platform.OS !== 'web' ? ' in an in-app browser' : ''}. AmaX never sees or stores your card details.
+              </Text>
+            )}
           </LinearGradient>
         )}
       </ScreenContainer>
