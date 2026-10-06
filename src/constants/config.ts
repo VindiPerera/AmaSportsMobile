@@ -43,6 +43,15 @@ export const PRIVACY_POLICY_URL = `${WEB_URL}/privacy-policy`;
 
 export const TERMS_URL = `${WEB_URL}/terms`;
 
+/**
+ * Google Play's Payments policy requires Play Billing for digital goods sold
+ * inside an Android app, and PayHere (our only gateway) isn't that. Until Play
+ * Billing is integrated, the Android build offers no purchase flow (the free
+ * trial and existing subscriptions still work). Flip to true once Play
+ * Billing replaces PayHere on Android.
+ */
+export const IN_APP_PAYMENTS_ENABLED = Platform.OS !== 'android';
+
 export const API_TIMEOUT_MS = 15000;
 
 export const STORAGE_KEYS = {
