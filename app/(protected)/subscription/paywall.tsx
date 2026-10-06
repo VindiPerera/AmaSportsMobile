@@ -13,6 +13,7 @@ import { useSubscriptionStore } from '../../../src/store/subscriptionStore';
 import { subscriptionService } from '../../../src/services/subscriptionService';
 import { lookupService } from '../../../src/services/lookupService';
 import { sportIconFor } from '../../../src/constants/sportIcons';
+import { IN_APP_PAYMENTS_ENABLED } from '../../../src/constants/config';
 import { formatBornDate } from '../../../src/utils/date';
 import { formatPrice } from '../../../src/utils/price';
 import { ApiError, SportOption } from '../../../src/types';
@@ -98,7 +99,7 @@ export default function SubscriptionPaywallScreen() {
   // used up), this always falls through to the normal subscribe/renew flow
   // below, even if `isRenewal` is also true.
   const canPickTrial = !isActive && !!status?.trial_eligible;
-  const isTrialOffer = canPickTrial && selectedPlan === 'trial';
+  const isTrialOffer = canPickTrial && (selectedPlan === 'trial' || !IN_APP_PAYMENTS_ENABLED);
   // Already unlocked, but the year can still be bought — on the free trial
   // (upgrade) or in a paid year's last 30 days (renew early). Either way the
   // backend starts the new year when the current period ends.
@@ -234,6 +235,7 @@ export default function SubscriptionPaywallScreen() {
                 <Text style={styles.priceValue}>Free</Text>
                 <Text style={styles.priceUnit}>for your first 10 days</Text>
               </View>
+              {IN_APP_PAYMENTS_ENABLED && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                 <Text style={{ ...typography.body, color: 'rgba(255,255,255,0.85)' }}>
                   Then
@@ -244,12 +246,15 @@ export default function SubscriptionPaywallScreen() {
                   </Text>
                 </View>
               </View>
+              )}
             </View>
           ) : (
-            <>
-              <Text style={styles.priceValue}>{price}</Text>
-              <Text style={styles.priceUnit}>/ year</Text>
-            </>
+            IN_APP_PAYMENTS_ENABLED && (
+              <>
+                <Text style={styles.priceValue}>{price}</Text>
+                <Text style={styles.priceUnit}>/ year</Text>
+              </>
+            )
           )}
         </View>
       </LinearGradient>
@@ -297,7 +302,7 @@ export default function SubscriptionPaywallScreen() {
             </View>
           )}
 
-          {canPickTrial && (
+          {canPickTrial && IN_APP_PAYMENTS_ENABLED && (
             <View style={styles.planList} accessibilityRole="radiogroup">
               <Text style={styles.planListTitle}>Pick a plan</Text>
               <PlanOption
@@ -332,11 +337,19 @@ export default function SubscriptionPaywallScreen() {
                 style={styles.subscribeButton}
               />
               <Text style={styles.disclaimer}>
-                Your trial lasts 10 days from the moment you start it — no payment, no charge. After that, keeping
-                your sports and Analysis unlocked requires the {price}/year subscription;
-                we&rsquo;ll remind you before it ends.
+                {IN_APP_PAYMENTS_ENABLED
+                  ? `Your trial lasts 10 days from the moment you start it — no payment, no charge. After that, keeping your sports and Analysis unlocked requires the ${price}/year subscription; we’ll remind you before it ends.`
+                  : 'Your trial lasts 10 days from the moment you start it — no payment, no charge.'}
               </Text>
             </>
+          ) : !IN_APP_PAYMENTS_ENABLED ? (
+            <View style={styles.pollingCard}>
+              <Ionicons name="information-circle-outline" size={22} color={colors.textMuted} />
+              <Text style={styles.pollingText}>
+                Subscriptions can’t be purchased in the Android app at the moment.
+              </Text>
+              <Button label="Done" onPress={() => router.back()} style={styles.doneButton} />
+            </View>
           ) : (
             <>
               {pollState === 'polling' ? (
